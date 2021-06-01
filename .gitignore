@@ -1,0 +1,8 @@
+.idea
+*.pyc
+venv
+/dynamic/tests/matrix.txt
+*.pickle
+*.npy
+*.vscode*
+*.egg-info

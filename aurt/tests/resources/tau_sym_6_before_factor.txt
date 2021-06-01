@@ -1,0 +1,18 @@
+XX6*qd1**2*sin(q2)**2*sin(q3)**2*sin(q4)**2*sin(q6)*cos(q5)**2*cos(q6)
+ + XX6*qd1**2*sin(q2)**2*sin(q3)**2*sin(q4)*sin(q6)**2*cos(q4)*cos(q5)
+ - XX6*qd1**2*sin(q2)**2*sin(q3)**2*sin(q4)*cos(q4)*cos(q5)*cos(q6)**2
+ - XX6*qd1**2*sin(q2)**2*sin(q3)**2*sin(q6)*cos(q4)**2*cos(q6)
+ + XX6*qd1**2*sin(q2)**2*sin(q3)*sin(q4)**2*sin(q6)**2*cos(q3)*cos(q5)
+ - XX6*qd1**2*sin(q2)**2*sin(q3)*sin(q4)**2*cos(q3)*cos(q5)*cos(q6)**2
+ - 2*XX6*qd1**2*sin(q2)**2*sin(q3)*sin(q4)*sin(q6)*cos(q3)*cos(q4)*cos(q5)**2*cos(q6)
+ - 2*XX6*qd1**2*sin(q2)**2*sin(q3)*sin(q4)*sin(q6)*cos(q3)*cos(q4)*cos(q6)
+ - XX6*qd1**2*sin(q2)**2*sin(q3)*sin(q6)**2*cos(q3)*cos(q4)**2*cos(q5)
+ - YY6*qd1**2*sin(q2)**2*sin(q3)**2*sin(q4)**2*sin(q6)*cos(q5)**2*cos(q6)
+ - YY6*qd1**2*sin(q2)**2*sin(q3)**2*sin(q4)*sin(q6)**2*cos(q4)*cos(q5)
+ + YY6*qd1**2*sin(q2)**2*sin(q3)**2*sin(q4)*cos(q4)*cos(q5)*cos(q6)**2
+ + YY6*qd1**2*sin(q2)**2*sin(q3)**2*sin(q6)*cos(q4)**2*cos(q6)
+ - YY6*qd1**2*sin(q2)**2*sin(q3)*sin(q4)**2*sin(q6)**2*cos(q3)*cos(q5)
+ + YY6*qd1**2*sin(q2)**2*sin(q3)*sin(q4)**2*cos(q3)*cos(q5)*cos(q6)**2
+ + 2*YY6*qd1**2*sin(q2)**2*sin(q3)*sin(q4)*sin(q6)*cos(q3)*cos(q4)*cos(q5)**2*cos(q6)
+ + 2*YY6*qd1**2*sin(q2)**2*sin(q3)*sin(q4)*sin(q6)*cos(q3)*cos(q4)*cos(q6)
+ + YY6*qd1**2*sin(q2)**2*sin(q3)*sin(q6)**2*cos(q3)*cos(q4)**2*cos(q5)
