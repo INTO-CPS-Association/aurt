@@ -7,12 +7,12 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 from sklearn.linear_model import LinearRegression
 
-from aurt.src.num_sym_layers import *
-from aurt.src.file_system import cache_object, load_numpy_expr, store_numpy_expr
-from aurt.src.data_processing import plot_colors
+from aurt.num_sym_layers import *
+from aurt.file_system import cache_object, load_numpy_expr, store_numpy_expr
+from aurt.data_processing import plot_colors
 
-from aurt.robot_live_tests.linearization_tests import compute_regressor_with_instantiated_parameters, compute_indices_base_exist, compute_observation_matrix_and_measurement_vector, compute_parameters_base, get_mse
-from aurt.tests import NONINTERACTIVE
+from robot_live_tests.linearization_tests import compute_regressor_with_instantiated_parameters, compute_indices_base_exist, compute_observation_matrix_and_measurement_vector, compute_parameters_base, get_mse
+from tests import NONINTERACTIVE
 
 
 def input_with_pi_to_float(input):
@@ -84,11 +84,11 @@ def calibration(mdh_params_func):
     if not isfile(observation_matrix_file_estimation):
         # The base parameter system is obtained by passing only the 'idx_base' columns of the regressor
         W_est, y_est = compute_observation_matrix_and_measurement_vector(
-            f'../../resources/Dataset/ur5e_all_joints_same_time/random_motion.csv',
+            f'../resources/Dataset/ur5e_all_joints_same_time/random_motion.csv',
             regressor_base_params,
             time_frame=(-np.inf, t_est_val_separation))
         W_val, y_val = compute_observation_matrix_and_measurement_vector(
-            f'../../resources/Dataset/ur5e_all_joints_same_time/random_motion.csv',
+            f'../resources/Dataset/ur5e_all_joints_same_time/random_motion.csv',
             regressor_base_params,
             time_frame=(t_est_val_separation, np.inf))
         store_numpy_expr(W_est, observation_matrix_file_estimation)

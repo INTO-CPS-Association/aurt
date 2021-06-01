@@ -1,12 +1,11 @@
 import os
-import pickle
 import unittest
 
 import sympy as sp
 
-from aurt.src.file_system import safe_open, store_object, load_object, cache_object
-from aurt.tests.timed_test import TimedTest
-from aurt.tests import logger
+from aurt.file_system import store_object, load_object, cache_object
+from tests.timed_test import TimedTest
+from tests import logger
 
 
 class SerializationTests(TimedTest):

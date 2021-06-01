@@ -1,15 +1,15 @@
 import unittest
 
-from aurt.src.data_processing import load_data, ur5e_fields
-from aurt.tests import NONINTERACTIVE
+from aurt.data_processing import load_data, ur5e_fields
+from tests import NONINTERACTIVE
 
 import os.path
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
 
-import aurt.src.calibration_aux as cal_aux
-from aurt.tests.timed_test import TimedTest
+import aurt.calibration_aux as cal_aux
+from tests.timed_test import TimedTest
 
 
 def select_data_subset(data, idx_start, idx_end):

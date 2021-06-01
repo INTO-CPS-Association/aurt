@@ -12,8 +12,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="TODO",
-    packages=setuptools.find_packages("aurt"),
-    package_dir={"": "aurt"},
+    packages=["aurt"],
     install_requires=[
         "numpy>=1",
         "sympy>=1"
@@ -26,5 +25,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires=">=3.8",
-    entry_points={"console_scripts": ["aurt=src.cli:main"]},
+    # entry_points={"console_scripts": ["aurt=aurt.cli:main"]},
 )

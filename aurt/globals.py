@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from aurt.src.num_sym_layers import npvector
+from aurt.num_sym_layers import npvector
 import sympy as sp
 
 Njoints = 6

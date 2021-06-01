@@ -1,4 +1,4 @@
-from aurt.src.globals import Njoints
+from aurt.globals import Njoints
 
 
 def get_forward_kinematics(q, alpha, P, zeros_matrix, matrix, cos, sin):

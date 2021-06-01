@@ -1,8 +1,8 @@
-from aurt.src.globals import Njoints, get_ur3e_parameters, get_ur3e_PC, get_ur5e_parameters, get_ur5e_PC, \
+from aurt.globals import Njoints, get_ur3e_parameters, get_ur3e_PC, get_ur5e_parameters, get_ur5e_PC, \
     get_ur_parameters_symbolic, get_ur_frames, get_P
-from aurt.src.kinematics import get_forward_kinematics
+from aurt.kinematics import get_forward_kinematics
 
-from aurt.src.num_sym_layers import *
+from aurt.num_sym_layers import *
 
 
 def torque_algorithm_factory_from_parameters(ur_parameter_function, ur_frames_fun):

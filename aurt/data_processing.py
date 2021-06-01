@@ -5,8 +5,8 @@ import numpy as np
 
 
 # Taken from https://scipy-cookbook.readthedocs.io/items/SignalSmooth.html
-from aurt.src.file_system import safe_open
-from aurt.src.globals import Njoints
+from aurt.file_system import safe_open
+from aurt.globals import Njoints
 
 plot_colors = ['red', 'green', 'blue', 'chocolate', 'crimson', 'fuchsia', 'indigo', 'orange']
 

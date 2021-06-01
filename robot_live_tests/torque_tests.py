@@ -1,17 +1,16 @@
 import time
-import time
 import unittest
 
 import matplotlib.pyplot as plt
 import numpy as np
 from urinterface import RobotConnection
 
-from aurt.src.data_processing import load_data, ur5e_fields, plot_colors
-from aurt.src.globals import Njoints, g, get_ur5e_parameters, get_ur5e_PC
-from aurt.src.plotting import draw_robot, plot_trajectories, plot_dynamics
-from aurt.src.torques import compute_torques_numeric_5e, npzeros_array, npvector
-from aurt.tests import NONINTERACTIVE
-from aurt.tests.timed_test import TimedTest
+from aurt.data_processing import load_data, ur5e_fields
+from aurt import Njoints, g, get_ur5e_parameters, get_ur5e_PC
+from aurt import draw_robot
+from aurt import compute_torques_numeric_5e, npzeros_array, npvector
+from tests import NONINTERACTIVE
+from tests.timed_test import TimedTest
 
 
 class TorqueTests(TimedTest):

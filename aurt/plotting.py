@@ -1,13 +1,13 @@
 import numpy as np
 
-from aurt.src.data_processing import plot_colors
-from aurt.src.globals import Njoints, get_P
-from aurt.src.kinematics import get_forward_kinematics
-from aurt.src.num_sym_layers import npzeros_matrix, npmatrix, npcos, npsin, npvector
+from aurt.data_processing import plot_colors
+from aurt.globals import Njoints, get_P
+from aurt.kinematics import get_forward_kinematics
+from aurt.num_sym_layers import npzeros_matrix, npmatrix, npcos, npsin, npvector
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d.axes3d as p3
 import matplotlib.animation as animation
-from aurt.tests import NONINTERACTIVE
+from tests import NONINTERACTIVE
 
 
 def build_kinematics_joint(T_i_im1, i):

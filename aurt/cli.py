@@ -3,7 +3,7 @@ import traceback
 from os import getcwd
 import logging
 
-from aurt.src.utils import *
+from aurt.utils import *
 
 
 def main():

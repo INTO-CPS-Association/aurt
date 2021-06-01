@@ -5,16 +5,16 @@ import unittest
 import numpy as np
 import sympy as sp
 
-from aurt.src.globals import Njoints, g, get_ur5e_parameters, get_ur5e_PC
-from aurt.src.num_sym_layers import npcross, npvector, npzeros_array
-from aurt.src.plotting import draw_robot
-from aurt.src.torques import compute_torques_numeric_3e, compute_torques_symbolic_3e, compute_torques_numeric_5e
-from aurt.src.file_system import cache_numpy, store_numpy_expr, load_numpy_expr
-from aurt.tests import NONINTERACTIVE
+from aurt.globals import Njoints, g, get_ur5e_parameters, get_ur5e_PC
+from aurt.num_sym_layers import npcross, npvector, npzeros_array
+from aurt.plotting import draw_robot
+from aurt.torques import compute_torques_numeric_3e, compute_torques_symbolic_3e, compute_torques_numeric_5e
+from aurt.file_system import cache_numpy, store_numpy_expr, load_numpy_expr
+from tests import NONINTERACTIVE
 import matplotlib.pyplot as plt
 
-from aurt.tests.timed_test import TimedTest
-from aurt.tests import logger
+from tests.timed_test import TimedTest
+from tests import logger
 
 
 class NumericalTests(TimedTest):

@@ -1,14 +1,14 @@
 import os
 import unittest
 
-from aurt.src.calibration_aux import find_first
-from aurt.src.data_processing import process_missing_samples
-from aurt.src.file_system import safe_open
-from aurt.tests.timed_test import TimedTest
+from aurt.calibration_aux import find_first
+from aurt.data_processing import process_missing_samples
+from aurt.file_system import safe_open
+from tests.timed_test import TimedTest
 import numpy as np
 import matplotlib.pyplot as plt
 
-from aurt.third_party.rtde import csv_reader
+from third_party.rtde import csv_reader
 
 
 class DataProcessingTests(TimedTest):

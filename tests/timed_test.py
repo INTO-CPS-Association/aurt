@@ -1,6 +1,6 @@
 import time
 import unittest
-from aurt.tests import logger
+from tests import logger
 
 class TimedTest(unittest.TestCase):
     def setUp(self):

@@ -20,7 +20,7 @@ if __name__ == '__main__':
     if args.run_tests == "offline":
         try:
             loader = unittest.TestLoader()
-            start_dir = pathlib.Path('aurt/tests')
+            start_dir = pathlib.Path('tests')
             suite = loader.discover(start_dir, pattern="*tests.py")
             runner = unittest.TextTestRunner()
             runner.run(suite)
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     elif args.run_tests == "live":
         try:
             loader = unittest.TestLoader()
-            start_dir = pathlib.Path('aurt/robot_live_tests')
+            start_dir = pathlib.Path('robot_live_tests')
             suite = loader.discover(start_dir, pattern="*tests.py")
             runner = unittest.TextTestRunner()
             runner.run(suite)

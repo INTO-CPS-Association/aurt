@@ -13,14 +13,14 @@ from scipy import signal
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 
-from aurt.src.calibration_aux import find_nonstatic_start_and_end_indices
-from aurt.src.data_processing import load_data, ur5e_fields, plot_colors
-from aurt.src.globals import Njoints, g, get_ur5e_parameters, get_ur_parameters_symbolic, get_ur_frames
-from aurt.src.num_sym_layers import spzeros_array, spvector
-from aurt.src.file_system import project_root, cache_object, load_object, store_object, load_numpy_expr, store_numpy_expr
-from aurt.src.torques import compute_torques_symbolic_ur, npzeros_array
-from aurt.tests import NONINTERACTIVE
-from aurt.tests.timed_test import TimedTest
+from aurt import find_nonstatic_start_and_end_indices
+from aurt.data_processing import load_data, ur5e_fields, plot_colors
+from aurt import Njoints, g, get_ur5e_parameters, get_ur_parameters_symbolic, get_ur_frames
+from aurt import spzeros_array, spvector
+from aurt import project_root, cache_object, load_object, store_object, load_numpy_expr, store_numpy_expr
+from aurt import compute_torques_symbolic_ur, npzeros_array
+from tests import NONINTERACTIVE
+from tests.timed_test import TimedTest
 
 q = [0.0] + [sp.symbols(f"q{j}") for j in range(1, Njoints + 1)]
 qd = [0.0] + [sp.symbols(f"qd{j}") for j in range(1, Njoints + 1)]
