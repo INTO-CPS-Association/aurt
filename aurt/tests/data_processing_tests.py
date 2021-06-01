@@ -1,9 +1,14 @@
+import os
 import unittest
 
+from aurt.src.calibration_aux import find_first
 from aurt.src.data_processing import process_missing_samples
 from aurt.src.file_system import safe_open
 from aurt.tests.timed_test import TimedTest
 import numpy as np
+import matplotlib.pyplot as plt
+
+from aurt.third_party.rtde import csv_reader
 
 
 class DataProcessingTests(TimedTest):
@@ -31,6 +36,7 @@ class DataProcessingTests(TimedTest):
         self.assertTrue(np.array_equal(np.array([0., 1., 2., 3., 4., 5.]), rdata["x"]))
         self.assertTrue(np.array_equal(np.array([False, False,  True,  True, False, False]), rdata["interpolated"]))
 
+    @unittest.skip("TODO: Where is 'velLoadTest.csv'?")
     def test_find_subset_data(self):
         path = './resources/Dataset/ConstantVelocityWithLoadTorque'
 
@@ -56,7 +62,7 @@ class DataProcessingTests(TimedTest):
         for entry in os.scandir(path):
             print(entry.path)
             with safe_open(entry.path) as csvfile:
-                rd = ase.CSVReader(csvfile)  # robot data object
+                rd = csv_reader.CSVReader(csvfile)  # robot data object
 
             # find start and end indices for useful subset of data:
             # 1. Find center of time series data
@@ -120,6 +126,7 @@ class DataProcessingTests(TimedTest):
         plt.ylabel('Friction [A]')
         plt.legend()
         plt.show()
+
 
 if __name__ == '__main__':
     unittest.main()

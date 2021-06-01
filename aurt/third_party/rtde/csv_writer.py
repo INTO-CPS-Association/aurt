@@ -24,7 +24,7 @@
 import csv
 
 import sys
-sys.path.append('../..')
+sys.path.append('../../../resources')
 
 from third_party.rtde import serialize
 
