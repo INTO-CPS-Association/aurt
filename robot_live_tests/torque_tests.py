@@ -6,10 +6,11 @@ import numpy as np
 from urinterface import RobotConnection
 
 from aurt.data_processing import load_data, ur5e_fields
-from aurt import Njoints, g, get_ur5e_parameters, get_ur5e_PC
-from aurt import draw_robot
-from aurt import compute_torques_numeric_5e, npzeros_array, npvector
+from aurt.globals import Njoints, get_ur5e_parameters, get_ur5e_PC
+from aurt.num_sym_layers import npzeros_array, npvector
+from aurt.torques import compute_torques_numeric_5e
 from tests import NONINTERACTIVE
+from tests.utils.plotting import draw_robot
 from tests.utils.timed_test import TimedTest
 
 
