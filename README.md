@@ -20,20 +20,30 @@ aurt linearize --mdh mdh_file.csv --gravity [0.0, 0.0, 9.81] --out linearized_mo
 Reads the Modified Denavit Hartenberg (MDH) parameters in file `mdh_file.csv`, and writes the linearized and reduced model to file `linearized_model.pickle`.
 The gravity vector determines the orientation of the robot for which the parameters will be calibrated.
 
-## Calibrate
+## Calibration
 
 ```
-aurt calibrate --model linearized_model.pickle --data measured_data.csv --joint-friction- --reduced-params calibrated_parameters.csv
+aurt calibrate --model linearized_model.pickle --data measured_data.csv --joint-friction-coulomb square --reduced-params calibrated_parameters.csv
 ```
 
-Reads the linearized model produced in [Linearize](#linearize), the measured data in `measured_data.csv`, and writes the reduced parameter values to `calibrated_parameters.csv`.
+Reads the linearized model produced in [Linearize](#linearize), the measured data in `measured_data.csv`, and writes the reduced parameter values to `calibrated_parameters.csv`, 
+assuming the joint-friction model given by `--joint-friction-coulomb`.
 
 In order to generate the original parameters described in `mdh_file.csv`, provided in [Linearize](#linearize), use the `--full-params calibrated_parameters.csv` instead of `--reduced-params`
 
+The supported joint friction models are:
+- `--joint-friction-coulomb TYPE`, where `TYPE in {none, square, absolute}`, and:
+  - `TYPE=none` means TODO
+  - `TYPE=square` means TODO
+  - `TYPE=absolute` means TODO 
+- `--joint-friction-power POWERS` where `POWERS` has the format `[P1, P2, ..., PN]`, and `PN` is an integer representing the `N`-th power of the polynomial.
+- `--joint-hysteresis TYPE` where `TYPE in {sign, maxwell-slip}`, and:
+  - `TYPE=sign` means TODO
+  - `TYPE=maxwell-slip` means TODO
+
 The measured data should contain the following fields:
 - `time`
-- ...
-
+- TODO
 
 ## Predict
 
@@ -110,7 +120,7 @@ For more information on access, self-service and management of files: https://me
     - [ ] Must support comments
     - [ ] Must integrate with logging
 - [ ] Finish data schema
-
+- [ ] Finish documentation on friction models
 - [x] Gravity vector goes into the config file in the linearize step.
 - [ ] Joint dynamic configuration will be hybrid (overridable via the CLI.)
 - [ ] In the predict stage, there's two caching mechanisms to build the regressor:

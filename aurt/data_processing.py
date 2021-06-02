@@ -1,6 +1,9 @@
 import csv
 from itertools import compress
+from math import pi
+
 import numpy as np
+import pandas as pd
 
 
 # Taken from https://scipy-cookbook.readthedocs.io/items/SignalSmooth.html
@@ -23,6 +26,43 @@ ur5e_fields = [
             f"actual_q_{JOINT_N}",
             f"actual_qd_{JOINT_N}",
         ]
+
+
+def convert_file_to_mdh(filename):
+    if filename[-3:] == "csv":
+        df = pd.read_csv(filename)
+    df = df.fillna(value='None')
+    d = [float(d) if d != 'None' else None for d in df.d]
+    a = [float(a) if a != 'None' else None for a in df.a]
+    alpha = []
+    for alpha_i in df.alpha:
+        alpha.append(input_with_pi_to_float(alpha_i))
+    return d, a, alpha
+
+
+def input_with_pi_to_float(input):
+    if input == 'None':
+        return None
+    elif isinstance(input, str) and "pi" in input:
+        input = input.split("/")
+        # Case: no / in input, i.e. either pi or a number, or -pi
+        if len(input) == 1: # this means no / is in input
+            if "pi" == input[0]:
+                return pi
+            elif "-pi" == input[0]:
+                return -pi
+            else:
+                return float(input)
+        # Case: / in input, either pi/2, pi/4, -pi/2, -pi/8, or number/number
+        elif len(input) == 2:
+            if "-pi" == input[0]:
+                return -pi/float(input[1])
+            elif "pi" == input[0]:
+                return pi/float(input[1])
+        else:
+            print(f"Whoops, len of input is greater than 2: {len(input)}")
+    else:
+        return float(input)
 
 
 def load_raw_csv_data(file_path, fields, sample_step, delimiter):

@@ -3,7 +3,7 @@ import traceback
 from os import getcwd
 import logging
 
-from tests.utils import *
+from aurt.data_processing import convert_file_to_mdh
 
 
 def main():
@@ -16,13 +16,12 @@ def main():
     logger.addHandler(ch)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--filename",
-        "-fn",
-        dest="filename",
-        type=str,
-        help="name of the file with the modified denavit hartenberg parameters"
-    )
+
+    parser.add_argument('command', choices=['info', 'validate', 'simulate', 'compile', 'add-cswrapper', 'add-remoting',
+                                            'create-cmake-project', 'create-jupyter-notebook'],
+                        help="Command to execute")
+
+
     args = parser.parse_args()
 
     if args.filename:
@@ -31,8 +30,6 @@ def main():
         try:
             if filename[-3:] == "csv":
                 d, a, alpha = convert_file_to_mdh(filename)
-                # Create symbolic m
-                m = [sp.symbols(f"m{i}") for i in range(len(d))]
             else:
                 raise FileNotFoundError(
                     "The inputted file can either not be or found, or is not supported. Supported file formats: csv.")
@@ -40,14 +37,6 @@ def main():
         except FileNotFoundError:
             traceback.print_exc()
             logger.error(f"The current directory is: {getcwd()}")
-
-    # m0, m1, m2, m3, m4, m5, m6 = sp.symbols("m0 m1 m2 m3 m4 m5 m6")
-    # m = [m0, m1, m2, m3, m4, m5, m6]
-    def mdh_param_function(
-            zero_array):  # TODO: make the input to the torque_algorithm_factory_from_parameters, NOT a function, but just constants instead
-        return m, d, a, alpha
-
-    calibration(mdh_param_function)
 
 
 if __name__ == '__main__':
