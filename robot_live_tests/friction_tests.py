@@ -23,7 +23,7 @@ def select_data_subset(data, idx_start, idx_end):
 class FrictionTests(TimedTest):
 
     def test_constant_velocity_no_load(self):
-        path = './resources/Dataset/ur5e_constant_velocity_no_load'
+        path = '../resources/Dataset/ur5e_constant_velocity_no_load'
 
         v = []  # velocity
         f = []  # friction
