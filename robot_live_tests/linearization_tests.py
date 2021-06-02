@@ -13,12 +13,12 @@ from scipy import signal
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 
-from aurt import find_nonstatic_start_and_end_indices
+from aurt.calibration_aux import find_nonstatic_start_and_end_indices
 from aurt.data_processing import load_data, ur5e_fields, plot_colors
-from aurt import Njoints, g, get_ur5e_parameters, get_ur_parameters_symbolic, get_ur_frames
-from aurt import spzeros_array, spvector
-from aurt import project_root, cache_object, load_object, store_object, load_numpy_expr, store_numpy_expr
-from aurt import compute_torques_symbolic_ur, npzeros_array
+from aurt.file_system import cache_object, store_object, load_object, project_root, store_numpy_expr, load_numpy_expr
+from aurt.globals import Njoints, get_ur_parameters_symbolic, get_ur_frames, get_ur5e_parameters
+from aurt.num_sym_layers import spzeros_array, spvector, npzeros_array
+from aurt.torques import compute_torques_symbolic_ur
 from tests import NONINTERACTIVE
 from tests.utils.timed_test import TimedTest
 
