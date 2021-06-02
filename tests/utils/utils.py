@@ -11,7 +11,7 @@ from aurt.num_sym_layers import *
 from aurt.file_system import cache_object, load_numpy_expr, store_numpy_expr
 from aurt.data_processing import plot_colors
 
-from robot_live_tests.linearization_tests import compute_regressor_with_instantiated_parameters, compute_indices_base_exist, compute_observation_matrix_and_measurement_vector, compute_parameters_base, get_mse
+from tests.linearization_tests import compute_regressor_with_instantiated_parameters, compute_indices_base_exist, compute_observation_matrix_and_measurement_vector, compute_parameters_base, get_mse
 from tests import NONINTERACTIVE
 
 
