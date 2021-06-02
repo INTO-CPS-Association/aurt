@@ -55,8 +55,9 @@ To setup the development environment:
    1. Windows (Powershell):`.\venv\Scripts\Activate.ps1`
    2. Linux: `source venv/bin/activate`
 4. Install all packages for development: `pip install -e .[dev]`
-5. To run all tests, open a powershell in the dynamic folder, and run the `.\build_script.ps1 --run-tests offline` script.
-6. Optional: open Pycharm in the current folder.
+5. Unpack the datasets (see [Dataset management](#dataset-management))
+6. To run all tests, open a powershell in the dynamic folder, and run the `.\build_script.ps1 --run-tests offline` script.
+7. Optional: open Pycharm in the current folder.
 
 
 ## Dataset management

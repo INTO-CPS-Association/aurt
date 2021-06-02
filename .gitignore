@@ -6,3 +6,4 @@ venv
 *.npy
 *.vscode*
 *.egg-info
+/resources/Dataset/*/*.csv
