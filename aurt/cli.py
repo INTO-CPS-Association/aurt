@@ -21,7 +21,6 @@ def main():
                                             'create-cmake-project', 'create-jupyter-notebook'],
                         help="Command to execute")
 
-
     args = parser.parse_args()
 
     if args.filename:

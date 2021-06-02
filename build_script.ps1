@@ -6,5 +6,3 @@ $Env:PYTHONPATH = "."
 $Env:NONINTERACTIVE = "ON"
 
 & python build.py $args
-
-Pop-Location

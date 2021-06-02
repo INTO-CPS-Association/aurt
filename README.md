@@ -10,36 +10,50 @@ pip install aurt
 # Command Line Interface
 
 The following shows the different use cases that aurt supports.
-Each use case can be further customized in a configuration file.
+In order to improve performance, the model is compiled in different stages, 
+in a way that allows the user to try alternative friction models without having to re-create the full model, 
+which takes a long time.
 
-## Linearize
+## Compile Rigid Body Dynamics Model
 
 ```
-aurt linearize --mdh mdh_file.csv --gravity [0.0, 0.0, 9.81] --out linearized_model.pickle
+aurt compile-rbd --mdh mdh_file.csv --gravity [0.0, 0.0, 9.81] --out model_rbd.pickle
 ```
 Reads the Modified Denavit Hartenberg (MDH) parameters in file `mdh_file.csv`, and writes the linearized and reduced model to file `linearized_model.pickle`.
 The gravity vector determines the orientation of the robot for which the parameters will be calibrated.
+The generated model does not include the joint dynamics.
 
-## Calibration
+## Complete Joint Dynamics Model
 
 ```
-aurt calibrate --model linearized_model.pickle --data measured_data.csv --joint-friction-coulomb square --reduced-params calibrated_parameters.csv
+aurt compile-jointd --model-rbd model_rbd.pickle --friction-load-model square --friction-viscous-powers [1, 3] --friction-hysteresis-model sign --out model_complete.pickle
 ```
 
-Reads the linearized model produced in [Linearize](#linearize), the measured data in `measured_data.csv`, and writes the reduced parameter values to `calibrated_parameters.csv`, 
-assuming the joint-friction model given by `--joint-friction-coulomb`.
+Reads the rigid body dynamics model created with the previous command, and generates the complete model, 
+taking into account the joint dynamics configuration.
 
-In order to generate the original parameters described in `mdh_file.csv`, provided in [Linearize](#linearize), use the `--full-params calibrated_parameters.csv` instead of `--reduced-params`
-
-The supported joint friction models are:
-- `--joint-friction-coulomb TYPE`, where `TYPE in {none, square, absolute}`, and:
+The friction configuration options are:
+- `--friction-load-model TYPE` where `TYPE in {none, square, absolute}` and:
   - `TYPE=none` means TODO
   - `TYPE=square` means TODO
   - `TYPE=absolute` means TODO 
-- `--joint-friction-power POWERS` where `POWERS` has the format `[P1, P2, ..., PN]`, and `PN` is an integer representing the `N`-th power of the polynomial.
-- `--joint-hysteresis TYPE` where `TYPE in {sign, maxwell-slip}`, and:
+- `--friction-viscous-powers POWERS` where `POWERS` has the format `[P1, P2, ..., PN]`, and `PN` is a positive real number representing the `N`-th power of the polynomial.
+- `--friction-hysteresis-model TYPE` where `TYPE in {sign, maxwell-slip}`, and:
   - `TYPE=sign` means TODO
   - `TYPE=maxwell-slip` means TODO
+  
+## Calibration
+
+```
+aurt calibrate --model model_complete.pickle --data measured_data.csv --out-reduced-params calibrated_parameters.csv
+```
+
+Reads the model produced in [Complete Joint Dynamics Model](#complete-joint-dynamics-model), the measured data in `measured_data.csv`, 
+and writes the reduced parameter values to `calibrated_parameters.csv`,
+
+In order to generate the original parameters described in `mdh_file.csv`, 
+provided in [Compile Rigid Body Dynamics Model](#compile-rigid-body-dynamics-model), 
+use the `--out-full-params calibrated_parameters.csv` instead of `--reduced-params`
 
 The measured data should contain the following fields:
 - `time`
@@ -48,11 +62,16 @@ The measured data should contain the following fields:
 ## Predict
 
 ```
-aurt predict --model linearized_model.pickle --data measured_data.csv --reduced-params calibrated_parameters.csv --prediction prediction.csv
+aurt predict --model model_complete.pickle --data measured_data.csv --reduced-params calibrated_parameters.csv --prediction prediction.csv
 ```
 
-Reads the linearized model produced in [Linearize](#linearize), the measured data in `measured_data.csv`, and the reduced parameter values produced in [Calibrate](#calibrate), and writes the prediction to `prediction.csv`.
+Reads the model produced in [Complete Joint Dynamics Model](#complete-joint-dynamics-model), 
+the measured data in `measured_data.csv`, 
+and the reduced parameter values produced in [Calibration](#calibration), and writes the prediction to `prediction.csv`.
 
+The prediction fields are:
+- `time`
+- TODO
 
 # Contributing
 
@@ -127,3 +146,4 @@ For more information on access, self-service and management of files: https://me
   - [ ] rigid body dynamics, 
   - [ ] joint dynamics
 - [ ] When do we given MDH parameters?
+- [ ] Make tests load files using project_root() (except linearization_tests.py)
