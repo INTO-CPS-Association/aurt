@@ -42,8 +42,6 @@ def input_with_pi_to_float(input):
 def convert_file_to_mdh(filename):
     if filename[-3:] == "csv":
         df = pd.read_csv(filename)
-    elif filename[-4:] == "xlsx":
-        df = pd.read_excel(filename, usecols=[0,1,2,3])
     df = df.fillna(value='None')
     d = [float(d) if d != 'None' else None for d in df.d]
     a = [float(a) if a != 'None' else None for a in df.a]

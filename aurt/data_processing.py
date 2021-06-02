@@ -1,5 +1,4 @@
 import csv
-import math
 from itertools import compress
 import numpy as np
 

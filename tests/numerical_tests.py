@@ -7,7 +7,7 @@ import sympy as sp
 
 from aurt.globals import Njoints, g, get_ur5e_parameters, get_ur5e_PC
 from aurt.num_sym_layers import npcross, npvector, npzeros_array
-from aurt.plotting import draw_robot
+from tests.plotting import draw_robot
 from aurt.torques import compute_torques_numeric_3e, compute_torques_symbolic_3e, compute_torques_numeric_5e
 from aurt.file_system import cache_numpy, store_numpy_expr, load_numpy_expr
 from tests import NONINTERACTIVE

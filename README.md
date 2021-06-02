@@ -62,7 +62,7 @@ To setup the development environment:
   - [x] Name tool: aurt
   - [ ] New Repo.
   - [ ] Do we need an API, or just CLI?
-  - [ ] Why do we need to read excel?
+  - [x] Why do we need to read excel?
   - [ ] Logging framework
     - [ ] Must be configurable via config file.
   - [ ] What to config (and what to provide as input, and what to allow override)

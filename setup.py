@@ -11,11 +11,13 @@ setuptools.setup(
     description="A robot dynamic parameters calibration toolbox.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="TODO",
+    url="https://gitlab.au.dk/software-engineering/aurt",
     packages=["aurt"],
     install_requires=[
         "numpy>=1",
-        "sympy>=1"
+        "sympy>=1",
+        "pandas>=1",
+        "scikit-learn>=0.24"
     ],
     extras_require={
         "dev": ["matplotlib"]
@@ -25,5 +27,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires=">=3.8",
-    # entry_points={"console_scripts": ["aurt=aurt.cli:main"]},
+    entry_points={"console_scripts": ["aurt=aurt.cli:main"]},
 )

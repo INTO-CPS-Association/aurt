@@ -3,7 +3,7 @@ import traceback
 from os import getcwd
 import logging
 
-from aurt.utils import *
+from tests.utils import *
 
 
 def main():
@@ -29,13 +29,13 @@ def main():
         filename = args.filename
         print(f"Argument filename: {filename}\n")
         try:
-            if filename[-3:] == "csv" or filename[-4:] == "xlsx":
+            if filename[-3:] == "csv":
                 d, a, alpha = convert_file_to_mdh(filename)
                 # Create symbolic m
                 m = [sp.symbols(f"m{i}") for i in range(len(d))]
             else:
                 raise FileNotFoundError(
-                    "The inputted file can either not be or found, or is not supported. Supported file formats: xlsx, csv.")
+                    "The inputted file can either not be or found, or is not supported. Supported file formats: csv.")
             logger.debug(f"\nm: {m}\nd: {d}\na: {a}\nalpha: {alpha}")
         except FileNotFoundError:
             traceback.print_exc()

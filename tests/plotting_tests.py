@@ -5,7 +5,7 @@ import numpy as np
 from aurt.data_processing import load_data, ur5e_fields
 from aurt.globals import Njoints, get_ur3e_parameters, get_ur3e_PC, get_ur5e_parameters, get_ur5e_PC
 from aurt.num_sym_layers import npvector, npzeros_array
-from aurt.plotting import draw_robot,plot_dynamics
+from tests.plotting import draw_robot,plot_dynamics
 from tests import NONINTERACTIVE
 from tests.timed_test import TimedTest
 from tests import logger
