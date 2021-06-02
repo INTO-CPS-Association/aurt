@@ -943,7 +943,7 @@ class LinearizationTests(TimedTest):
         # **************************************************************************************************************
 
     def test_linear_torques(self):
-        tau_sym_linearizable = cache_object('./tau_sym_linearizable', compute_tau_sym_linearizable_parallel)
+        tau_sym_linearizable = cache_object('./tau_sym_linearizable', compute_tau_sym_linearizable)
 
         # Checking that tau_sym_linearizable is linearizable wrt. the parameter vector
         diff_p = sp.zeros(Njoints + 1, sum(n_par_linear))
@@ -956,7 +956,7 @@ class LinearizationTests(TimedTest):
                 assert p_linear[j][i] not in diff_p[j, column_idx].free_symbols
 
     def test_check_reduced_regressor_linear(self):
-        tau_sym_linearizable = cache_object('./tau_sym_linearizable', compute_tau_sym_linearizable_parallel)
+        tau_sym_linearizable = cache_object('./tau_sym_linearizable', compute_tau_sym_linearizable)
         regressor = sp.sympify(cache_object('./regressor', compute_regressor_parallel))
         regressor_reduced, _ = cache_object('./regressor_reduced', compute_regressor_linear_exist)
 
