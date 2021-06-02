@@ -17,7 +17,7 @@ which takes a long time.
 ## Compile Rigid Body Dynamics Model
 
 ```
-aurt compile-rbd --mdh mdh_file.csv --gravity [0.0, 0.0, 9.81] --out rb_dynamics.pickle
+aurt compile-rbd --mdh mdh_file.csv --gravity 0.0 0.0 -9.81 --out linearized_model.pickle
 ```
 Reads the Modified Denavit Hartenberg (MDH) parameters in file `mdh_file.csv`, and writes the linearized and reduced model to file `linearized_model.pickle`.
 The gravity vector determines the orientation of the robot for which the parameters will be calibrated.
@@ -26,7 +26,7 @@ The generated model does not include the joint dynamics.
 ## Compile Joint Dynamics Model
 
 ```
-aurt compile-jointd --model-rbd rb_dynamics.pickle --friction-load-model square --friction-viscous-powers [1, 3] --friction-hysteresis-model sign --out robot_dynamics.pickle
+aurt compile-jointd --model-rbd rb_dynamics.pickle --friction-load-model square --friction-viscous-powers 2 1 4 --friction-hysteresis-model sign --out robot_dynamics.pickle
 ```
 
 Reads the rigid body dynamics model created with the previous command, and generates the complete model, 
