@@ -17,16 +17,16 @@ which takes a long time.
 ## Compile Rigid Body Dynamics Model
 
 ```
-aurt compile-rbd --mdh mdh_file.csv --gravity [0.0, 0.0, 9.81] --out model_rbd.pickle
+aurt compile-rbd --mdh mdh_file.csv --gravity [0.0, 0.0, 9.81] --out rb_dynamics.pickle
 ```
 Reads the Modified Denavit Hartenberg (MDH) parameters in file `mdh_file.csv`, and writes the linearized and reduced model to file `linearized_model.pickle`.
 The gravity vector determines the orientation of the robot for which the parameters will be calibrated.
 The generated model does not include the joint dynamics.
 
-## Complete Joint Dynamics Model
+## Compile Joint Dynamics Model
 
 ```
-aurt compile-jointd --model-rbd model_rbd.pickle --friction-load-model square --friction-viscous-powers [1, 3] --friction-hysteresis-model sign --out model_complete.pickle
+aurt compile-jointd --model-rbd rb_dynamics.pickle --friction-load-model square --friction-viscous-powers [1, 3] --friction-hysteresis-model sign --out robot_dynamics.pickle
 ```
 
 Reads the rigid body dynamics model created with the previous command, and generates the complete model, 
@@ -45,10 +45,10 @@ The friction configuration options are:
 ## Calibration
 
 ```
-aurt calibrate --model model_complete.pickle --data measured_data.csv --out-reduced-params calibrated_parameters.csv
+aurt calibrate --model robot_dynamics.pickle --data measured_data.csv --out-reduced-params calibrated_parameters.csv
 ```
 
-Reads the model produced in [Complete Joint Dynamics Model](#complete-joint-dynamics-model), the measured data in `measured_data.csv`, 
+Reads the model produced in [Compile Joint Dynamics Model](#compile-joint-dynamics-model), the measured data in `measured_data.csv`, 
 and writes the reduced parameter values to `calibrated_parameters.csv`,
 
 In order to generate the original parameters described in `mdh_file.csv`, 
@@ -62,10 +62,10 @@ The measured data should contain the following fields:
 ## Predict
 
 ```
-aurt predict --model model_complete.pickle --data measured_data.csv --reduced-params calibrated_parameters.csv --prediction prediction.csv
+aurt predict --model robot_dynamics.pickle --data measured_data.csv --reduced-params calibrated_parameters.csv --prediction prediction.csv
 ```
 
-Reads the model produced in [Complete Joint Dynamics Model](#complete-joint-dynamics-model), 
+Reads the model produced in [Compile Joint Dynamics Model](#compile-joint-dynamics-model), 
 the measured data in `measured_data.csv`, 
 and the reduced parameter values produced in [Calibration](#calibration), and writes the prediction to `prediction.csv`.
 
