@@ -1,6 +1,8 @@
 import argparse
 from logging.config import fileConfig
 import logging
+import numpy as np
+import api as api
 
 
 def setup_logger(args):
@@ -15,18 +17,44 @@ def compile_rbd(args):
     l = setup_logger(args)
     l.info("Compiling rigid body dynamics model.")
     l.debug(f"Gravity vector: {args.gravity}")
+    # TODO: Do some error checking on the user provided parameters, convert their types, check that files exists
+    #  (or that they will not be overwritten) etc.
 
+    mdh_path = ""
+    gravity = np.array(args.gravity)
+    output_path = ""
+
+    api.compile_rbd(mdh_path, gravity, output_path)
 
 def compile_jointd(args):
     l = setup_logger(args)
     l.info("Compiling robot dynamics model.")
 
     l.debug(f"Viscous friction powers: {args.friction_viscous_powers}.")
+    # TODO: Do some error checking on the user provided parameters, convert their types, check that files exists
+    #  (or that they will not be overwritten) etc.
 
+    model_rbd_path = ""
+    friction_load_model = ""
+    friction_viscous_powers = args.friction_viscous_powers
+    friction_hysteresis_model = args.friction_hysteresis_model
+    output_path = args.out
+
+    api.compile_jointd(model_rbd_path, friction_load_model, friction_viscous_powers, friction_hysteresis_model, output_path)
 
 def calibrate(args):
     l = setup_logger(args)
     l.info("Calibrating robot dynamics model.")
+
+    # TODO: Do some error checking on the user provided parameters, convert their types, check that files exists
+    #  (or that they will not be overwritten) etc.
+
+    model_path = ""
+    data_path = ""
+    reduced = ""
+    output_path = ""
+    
+    api.calibrate(model_path, data_path, reduced, output_path)
 
 
 
