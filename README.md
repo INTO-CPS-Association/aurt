@@ -46,6 +46,8 @@ Reads the linearized model produced in [Linearize](#linearize), the measured dat
 
 # Contributing
 
+## Development environment
+
 To setup the development environment:
 1. Open terminal in the current folder.
 2. Optional: create a virtual environment: `python -m venv venv`
@@ -56,13 +58,47 @@ To setup the development environment:
 5. To run all tests, open a powershell in the dynamic folder, and run the `.\build_script.ps1 --run-tests offline` script.
 6. Optional: open Pycharm in the current folder.
 
+
+## Dataset management
+
+### Small dataset (< 100MB compressed)
+
+If the data is small, then:
+- Each round of experiments should be placed in a folder with an informative name, inside the Dataset folder.
+- There should be a readme file in there explaining the steps to reproduce the experiment, parameters, etc...
+- The csv files should be 7ziped and committed. Do not commit the csv file.
+- There should be tests that use the data there.
+
+### Large Datasets (>= 100MB compressed)
+
+If the data is large, then:
+
+- A "lite" version of the dataset should be in the dataset folder (following the same guidelines as before)
+  - This is important to run the tests.
+- the larger version should be placed in the shared drive (see below).
+
+There is a shared drive for large datasets.
+The shared drive **Nat_UR-robot-datasets** has been created with **Emil Madsen** as owner.
+
+| **Navn/Name**         | **Drev-ansvarlig/Shared  drive owner** |
+| --------------------- | -------------------------------------- |
+| Nat_UR-robot-datasets | au504769  (Emil Madsen)                |
+
+
+ **Read/write access is assigned to:** 
+
+| **Brugernavn/Username** | **Navn/Name**                   | **Afdeling/department** | **E-mail**                                                | **Tilføjet via  gruppe/assigned by group** |
+| ----------------------- | ------------------------------- | ----------------------- | --------------------------------------------------------- | ------------------------------------------ |
+| au602135                | Cláudio  Ângelo Gonçalves Gomes | Cyber-Physical  Systems | [claudio.gomes@ece.au.dk](mailto:claudio.gomes@ece.au.dk) |                                            |
+
+For more information on access, self-service and management of files: https://medarbejdere.au.dk/en/administration/it/guides/datastorage/data-storage/
+
+
+
 # Tasks
 
 - [ ] To discuss:
-  - [x] Name tool: aurt
-  - [ ] New Repo.
   - [ ] Do we need an API, or just CLI?
-  - [x] Why do we need to read excel?
   - [ ] Logging framework
     - [ ] Must be configurable via config file.
   - [ ] What to config (and what to provide as input, and what to allow override)
