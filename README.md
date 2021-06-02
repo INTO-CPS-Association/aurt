@@ -37,7 +37,7 @@ The friction configuration options are:
   - `TYPE=none` means TODO
   - `TYPE=square` means TODO
   - `TYPE=absolute` means TODO 
-- `--friction-viscous-powers POWERS` where `POWERS` has the format `[P1, P2, ..., PN]`, and `PN` is a positive real number representing the `N`-th power of the polynomial.
+- `--friction-viscous-powers POWERS` where `POWERS` has the format `P1 P2 ... PN`, and `PN` is a positive real number representing the `N`-th power of the polynomial.
 - `--friction-hysteresis-model TYPE` where `TYPE in {sign, maxwell-slip}`, and:
   - `TYPE=sign` means TODO
   - `TYPE=maxwell-slip` means TODO

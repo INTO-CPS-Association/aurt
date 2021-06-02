@@ -19,9 +19,15 @@ def compile_rbd(args):
 
 def compile_jointd(args):
     l = setup_logger(args)
-    l.info("Compiling joint dynamics model.")
-    
+    l.info("Compiling robot dynamics model.")
+
     l.debug(f"Viscous friction powers: {args.friction_viscous_powers}.")
+
+
+def calibrate(args):
+    l = setup_logger(args)
+    l.info("Calibrating robot dynamics model.")
+
 
 
 def main():
@@ -29,11 +35,12 @@ def main():
     args_parser = argparse.ArgumentParser(add_help=True)
 
     args_parser.add_argument('--logger-config', type=open,
-                               help="Logger configuration file.")
+                             help="Logger configuration file.")
     # args_parser.add_argument('command', choices=['compile-rbd', 'compile-jointd', 'calibrate', 'predict'])
     # args_parser.add_argument('-h', help="Show help.", action="store_true")
 
-    subparsers = args_parser.add_subparsers(help="Command to execute. Type 'aurt CMD --help' for more help about command CMD.")
+    subparsers = args_parser.add_subparsers(
+        help="Command to execute. Type 'aurt CMD --help' for more help about command CMD.")
 
     # sub commands
 
@@ -58,11 +65,11 @@ def main():
     compile_jointd_parser = subparsers.add_parser("compile-jointd")
 
     compile_jointd_parser.add_argument('--model-rbd', required=True,
-                                    help="The rigid body dynamics model created with the compile-rbd command.")
+                                       help="The rigid body dynamics model created with the compile-rbd command.")
 
     compile_jointd_parser.add_argument('--friction-load-model', required=True,
-                                    choices=["none", "square", "absolute"],
-                                    help="The friction load model.")
+                                       choices=["none", "square", "absolute"],
+                                       help="The friction load model.")
 
     compile_jointd_parser.add_argument('--friction-viscous-powers', required=True, nargs="+",
                                        type=float,
@@ -70,13 +77,30 @@ def main():
                                        help="The viscous friction polynomial powers.")
 
     compile_jointd_parser.add_argument('--friction-hysteresis-model', required=True,
-                                    choices=["sign", "maxwells"],
-                                    help="The friction hysteresis model.")
+                                       choices=["sign", "maxwells"],
+                                       help="The friction hysteresis model.")
 
     compile_jointd_parser.add_argument('--out', required=True,
-                                    help="Path of outputted robot dynamics model (pickle).")
+                                       help="Path of outputted robot dynamics model (pickle).")
 
     compile_jointd_parser.set_defaults(command=compile_jointd)
+
+    ## calibrate
+    calibrate_parser = subparsers.add_parser("calibrate")
+
+    calibrate_parser.add_argument('--model', required=True,
+                                    help="The robot dynamics model created with the compile-jointd command.")
+
+    calibrate_parser.add_argument('--data', required=True,
+                                    help="The measured data (csv).")
+
+    calibrate_parser.add_argument('--out-reduced-params',
+                                    help="The resulting reduced parameter values (csv).")
+
+    calibrate_parser.add_argument('--out-full-params',
+                                    help="The resulting full parameter values (csv).")
+
+    calibrate_parser.set_defaults(command=calibrate)
 
     # Force help display when error occurrs. See https://stackoverflow.com/questions/3636967/python-argparse-how-can-i-display-help-automatically-on-error
     args_parser.usage = args_parser.format_help().replace("usage: ", "")
