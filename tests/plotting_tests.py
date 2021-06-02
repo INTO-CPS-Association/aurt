@@ -5,10 +5,11 @@ import numpy as np
 from aurt.data_processing import load_data, ur5e_fields
 from aurt.globals import Njoints, get_ur3e_parameters, get_ur3e_PC, get_ur5e_parameters, get_ur5e_PC
 from aurt.num_sym_layers import npvector, npzeros_array
-from tests.plotting import draw_robot,plot_dynamics
+from tests.utils.plotting import draw_robot, plot_dynamics
 from tests import NONINTERACTIVE
-from tests.timed_test import TimedTest
+from tests.utils.timed_test import TimedTest
 from tests import logger
+
 
 class PlottingTests(TimedTest):
 
@@ -43,7 +44,7 @@ class PlottingTests(TimedTest):
 
         q0 = np.zeros(Njoints + 1)
         q1 = np.ones(Njoints + 1)
-        qs = [q0]#, q1]
+        qs = [q0]  # , q1]
 
         (_, d, a, alpha) = get_ur5e_parameters(npzeros_array)
         logger.debug(f"d: {d}")
@@ -134,6 +135,7 @@ class PlottingTests(TimedTest):
         if not NONINTERACTIVE:
             plt.show()
         plt.close()
+
 
 if __name__ == '__main__':
     unittest.main()

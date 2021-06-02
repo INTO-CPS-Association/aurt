@@ -20,7 +20,7 @@ from aurt import spzeros_array, spvector
 from aurt import project_root, cache_object, load_object, store_object, load_numpy_expr, store_numpy_expr
 from aurt import compute_torques_symbolic_ur, npzeros_array
 from tests import NONINTERACTIVE
-from tests.timed_test import TimedTest
+from tests.utils.timed_test import TimedTest
 
 q = [0.0] + [sp.symbols(f"q{j}") for j in range(1, Njoints + 1)]
 qd = [0.0] + [sp.symbols(f"qd{j}") for j in range(1, Njoints + 1)]

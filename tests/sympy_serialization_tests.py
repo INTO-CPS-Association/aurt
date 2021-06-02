@@ -4,7 +4,7 @@ import unittest
 import sympy as sp
 
 from aurt.file_system import store_object, load_object, cache_object
-from tests.timed_test import TimedTest
+from tests.utils.timed_test import TimedTest
 from tests import logger
 
 

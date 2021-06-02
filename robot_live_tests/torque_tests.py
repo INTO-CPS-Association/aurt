@@ -10,7 +10,7 @@ from aurt import Njoints, g, get_ur5e_parameters, get_ur5e_PC
 from aurt import draw_robot
 from aurt import compute_torques_numeric_5e, npzeros_array, npvector
 from tests import NONINTERACTIVE
-from tests.timed_test import TimedTest
+from tests.utils.timed_test import TimedTest
 
 
 class TorqueTests(TimedTest):

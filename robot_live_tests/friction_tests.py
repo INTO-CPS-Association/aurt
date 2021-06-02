@@ -9,7 +9,7 @@ import numpy as np
 from scipy import stats
 
 import aurt.calibration_aux as cal_aux
-from tests.timed_test import TimedTest
+from tests.utils.timed_test import TimedTest
 
 
 def select_data_subset(data, idx_start, idx_end):
@@ -23,7 +23,7 @@ def select_data_subset(data, idx_start, idx_end):
 class FrictionTests(TimedTest):
 
     def test_constant_velocity_no_load(self):
-        path = './resources/Dataset/ur5e_constant_velocity_no_load'  # NOT the right way to do it (with forward slash hardcoded)?
+        path = './resources/Dataset/ur5e_constant_velocity_no_load'
 
         v = []  # velocity
         f = []  # friction

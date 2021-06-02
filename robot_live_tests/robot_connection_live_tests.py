@@ -1,10 +1,9 @@
-import logging
 import math
 import time
 import unittest
 import numpy as np
 from urinterface import RobotConnection
-from tests.timed_test import TimedTest
+from tests.utils.timed_test import TimedTest
 
 
 class RobotLiveTests(TimedTest):
