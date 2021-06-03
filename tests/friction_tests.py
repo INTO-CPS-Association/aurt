@@ -1,6 +1,7 @@
 import unittest
 
 from aurt.data_processing import load_data, ur5e_fields
+from aurt.file_system import from_project_root
 from tests import NONINTERACTIVE
 
 import os.path
@@ -23,7 +24,7 @@ def select_data_subset(data, idx_start, idx_end):
 class FrictionTests(TimedTest):
 
     def test_constant_velocity_no_load(self):
-        path = '../resources/Dataset/ur5e_constant_velocity_no_load'
+        path = 'resources/Dataset/ur5e_constant_velocity_no_load'
 
         v = []  # velocity
         f = []  # friction
@@ -33,7 +34,7 @@ class FrictionTests(TimedTest):
         conf_int_f = []  # confidence interval of friction
 
         i = 0
-        with os.scandir(path) as dir_iterator:
+        with os.scandir(from_project_root(path)) as dir_iterator:
             csv_files = [file for file in dir_iterator if file.name.endswith("csv")]
             for entry in csv_files:
                 print(entry.path)

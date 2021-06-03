@@ -10,39 +10,70 @@ pip install aurt
 # Command Line Interface
 
 The following shows the different use cases that aurt supports.
-Each use case can be further customized in a configuration file.
+In order to improve performance, the model is compiled in different stages, 
+in a way that allows the user to try alternative friction models without having to re-create the full model, 
+which takes a long time.
 
-## Linearize
+## Compile Rigid Body Dynamics Model
 
 ```
-aurt linearize --mdh mdh_file.csv --gravity [0.0, 0.0, 9.81] --out linearized_model.pickle
+aurt compile-rbd --mdh mdh_file.csv --gravity 0.0 0.0 -9.81 --out linearized_model.pickle
 ```
 Reads the Modified Denavit Hartenberg (MDH) parameters in file `mdh_file.csv`, and writes the linearized and reduced model to file `linearized_model.pickle`.
 The gravity vector determines the orientation of the robot for which the parameters will be calibrated.
+The generated model does not include the joint dynamics.
 
-## Calibrate
+## Compile Joint Dynamics Model
 
 ```
-aurt calibrate --model linearized_model.pickle --data measured_data.csv --joint-friction- --reduced-params calibrated_parameters.csv
+aurt compile-jointd --model-rbd rb_dynamics.pickle --friction-load-model square --friction-viscous-powers 2 1 4 --friction-hysteresis-model sign --out robot_dynamics.pickle
 ```
 
-Reads the linearized model produced in [Linearize](#linearize), the measured data in `measured_data.csv`, and writes the reduced parameter values to `calibrated_parameters.csv`.
+Reads the rigid body dynamics model created with the previous command, and generates the complete model, 
+taking into account the joint dynamics configuration.
 
-In order to generate the original parameters described in `mdh_file.csv`, provided in [Linearize](#linearize), use the `--full-params calibrated_parameters.csv` instead of `--reduced-params`
+The friction configuration options are:
+- `--friction-load-model TYPE` where `TYPE in {none, square, absolute}` and:
+  - `TYPE=none` means TODO
+  - `TYPE=square` means TODO
+  - `TYPE=absolute` means TODO 
+- `--friction-viscous-powers POWERS` where `POWERS` has the format `P1 P2 ... PN`, and `PN` is a positive real number representing the `N`-th power of the polynomial.
+- `--friction-hysteresis-model TYPE` where `TYPE in {sign, maxwell-slip}`, and:
+  - `TYPE=sign` means TODO
+  - `TYPE=maxwell-slip` means TODO
+  
+## Calibration
+
+```
+aurt calibrate --model robot_dynamics.pickle --data measured_data.csv --out-reduced-params calibrated_parameters.csv
+```
+
+Reads the model produced in [Compile Joint Dynamics Model](#compile-joint-dynamics-model), the measured data in `measured_data.csv`, 
+and writes the reduced parameter values to `calibrated_parameters.csv`,
+
+In order to generate the original parameters described in `mdh_file.csv`, 
+provided in [Compile Rigid Body Dynamics Model](#compile-rigid-body-dynamics-model), 
+use the `--out-full-params calibrated_parameters.csv` instead of `--reduced-params`
 
 The measured data should contain the following fields:
-- `time`
-- ...
-
+- `time` of type float, representing the number of seconds passed from a given reference point.
+- `target_qd_N` of type float, representing the `N`th joint target angular velocity, as computed by the robot controller, where `N` is an integer in `{0, 1, ...}`.
+- `actual_q_N` of type float, representing the `N`th joint angle, as measured by the robot controller, where `N` is an integer in `{0, 1, ...}`.
+- `actual_current_N` of type float, representing the `N`th joint current, as measured by the robot controller, where `N` is an integer in `{0, 1, ...}`.
 
 ## Predict
 
 ```
-aurt predict --model linearized_model.pickle --data measured_data.csv --reduced-params calibrated_parameters.csv --prediction prediction.csv
+aurt predict --model robot_dynamics.pickle --data measured_data.csv --reduced-params calibrated_parameters.csv --prediction prediction.csv
 ```
 
-Reads the linearized model produced in [Linearize](#linearize), the measured data in `measured_data.csv`, and the reduced parameter values produced in [Calibrate](#calibrate), and writes the prediction to `prediction.csv`.
+Reads the model produced in [Compile Joint Dynamics Model](#compile-joint-dynamics-model), 
+the measured data in `measured_data.csv`, 
+and the reduced parameter values produced in [Calibration](#calibration), and writes the prediction to `prediction.csv`.
 
+The prediction fields are:
+- `time` of type float, referring to the time of the measured data, as in [Calibration](#calibration).
+- `predicted_current_N` of type float, representing the `N`th joint current, as predicted by the robot model, where `N` is an integer in `{0, 1, ...}`.
 
 # Contributing
 
@@ -94,26 +125,3 @@ The shared drive **Nat_UR-robot-datasets** has been created with **Emil Madsen**
 
 For more information on access, self-service and management of files: https://medarbejdere.au.dk/en/administration/it/guides/datastorage/data-storage/
 
-
-
-# Tasks
-
-- [ ] To discuss:
-  - [ ] Do we need an API, or just CLI?
-  - [ ] Logging framework
-    - [ ] Must be configurable via config file.
-  - [ ] What to config (and what to provide as input, and what to allow override)
-    - [ ] Logging
-    - [ ] friction model (allow override from CLI)
-  - [ ] Add some kind of progress indicator to the Linearize process.
-  - [ ] Configuration file format. My suggestion: toml. Other possible choices: yaml.
-    - [ ] Must support comments
-    - [ ] Must integrate with logging
-- [ ] Finish data schema
-
-- [x] Gravity vector goes into the config file in the linearize step.
-- [ ] Joint dynamic configuration will be hybrid (overridable via the CLI.)
-- [ ] In the predict stage, there's two caching mechanisms to build the regressor:
-  - [ ] rigid body dynamics, 
-  - [ ] joint dynamics
-- [ ] When do we given MDH parameters?

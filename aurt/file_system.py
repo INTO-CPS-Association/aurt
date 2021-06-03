@@ -6,8 +6,16 @@ from pathlib import Path
 
 
 def project_root() -> Path:
+<<<<<<< HEAD
     """TODO: Validate whether this is a valid approach."""
     return Path(__file__).parent.parent
+=======
+    return Path(__file__).parent.parent
+
+
+def from_project_root(filepath):
+    return project_root().joinpath(filepath)
+>>>>>>> 661ff98a0978b8ff4df920f640cc6011ddfa2462
 
 
 def safe_open(filepath, mode='r'):
@@ -89,6 +97,7 @@ def get_unique_filename(filename):
         filename_unique = filename + f'_{i}'
         i += 1
     return filename_unique
+
 
 def store_numpy_expr(nparr, file):
     assert file[-4:] == '.npy'

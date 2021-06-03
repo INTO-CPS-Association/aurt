@@ -8,48 +8,11 @@ from matplotlib.ticker import MultipleLocator
 from sklearn.linear_model import LinearRegression
 
 from aurt.num_sym_layers import *
-from aurt.file_system import cache_object, load_numpy_expr, store_numpy_expr
+from aurt.file_system import cache_object, load_numpy_expr, store_numpy_expr, from_project_root
 from aurt.data_processing import plot_colors
 
 from tests.linearization_tests import compute_regressor_with_instantiated_parameters, compute_indices_base_exist, compute_observation_matrix_and_measurement_vector, compute_parameters_base, get_mse
 from tests import NONINTERACTIVE
-
-
-def input_with_pi_to_float(input):
-    if input == 'None':
-        return None
-    elif isinstance(input, str) and "pi" in input:
-        input = input.split("/")
-        # Case: no / in input, i.e. either pi or a number, or -pi
-        if len(input) == 1: # this means no / is in input
-            if "pi" == input[0]:
-                return pi
-            elif "-pi" == input[0]:
-                return -pi
-            else:
-                return float(input)
-        # Case: / in input, either pi/2, pi/4, -pi/2, -pi/8, or number/number
-        elif len(input) == 2:
-            if "-pi" == input[0]:
-                return -pi/float(input[1])
-            elif "pi" == input[0]:
-                return pi/float(input[1])
-        else:
-            print(f"Whoops, len of input is greater than 2: {len(input)}")
-    else:
-        return float(input)
-
-def convert_file_to_mdh(filename):
-    if filename[-3:] == "csv":
-        df = pd.read_csv(filename)
-    df = df.fillna(value='None')
-    d = [float(d) if d != 'None' else None for d in df.d]
-    a = [float(a) if a != 'None' else None for a in df.a]
-    alpha = []
-    for alpha_i in df.alpha:
-        alpha.append(input_with_pi_to_float(alpha_i))
-    return d, a, alpha
-
 
 
 # TODO: clean code after this point
@@ -59,34 +22,35 @@ qd = [0.0] + [sp.symbols(f"qd{j}") for j in range(1, Njoints + 1)]
 qdd = [0.0] + [sp.symbols(f"qdd{j}") for j in range(1, Njoints + 1)]
 
 
+# TODO: Needs to be tested.
 def calibration(mdh_params_func):
     t_est_val_separation = 52.5  # timely separation of estimation and validation datasets, TODO: make it possible to specify the relative portion of the dataset you want, e.g. 0.5 for half of the dataset.
 
     data_id = f"random_motion_{t_est_val_separation}"
-    observation_matrix_file_estimation = f'./observation_matrix_estimation_{data_id}.npy'
-    measurement_vector_file_estimation = f'./measurement_vector_estimation_{data_id}.npy'
-    observation_matrix_file_validation = f'./observation_matrix_validation_{data_id}.npy'
-    measurement_vector_file_validation = f'./measurement_vector_validation_{data_id}.npy'
+    observation_matrix_file_estimation = from_project_root(f'tests/cache/observation_matrix_estimation_{data_id}.npy')
+    measurement_vector_file_estimation = from_project_root(f'tests/cache/measurement_vector_estimation_{data_id}.npy')
+    observation_matrix_file_validation = from_project_root(f'tests/cache/observation_matrix_validation_{data_id}.npy')
+    measurement_vector_file_validation = from_project_root(f'tests/cache/measurement_vector_validation_{data_id}.npy')
 
     setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
     args_sym = q[1:] + qd[1:] + qdd[1:]  # list concatenation
     regressor_reduced_func = sp.lambdify(args_sym,
                                             compute_regressor_with_instantiated_parameters(
                                                 ur_param_function=mdh_params_func), 'numpy')
-    filename = "parameter_indices_base"
+    filename = from_project_root("tests/cache/parameter_indices_base")
     idx_base_global = cache_object(filename, lambda: compute_indices_base_exist(regressor_reduced_func))
-    filename = 'regressor_base_with_instantiated_parameters'
+    filename = from_project_root('tests/cache/regressor_base_with_instantiated_parameters')
     regressor_base_params = cache_object(filename, lambda: compute_regressor_with_instantiated_parameters(
         ur_param_function=mdh_params_func)[1:, idx_base_global])
 
     if not isfile(observation_matrix_file_estimation):
         # The base parameter system is obtained by passing only the 'idx_base' columns of the regressor
         W_est, y_est = compute_observation_matrix_and_measurement_vector(
-            f'../../resources/Dataset/ur5e_all_joints_same_time/random_motion.csv',
+            from_project_root(f'resources/Dataset/ur5e_all_joints_same_time/random_motion.csv'),
             regressor_base_params,
             time_frame=(-np.inf, t_est_val_separation))
         W_val, y_val = compute_observation_matrix_and_measurement_vector(
-            f'../../resources/Dataset/ur5e_all_joints_same_time/random_motion.csv',
+            from_project_root(f'resources/Dataset/ur5e_all_joints_same_time/random_motion.csv'),
             regressor_base_params,
             time_frame=(t_est_val_separation, np.inf))
         store_numpy_expr(W_est, observation_matrix_file_estimation)
