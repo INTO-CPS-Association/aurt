@@ -18,14 +18,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.run_tests == "offline":
-        try:
-            loader = unittest.TestLoader()
-            start_dir = pathlib.Path('tests')
-            suite = loader.discover(start_dir, pattern="*tests.py")
-            runner = unittest.TextTestRunner()
-            runner.run(suite)
-        except:
-            pass
+        suite = unittest.TestSuite()
+        suite.addTest(unittest.TestLoader().discover("aurt/tests", pattern="*tests.py"))
+        suite.addTest(unittest.TestLoader().discover("tests", pattern="*tests.py"))
+        runner = unittest.TextTestRunner()
+        runner.run(suite)
     elif args.run_tests == "live":
         try:
             loader = unittest.TestLoader()
