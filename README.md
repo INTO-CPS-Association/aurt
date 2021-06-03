@@ -56,8 +56,10 @@ provided in [Compile Rigid Body Dynamics Model](#compile-rigid-body-dynamics-mod
 use the `--out-full-params calibrated_parameters.csv` instead of `--reduced-params`
 
 The measured data should contain the following fields:
-- `time`
-- TODO
+- `time` of type float, representing the number of seconds passed from a given reference point.
+- `target_qd_N` of type float, representing the `N`th joint target angular velocity, as computed by the robot controller, where `N` is an integer in `{0, 1, ...}`.
+- `actual_q_N` of type float, representing the `N`th joint angle, as measured by the robot controller, where `N` is an integer in `{0, 1, ...}`.
+- `actual_current_N` of type float, representing the `N`th joint current, as measured by the robot controller, where `N` is an integer in `{0, 1, ...}`.
 
 ## Predict
 
@@ -70,8 +72,8 @@ the measured data in `measured_data.csv`,
 and the reduced parameter values produced in [Calibration](#calibration), and writes the prediction to `prediction.csv`.
 
 The prediction fields are:
-- `time`
-- TODO
+- `time` of type float, referring to the time of the measured data, as in [Calibration](#calibration).
+- `predicted_current_N` of type float, representing the `N`th joint current, as predicted by the robot model, where `N` is an integer in `{0, 1, ...}`.
 
 # Contributing
 
@@ -123,27 +125,3 @@ The shared drive **Nat_UR-robot-datasets** has been created with **Emil Madsen**
 
 For more information on access, self-service and management of files: https://medarbejdere.au.dk/en/administration/it/guides/datastorage/data-storage/
 
-
-
-# Tasks
-
-- [ ] To discuss:
-  - [ ] Do we need an API, or just CLI?
-  - [ ] Logging framework
-    - [ ] Must be configurable via config file.
-  - [ ] What to config (and what to provide as input, and what to allow override)
-    - [ ] Logging
-    - [ ] friction model (allow override from CLI)
-  - [ ] Add some kind of progress indicator to the Linearize process.
-  - [ ] Configuration file format. My suggestion: toml. Other possible choices: yaml.
-    - [ ] Must support comments
-    - [ ] Must integrate with logging
-- [ ] Finish data schema
-- [ ] Finish documentation on friction models
-- [x] Gravity vector goes into the config file in the linearize step.
-- [ ] Joint dynamic configuration will be hybrid (overridable via the CLI.)
-- [ ] In the predict stage, there's two caching mechanisms to build the regressor:
-  - [ ] rigid body dynamics, 
-  - [ ] joint dynamics
-- [ ] When do we given MDH parameters?
-- [ ] Make tests load files using project_root() (except linearization_tests.py)

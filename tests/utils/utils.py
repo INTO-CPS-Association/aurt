@@ -8,7 +8,7 @@ from matplotlib.ticker import MultipleLocator
 from sklearn.linear_model import LinearRegression
 
 from aurt.num_sym_layers import *
-from aurt.file_system import cache_object, load_numpy_expr, store_numpy_expr
+from aurt.file_system import cache_object, load_numpy_expr, store_numpy_expr, from_project_root
 from aurt.data_processing import plot_colors
 
 from tests.linearization_tests import compute_regressor_with_instantiated_parameters, compute_indices_base_exist, compute_observation_matrix_and_measurement_vector, compute_parameters_base, get_mse
@@ -27,30 +27,30 @@ def calibration(mdh_params_func):
     t_est_val_separation = 52.5  # timely separation of estimation and validation datasets, TODO: make it possible to specify the relative portion of the dataset you want, e.g. 0.5 for half of the dataset.
 
     data_id = f"random_motion_{t_est_val_separation}"
-    observation_matrix_file_estimation = f'./observation_matrix_estimation_{data_id}.npy'
-    measurement_vector_file_estimation = f'./measurement_vector_estimation_{data_id}.npy'
-    observation_matrix_file_validation = f'./observation_matrix_validation_{data_id}.npy'
-    measurement_vector_file_validation = f'./measurement_vector_validation_{data_id}.npy'
+    observation_matrix_file_estimation = from_project_root(f'tests/cache/observation_matrix_estimation_{data_id}.npy')
+    measurement_vector_file_estimation = from_project_root(f'tests/cache/measurement_vector_estimation_{data_id}.npy')
+    observation_matrix_file_validation = from_project_root(f'tests/cache/observation_matrix_validation_{data_id}.npy')
+    measurement_vector_file_validation = from_project_root(f'tests/cache/measurement_vector_validation_{data_id}.npy')
 
     setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
     args_sym = q[1:] + qd[1:] + qdd[1:]  # list concatenation
     regressor_reduced_func = sp.lambdify(args_sym,
                                             compute_regressor_with_instantiated_parameters(
                                                 ur_param_function=mdh_params_func), 'numpy')
-    filename = "parameter_indices_base"
+    filename = from_project_root("tests/cache/parameter_indices_base")
     idx_base_global = cache_object(filename, lambda: compute_indices_base_exist(regressor_reduced_func))
-    filename = 'regressor_base_with_instantiated_parameters'
+    filename = from_project_root('tests/cache/regressor_base_with_instantiated_parameters')
     regressor_base_params = cache_object(filename, lambda: compute_regressor_with_instantiated_parameters(
         ur_param_function=mdh_params_func)[1:, idx_base_global])
 
     if not isfile(observation_matrix_file_estimation):
         # The base parameter system is obtained by passing only the 'idx_base' columns of the regressor
         W_est, y_est = compute_observation_matrix_and_measurement_vector(
-            f'../../resources/Dataset/ur5e_all_joints_same_time/random_motion.csv',
+            from_project_root(f'resources/Dataset/ur5e_all_joints_same_time/random_motion.csv'),
             regressor_base_params,
             time_frame=(-np.inf, t_est_val_separation))
         W_val, y_val = compute_observation_matrix_and_measurement_vector(
-            f'../../resources/Dataset/ur5e_all_joints_same_time/random_motion.csv',
+            from_project_root(f'resources/Dataset/ur5e_all_joints_same_time/random_motion.csv'),
             regressor_base_params,
             time_frame=(t_est_val_separation, np.inf))
         store_numpy_expr(W_est, observation_matrix_file_estimation)

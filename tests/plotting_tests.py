@@ -3,6 +3,7 @@ import unittest
 import matplotlib.pyplot as plt
 import numpy as np
 from aurt.data_processing import load_data, ur5e_fields
+from aurt.file_system import from_project_root
 from aurt.globals import Njoints, get_ur3e_parameters, get_ur3e_PC, get_ur5e_parameters, get_ur5e_PC
 from aurt.num_sym_layers import npvector, npzeros_array
 from tests.utils.plotting import draw_robot, plot_dynamics
@@ -65,7 +66,7 @@ class PlottingTests(TimedTest):
             time_frame = (-np.inf, np.inf)
             step = 10
 
-        time_range, data = load_data("./resources/Dataset/ur5e_all_joints_same_time/random_motion.csv",
+        time_range, data = load_data(from_project_root("resources/Dataset/ur5e_all_joints_same_time/random_motion.csv"),
                                      ur5e_fields,
                                      desired_timeframe=time_frame,
                                      delimiter=' ',
@@ -83,7 +84,7 @@ class PlottingTests(TimedTest):
         step = 20
         interval_ms = 1
 
-        time_range, data = load_data("./resources/Dataset/ur5e_all_joints_same_time/random_motion.csv",
+        time_range, data = load_data(from_project_root("resources/Dataset/ur5e_all_joints_same_time/random_motion.csv"),
                                      ur5e_fields,
                                      desired_timeframe=time_frame,
                                      delimiter=' ',

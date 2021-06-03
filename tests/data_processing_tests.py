@@ -3,7 +3,7 @@ import unittest
 
 from aurt.calibration_aux import find_first
 from aurt.data_processing import process_missing_samples
-from aurt.file_system import safe_open
+from aurt.file_system import safe_open, from_project_root
 from tests.utils.timed_test import TimedTest
 import numpy as np
 import matplotlib.pyplot as plt
@@ -38,7 +38,7 @@ class DataProcessingTests(TimedTest):
 
     @unittest.skip("TODO: Where is 'velLoadTest.csv'?")
     def test_find_subset_data(self):
-        path = './resources/Dataset/ConstantVelocityWithLoadTorque'
+        path = 'resources/Dataset/ConstantVelocityWithLoadTorque'
 
         v = []
         f = []
@@ -59,7 +59,7 @@ class DataProcessingTests(TimedTest):
         #    non-steady state/oscillations due to ur3e_acceleration change.
 
         i = 0
-        for entry in os.scandir(path):
+        for entry in os.scandir(from_project_root(path)):
             print(entry.path)
             with safe_open(entry.path) as csvfile:
                 rd = csv_reader.CSVReader(csvfile)  # robot data object

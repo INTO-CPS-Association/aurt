@@ -58,6 +58,5 @@ class SerializationTests(TimedTest):
         os.remove("matrix.pickle")
 
 
-
 if __name__ == '__main__':
     unittest.main()
