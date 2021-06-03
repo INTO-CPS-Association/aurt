@@ -17,19 +17,19 @@ which takes a long time.
 ## Compile Rigid Body Dynamics Model
 
 ```
-aurt compile-rbd --mdh mdh_file.csv --gravity 0.0 0.0 -9.81 --out linearized_model.pickle
+aurt compile-rbd --mdh mdh.csv --gravity 0.0 0.0 -9.81 --out rigid-body_dynamics.pickle
 ```
-Reads the Modified Denavit Hartenberg (MDH) parameters in file `mdh_file.csv`, and writes the linearized and reduced model to file `linearized_model.pickle`.
+Reads the Modified Denavit-Hartenberg (MDH) parameters in file `mdh.csv` and outputs the linear and minimal robot dynamics model to file `rigid-body_dynamics.pickle`.
 The gravity vector determines the orientation of the robot for which the parameters will be calibrated.
 The generated model does not include the joint dynamics.
 
-## Compile Joint Dynamics Model
+## Compile Robot Dynamics Model
 
 ```
-aurt compile-jointd --model-rbd rb_dynamics.pickle --friction-load-model square --friction-viscous-powers 2 1 4 --friction-hysteresis-model sign --out robot_dynamics.pickle
+aurt compile-rd --model-rbd rigid-body_dynamics.pickle --friction-load-model square --friction-viscous-powers 2 1 4 --friction-hysteresis-model sign --out robot_dynamics.pickle
 ```
 
-Reads the rigid body dynamics model created with the previous command, and generates the complete model, 
+Reads the rigid-body dynamics model created with the `compile-rbd` command, and generates the robot dynamics model, 
 taking into account the joint dynamics configuration.
 
 The friction configuration options are:
@@ -45,15 +45,15 @@ The friction configuration options are:
 ## Calibration
 
 ```
-aurt calibrate --model robot_dynamics.pickle --data measured_data.csv --out-reduced-params calibrated_parameters.csv
+aurt calibrate --model robot_dynamics.pickle --data measured_data.csv --out-base-params calibrated_parameters.csv
 ```
 
-Reads the model produced in [Compile Joint Dynamics Model](#compile-joint-dynamics-model), the measured data in `measured_data.csv`, 
-and writes the reduced parameter values to `calibrated_parameters.csv`,
+Reads the model produced in [Compile Robot Dynamics Model](#compile-joint-dynamics-model), the measured data in `measured_data.csv`, 
+and writes the base parameter values to `calibrated_parameters.csv`,
 
-In order to generate the original parameters described in `mdh_file.csv`, 
+In order to generate the original parameters described in `mdh.csv`, 
 provided in [Compile Rigid Body Dynamics Model](#compile-rigid-body-dynamics-model), 
-use the `--out-full-params calibrated_parameters.csv` instead of `--reduced-params`
+use the `--out-full-params calibrated_parameters.csv` instead of `--base-params`
 
 The measured data should contain the following fields:
 - `time` of type float, representing the number of seconds passed from a given reference point.
@@ -64,12 +64,12 @@ The measured data should contain the following fields:
 ## Predict
 
 ```
-aurt predict --model robot_dynamics.pickle --data measured_data.csv --reduced-params calibrated_parameters.csv --prediction prediction.csv
+aurt predict --model robot_dynamics.pickle --data measured_data.csv --base-params calibrated_parameters.csv --prediction prediction.csv
 ```
 
 Reads the model produced in [Compile Joint Dynamics Model](#compile-joint-dynamics-model), 
 the measured data in `measured_data.csv`, 
-and the reduced parameter values produced in [Calibration](#calibration), and writes the prediction to `prediction.csv`.
+and the base parameter values produced in [Calibration](#calibration), and writes the prediction to `prediction.csv`.
 
 The prediction fields are:
 - `time` of type float, referring to the time of the measured data, as in [Calibration](#calibration).
@@ -121,7 +121,8 @@ The shared drive **Nat_UR-robot-datasets** has been created with **Emil Madsen**
 
 | **Brugernavn/Username** | **Navn/Name**                   | **Afdeling/department** | **E-mail**                                                | **Tilføjet via  gruppe/assigned by group** |
 | ----------------------- | ------------------------------- | ----------------------- | --------------------------------------------------------- | ------------------------------------------ |
-| au602135                | Cláudio  Ângelo Gonçalves Gomes | Cyber-Physical  Systems | [claudio.gomes@ece.au.dk](mailto:claudio.gomes@ece.au.dk) |                                            |
+| au602135                | Cláudio Ângelo Gonçalves Gomes  | Cyber-Physical Systems  | [claudio.gomes@ece.au.dk](mailto:claudio.gomes@ece.au.dk) |                                            |
+| au522101                | Christian Møldrup Legaard       | Cyber-Physical Systems  | [cml@ece.au.dk](mailto:cml@ece.au.dk)                     |                                            |
 
 For more information on access, self-service and management of files: https://medarbejdere.au.dk/en/administration/it/guides/datastorage/data-storage/
 
