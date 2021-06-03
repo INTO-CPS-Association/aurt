@@ -2,7 +2,7 @@ import os
 import unittest
 
 from aurt.calibration_aux import find_first
-from aurt.data_processing import process_missing_samples
+from aurt.robot_data import RobotData
 from aurt.file_system import safe_open
 from tests.utils.timed_test import TimedTest
 import numpy as np
@@ -13,16 +13,16 @@ from third_party.rtde import csv_reader
 
 class DataProcessingTests(TimedTest):
 
-    def test_process_missing_samples_no_missing_sample(self):
+    def test_process_missing_samples_no_missing_sample(self):  # TODO: FIX THIS TO FIT robot_data.py
         time_range = np.array([0.0, 1.0, 2.0, 3.0, 4.0])
         data = {
             "x": [0.0, 1.0, 2.0, 3.0, 4.0]
         }
         interpolate_missing_samples = True
-        rtime_range, rdata = process_missing_samples(time_range, data, interpolate_missing_samples)
-        self.assertTrue(not any(rdata["interpolated"]))
-        self.assertTrue(np.array_equal(time_range, rtime_range))
-        self.assertTrue(np.array_equal(data["x"], rdata["x"]))
+        my_robot_data = RobotData(f"dummy_file_with_above_data.csv").__process_missing_samples(interpolate_missing_samples=True)  # TODO: Fix this
+        self.assertTrue(not any(my_robot_data["interpolated"]))
+        self.assertTrue(np.array_equal(my_robot_data.time, time_range))
+        self.assertTrue(np.array_equal(data["x"], my_robot_data.data["x"]))
 
     def test_process_missing_samples_missing_2samples(self):
         time_range = np.array([0.0, 1.0, 4.0, 5.0])

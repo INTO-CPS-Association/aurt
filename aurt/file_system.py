@@ -7,7 +7,7 @@ from pathlib import Path
 
 def project_root() -> Path:
     """TODO: Validate whether this is a valid approach."""
-    return Path(__file__).parent.parent.parent
+    return Path(__file__).parent.parent
 
 
 def safe_open(filepath, mode='r'):

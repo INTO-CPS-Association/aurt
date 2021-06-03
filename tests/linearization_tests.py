@@ -14,7 +14,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 
 from aurt.calibration_aux import find_nonstatic_start_and_end_indices
-from aurt.data_processing import load_data, ur5e_fields, plot_colors
+from aurt.robot_data import RobotData, plot_colors
 from aurt.file_system import cache_object, store_object, load_object, project_root, store_numpy_expr, load_numpy_expr
 from aurt.globals import Njoints, get_ur_parameters_symbolic, get_ur_frames, get_ur5e_parameters
 from aurt.num_sym_layers import spzeros_array, spvector, npzeros_array
@@ -594,15 +594,14 @@ def compute_observation_matrix_and_measurement_vector(data_path, regressor_base_
     sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
 
     # Data
-    t, data = load_data(data_path, ur5e_fields, desired_timeframe=time_frame, interpolate_missing_samples=True)
-    dt = t[1] - t[0]
-    qd_target = np.array([data[f"target_qd_{j}"] for j in range(1, Njoints + 1)])
+    ur5e_experiment = RobotData(data_path, delimiter=' ', desired_timeframe=time_frame, interpolate_missing_samples=True)
+    qd_target = np.array([ur5e_experiment.data[f"target_qd_{j}"] for j in range(1, Njoints + 1)])
     idx_start, idx_end = find_nonstatic_start_and_end_indices(qd_target)
-    q_m = np.array([data[f"actual_q_{j}"] for j in range(1, Njoints + 1)])  # (6 x n_samples) numpy array of measured angular positions
+    q_m = np.array([ur5e_experiment.data[f"actual_q_{j}"] for j in range(1, Njoints + 1)])  # (6 x n_samples) numpy array of measured angular positions
     # plot_trajectories(t, data, joints=range(2,3))
 
     # Low-pass filter (smoothen) measured angular position and obtain 1st and 2nd order time-derivatives
-    q_tf, qd_tf, qdd_tf = trajectory_filtering_and_central_difference(q_m, dt, idx_start, idx_end)
+    q_tf, qd_tf, qdd_tf = trajectory_filtering_and_central_difference(q_m, ur5e_experiment.dt_actual, idx_start, idx_end)
 
     # *************************************************** PLOTS ***************************************************
     # qd_m = np.gradient(q_m, dt, edge_order=2, axis=1)
@@ -638,9 +637,9 @@ def compute_observation_matrix_and_measurement_vector(data_path, regressor_base_
     #     plt.show()
     # *************************************************************************************************************
 
-    i = np.array([data[f"actual_current_{j}"] for j in range(1, Njoints + 1)]).T
-    i_pf = parallel_filter(i, dt)[idx_start:idx_end, :]
-    i_pf_ds = downsample(i_pf, dt)
+    i = np.array([ur5e_experiment.data[f"actual_current_{j}"] for j in range(1, Njoints + 1)]).T
+    i_pf = parallel_filter(i, ur5e_experiment.dt_actual)[idx_start:idx_end, :]
+    i_pf_ds = downsample(i_pf, ur5e_experiment.dt_actual)
     measurement_vector = i_pf_ds.flatten(order='F')  # y = [y1, ..., yi, ..., yN],  yi = [yi_{1}, ..., yi_{n_samples}]
 
     n_samples_ds = i_pf_ds.shape[0]  # No. of samples in downsampled data
@@ -668,7 +667,7 @@ def compute_observation_matrix_and_measurement_vector(data_path, regressor_base_
         rows_j = regressor_base_params_instatiated_j(*args_num).transpose().squeeze()  # (1 x count(nonzeros))
 
         # Parallel filter and decimate/downsample rows of the observation matrix related to joint j.
-        rows_j_pf_ds = downsample(parallel_filter(rows_j, dt), dt)
+        rows_j_pf_ds = downsample(parallel_filter(rows_j, ur5e_experiment.dt_actual), ur5e_experiment.dt_actual)
 
         observation_matrix[j * n_samples_ds:(j + 1) * n_samples_ds, nonzeros_j] = rows_j_pf_ds
 
@@ -829,11 +828,11 @@ class LinearizationTests(TimedTest):
             # The base parameter system is obtained by passing only the 'idx_base' columns of the regressor
             root_dir = project_root()
             W_est, y_est = compute_observation_matrix_and_measurement_vector(
-                os.path.join(root_dir, '../robot_live_tests/resources', 'Dataset', 'ur5e_all_joints_same_time', 'random_motion.csv'),  #'aurt/resources/Dataset/ur5e_all_joints_same_time/random_motion.csv',
+                os.path.join(root_dir, 'resources', 'Dataset', 'ur5e_all_joints_same_time', 'random_motion.csv'),  #'aurt/resources/Dataset/ur5e_all_joints_same_time/random_motion.csv',
                 regressor_base_params,
                 time_frame=(-np.inf, t_est_val_separation))
             W_val, y_val = compute_observation_matrix_and_measurement_vector(
-                os.path.join(root_dir, '../robot_live_tests/resources', 'Dataset', 'ur5e_all_joints_same_time', 'random_motion.csv'),
+                os.path.join(root_dir, 'resources', 'Dataset', 'ur5e_all_joints_same_time', 'random_motion.csv'),
                 regressor_base_params,
                 time_frame=(t_est_val_separation, np.inf))
             store_numpy_expr(W_est, observation_matrix_file_estimation)

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from urinterface import RobotConnection
 
-from aurt.data_processing import load_data, ur5e_fields
+from aurt.robot_data import RobotData
 from aurt.globals import Njoints, get_ur5e_parameters, get_ur5e_PC
 from aurt.num_sym_layers import npzeros_array, npvector
 from aurt.torques import compute_torques_numeric_5e
@@ -30,12 +30,10 @@ class TorqueTests(TimedTest):
         ur5e.record_samples(filename=file_name, overwrite=True, samples=1)
         tau_ours = compute_torques_numeric_5e(q=np.insert(q, 0, 0.0), der_q=np.insert(qd, 0, 0.0), der2_q=np.insert(qdd, 0, 0.0), f_tip=f_tip, n_tip=n_tip, cI=inertia, g=g)
 
-        data = load_data(file_name,
-                         ur5e_fields,
-                         delimiter=' ')[1]
+        robot_data = RobotData(file_name)[1]
 
-        q_UR = np.array([data[f"target_q_{j}"][0] for j in range(1, Njoints + 1)])
-        tau_UR = np.array([data[f"target_moment_{j}"][0] for j in range(1, Njoints + 1)])
+        q_UR = np.array([robot_data.data[f"target_q_{j}"][0] for j in range(1, Njoints + 1)])
+        tau_UR = np.array([robot_data.data[f"target_moment_{j}"][0] for j in range(1, Njoints + 1)])
         np.set_printoptions(precision=3, suppress=True)
 
         print(f"q_ours = {q}")

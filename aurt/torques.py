@@ -49,7 +49,7 @@ def torque_algorithm_factory_from_parameters(ur_parameter_function, ur_frames_fu
             vd = [vector([0, 0, 0]) for i in range(0, Njoints + 1)]  # Translational acceleration
 
             # Gravity
-            vd[0] = g
+            vd[0] = -g
 
             vcd = [vector([0, 0, 0]) for i in range(0, Njoints + 1)]
             F = [vector([0, 0, 0]) for i in range(0, Njoints + 1)]
