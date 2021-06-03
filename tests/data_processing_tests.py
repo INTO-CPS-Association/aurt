@@ -2,13 +2,11 @@ import os
 import unittest
 
 from aurt.calibration_aux import find_first
-<<<<<<< HEAD
 from aurt.robot_data import RobotData
 from aurt.file_system import safe_open
-=======
 from aurt.data_processing import process_missing_samples
 from aurt.file_system import safe_open, from_project_root
->>>>>>> 661ff98a0978b8ff4df920f640cc6011ddfa2462
+
 from tests.utils.timed_test import TimedTest
 import numpy as np
 import matplotlib.pyplot as plt

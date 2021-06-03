@@ -1,8 +1,8 @@
 import numpy as np
 import csv
 from itertools import compress
-from aurt.globals import Njoints  # TODO: Remove 'Njoints' global definition
 
+from aurt.globals import Njoints  # TODO: Remove 'Njoints' global definition
 from aurt.file_system import safe_open
 
 plot_colors = ['red', 'green', 'blue', 'chocolate', 'crimson', 'fuchsia', 'indigo', 'orange']

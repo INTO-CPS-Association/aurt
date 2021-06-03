@@ -601,7 +601,7 @@ def compute_observation_matrix_and_measurement_vector(data_path, regressor_base_
     # plot_trajectories(t, data, joints=range(2,3))
 
     # Low-pass filter (smoothen) measured angular position and obtain 1st and 2nd order time-derivatives
-    q_tf, qd_tf, qdd_tf = trajectory_filtering_and_central_difference(q_m, ur5e_experiment.dt_actual, idx_start, idx_end)
+    q_tf, qd_tf, qdd_tf = trajectory_filtering_and_central_difference(q_m, ur5e_experiment.dt_nominal, idx_start, idx_end)
 
     # *************************************************** PLOTS ***************************************************
     # qd_m = np.gradient(q_m, dt, edge_order=2, axis=1)
@@ -638,8 +638,8 @@ def compute_observation_matrix_and_measurement_vector(data_path, regressor_base_
     # *************************************************************************************************************
 
     i = np.array([ur5e_experiment.data[f"actual_current_{j}"] for j in range(1, Njoints + 1)]).T
-    i_pf = parallel_filter(i, ur5e_experiment.dt_actual)[idx_start:idx_end, :]
-    i_pf_ds = downsample(i_pf, ur5e_experiment.dt_actual)
+    i_pf = parallel_filter(i, ur5e_experiment.dt_nominal)[idx_start:idx_end, :]
+    i_pf_ds = downsample(i_pf, ur5e_experiment.dt_nominal)
     measurement_vector = i_pf_ds.flatten(order='F')  # y = [y1, ..., yi, ..., yN],  yi = [yi_{1}, ..., yi_{n_samples}]
 
     n_samples_ds = i_pf_ds.shape[0]  # No. of samples in downsampled data
@@ -667,7 +667,7 @@ def compute_observation_matrix_and_measurement_vector(data_path, regressor_base_
         rows_j = regressor_base_params_instatiated_j(*args_num).transpose().squeeze()  # (1 x count(nonzeros))
 
         # Parallel filter and decimate/downsample rows of the observation matrix related to joint j.
-        rows_j_pf_ds = downsample(parallel_filter(rows_j, ur5e_experiment.dt_actual), ur5e_experiment.dt_actual)
+        rows_j_pf_ds = downsample(parallel_filter(rows_j, ur5e_experiment.dt_nominal), ur5e_experiment.dt_nominal)
 
         observation_matrix[j * n_samples_ds:(j + 1) * n_samples_ds, nonzeros_j] = rows_j_pf_ds
 
