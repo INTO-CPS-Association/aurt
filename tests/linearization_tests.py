@@ -19,6 +19,7 @@ from aurt.file_system import cache_object, store_object, load_object, project_ro
 from aurt.globals import Njoints, get_ur_parameters_symbolic, get_ur_frames, get_ur5e_parameters
 from aurt.num_sym_layers import spzeros_array, spvector, npzeros_array
 from aurt.torques import compute_torques_symbolic_ur
+from aurt.robot_dynamics import RobotDynamics
 from tests import NONINTERACTIVE
 from tests.utils.timed_test import TimedTest
 
@@ -810,18 +811,20 @@ class LinearizationTests(TimedTest):
         observation_matrix_file_validation = f'./observation_matrix_validation_{data_id}.npy'
         measurement_vector_file_validation = f'./measurement_vector_validation_{data_id}.npy'
 
-        sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
-        args_sym = q[1:] + qd[1:] + qdd[1:]  # list concatenation
-        if load_model.lower() != 'none':
-            args_sym += tauJ[1:]
+        # sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
+        # args_sym = q[1:] + qd[1:] + qdd[1:]  # list concatenation
+        # if load_model.lower() != 'none':
+            # args_sym += tauJ[1:]
 
-        regressor_reduced_func = sp.lambdify(args_sym, compute_regressor_with_instantiated_parameters(
-            ur_param_function=get_ur5e_parameters), 'numpy')
-        filename = "parameter_indices_base"
-        idx_base_global = cache_object(filename, lambda: compute_indices_base_exist(regressor_reduced_func))
-        filename = 'regressor_base_with_instantiated_parameters'
-        regressor_base_params = cache_object(filename, lambda: compute_regressor_with_instantiated_parameters(
-            ur_param_function=get_ur5e_parameters)[1:, idx_base_global])
+        # regressor_reduced_func = sp.lambdify(args_sym, compute_regressor_with_instantiated_parameters(
+        #     ur_param_function=get_ur5e_parameters), 'numpy')
+        # filename = "parameter_indices_base"
+        # idx_base_global = cache_object(filename, lambda: compute_indices_base_exist(regressor_reduced_func))
+        # filename = 'regressor_base_with_instantiated_parameters'
+        # regressor_base_params = cache_object(filename, lambda: compute_regressor_with_instantiated_parameters(
+        #     ur_param_function=get_ur5e_parameters)[1:, idx_base_global])
+
+        regressor_base_params_2 = RobotDynamics(None, ).regressor()
 
         # TODO: manually using 'store_numpy_expr' and 'load_numpy_expr' - why not use 'cache_numpy' instead?
         if not os.path.isfile(observation_matrix_file_estimation):
@@ -829,11 +832,11 @@ class LinearizationTests(TimedTest):
             root_dir = project_root()
             W_est, y_est = compute_observation_matrix_and_measurement_vector(
                 os.path.join(root_dir, 'resources', 'Dataset', 'ur5e_all_joints_same_time', 'random_motion.csv'),  #'aurt/resources/Dataset/ur5e_all_joints_same_time/random_motion.csv',
-                regressor_base_params,
+                regressor_base_params_2,
                 time_frame=(-np.inf, t_est_val_separation))
             W_val, y_val = compute_observation_matrix_and_measurement_vector(
                 os.path.join(root_dir, 'resources', 'Dataset', 'ur5e_all_joints_same_time', 'random_motion.csv'),
-                regressor_base_params,
+                regressor_base_params_2,
                 time_frame=(t_est_val_separation, np.inf))
             store_numpy_expr(W_est, observation_matrix_file_estimation)
             store_numpy_expr(y_est, measurement_vector_file_estimation)
