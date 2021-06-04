@@ -824,7 +824,7 @@ class LinearizationTests(TimedTest):
         # regressor_base_params = cache_object(filename, lambda: compute_regressor_with_instantiated_parameters(
         #     ur_param_function=get_ur5e_parameters)[1:, idx_base_global])
 
-        regressor_base_params_2 = RobotDynamics(None, ).regressor()
+        regressor_base_params_2 = RobotDynamics(None).regressor()
 
         # TODO: manually using 'store_numpy_expr' and 'load_numpy_expr' - why not use 'cache_numpy' instead?
         if not os.path.isfile(observation_matrix_file_estimation):
