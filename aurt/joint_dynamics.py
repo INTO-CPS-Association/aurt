@@ -8,9 +8,9 @@ class JointDynamics:
         self.tauJ = sp.symbols([f"tauJ{j}" for j in range(self.n_joints + 1)])
 
         # Defaults
-        if load_model.lower() is None:
+        if load_model is None:
             load_model = 'square'  # 'none', 'square' or 'abs'
-        if hysteresis_model.lower() is None:
+        if hysteresis_model is None:
             hysteresis_model = 'sign'  # 'sign' or 'gms'
         if viscous_powers is None:
             viscous_powers = [1]  # [1, 2, 3, ...], i.e. list of positive integers

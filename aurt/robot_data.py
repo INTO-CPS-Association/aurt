@@ -14,7 +14,7 @@ class RobotData:
     """
     This class contains sampled robot data related to an experiment.
     """
-    def __init__(self, file_path, delimiter, desired_timeframe=None, interpolate_missing_samples=False, ):
+    def __init__(self, file_path, delimiter, desired_timeframe=None, interpolate_missing_samples=False):
         self.fields = [
             f"timestamp",
             f"target_q_{JOINT_N}",

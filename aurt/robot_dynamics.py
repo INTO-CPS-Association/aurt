@@ -6,8 +6,8 @@ from itertools import product, chain
 from multiprocessing import Pool
 
 from aurt.file_system import cache_object, store_object, load_object
-from rigid_body_dynamics import RigidBodyDynamics
-from joint_dynamics import JointDynamics
+from aurt.rigid_body_dynamics import RigidBodyDynamics
+from aurt.joint_dynamics import JointDynamics
 
 # TODO: DELETE BELOW GLOBALS
 from aurt.num_sym_layers import spzeros_array, spvector, npzeros_array
@@ -27,15 +27,18 @@ n_tcp_num = sp.Matrix([0.0, 0.0, 0.0])
 
 class RobotDynamics:
     def __init__(self, modified_dh, gravity=None, viscous_friction_powers=None, friction_load_model=None, hysteresis_model=None):
+        # TODO: Change constructor to take directly 'RigidBodyDynamics' and 'JointDynamics' objects instead of their
+        #  arguments.
+
         self.mdh = modified_dh
-        self.n_joints = RobotDynamics.number_of_joints(modified_dh)
+        self.n_joints = 6#RobotDynamics.number_of_joints(modified_dh) # TODO: Correct this
         self.q = [sp.Integer(0)] + [sp.symbols(f"q{j}") for j in range(1, self.n_joints + 1)]
         self.qd = [sp.Integer(0)] + [sp.symbols(f"qd{j}") for j in range(1, self.n_joints + 1)]
         self.qdd = [sp.Integer(0)] + [sp.symbols(f"qdd{j}") for j in range(1, self.n_joints + 1)]
         self.tauJ = sp.symbols([f"tauJ{j}" for j in range(self.n_joints + 1)])
 
         self.rigid_body_dynamics = RigidBodyDynamics(modified_dh,
-                                                     self.n_joints,
+                                                     6,#self.n_joints,
                                                      gravity=gravity)
         self.joint_dynamics = JointDynamics(self.n_joints,
                                             load_model=friction_load_model,
@@ -195,6 +198,8 @@ class RobotDynamics:
         assert np.count_nonzero(list(chain.from_iterable(idx_is_base))) == sum(n_par_base) == len(
             list(chain.from_iterable(p_base)))
 
+        self.number_of_parameters = sum(n_par_base)
+
         return idx_is_base, n_par_base, p_base
 
     def __indices_base_exist(self, regressor_with_instantiated_parameters):
@@ -286,12 +291,72 @@ class RobotDynamics:
 
         return regressor_reduced_params
 
+    def evaluate_dynamics_from_measurements_and_parameters(self, q_num, qd_num, qdd_num, parameters):
+        """
+        This method computes the basis of the joint torque by evaluating the rigid body dynamics with instantiated
+        DH parameters, gravity, and TCP force/torque. All dynamic parameters are set equal to ones. Thus, the output of this
+        method is not strictly equal to the joint torque.
+        """
+        assert q_num.shape == qd_num.shape == qdd_num.shape
+
+        sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
+        rbd_parameters_global = sp.Matrix(list(chain.from_iterable(self.rigid_body_dynamics.parameters())))
+        parameters_num = np.ones_like(rbd_parameters_global)
+        tauJ_basis = self.__compute_joint_torque_basis_with_instantiated_parameters(parameters_num)
+        args_sym = self.q[1:] + self.qd[1:] + self.qdd[1:]
+        args_num = np.concatenate((q_num, qd_num, qdd_num))
+        tauJ_num = np.zeros((tauJ_basis.shape[0], args_num.shape[1]))
+        for j in range(self.n_joints + 1):
+            tauJ_j_function = sp.lambdify(args_sym, tauJ_basis[j])
+            tauJ_num[j, :] = tauJ_j_function(*args_num)
+        return tauJ_num
+
+    def __compute_joint_torque_basis_with_instantiated_parameters(self, parameters_num):
+        """
+        This function computes the joint torque basis as the rigid-body dynamics with parameters (DH, gravity, and TCP
+        force/torque) instantiated. The parameters related to the rigid-body dynamics (masses, center-of-mass positions, and
+        inertia components) are set to one.
+        """
+
+        (_, d_num, a_num, _) = get_ur5e_parameters(npzeros_array)
+
+        def to_fname(l):
+            return "_".join(map(lambda s: "%1.2f" % s, l))
+
+        data_id = f"{to_fname(d_num)}_{to_fname(a_num)}_{'%1.2f' % g_num[0]}_{'%1.2f' % g_num[1]}_{'%1.2f' % g_num[2]}"
+
+        def load_joint_torque_and_subs():
+            tauJ_sym = cache_object('rigid_body_dynamics_linearizable', self.__dynamics_linearizable)
+            rbd_parameters_global = sp.Matrix(list(chain.from_iterable(self.rigid_body_dynamics.parameters())))
+            # assert len(rbd_parameters_global) == parameters_num.shape[0]
+            tauJ_instantiated = sp.Matrix(tauJ_sym).subs(
+                RobotDynamics.sym_mat_to_subs([a, d, g, f_tcp, n_tcp, rbd_parameters_global],
+                                [a_num, d_num, g_num, f_tcp_num, n_tcp_num, parameters_num]))
+            return tauJ_instantiated
+
+        tauJ_basis = cache_object(f'./joint_torque_basis_{data_id}', load_joint_torque_and_subs)
+
+        return tauJ_basis
+
+    def regressor(self):
+        sys.setrecursionlimit(int(1e6))
+        regressor_linear_exist = self.__regressor_linear_with_instantiated_parameters(
+            robot_parameter_function=get_ur5e_parameters)
+
+        args_sym = self.q[1:] + self.qd[1:] + self.qdd[1:]  # list concatenation
+        if self.joint_dynamics.load_model.lower() != 'none':
+            args_sym += self.tauJ[1:]
+        regressor_linear_exist_func = sp.lambdify(args_sym, regressor_linear_exist, 'numpy')
+        parameter_indices_base = self.__indices_base_exist(regressor_linear_exist_func)
+
+        return regressor_linear_exist[1:, parameter_indices_base]
+
     def parameters(self):
         return self.__parameters_base()[2]
 
     @staticmethod
     def number_of_joints(mdh):
-        return mdh.shape[0]
+        return 1#mdh.shape[0]  # TODO: Fix the 'number_of_joints' function
 
     @staticmethod
     def mdh_csv2obj(mdh_csv_path):
