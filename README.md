@@ -123,6 +123,7 @@ The shared drive **Nat_UR-robot-datasets** has been created with **Emil Madsen**
 | ----------------------- | ------------------------------- | ----------------------- | --------------------------------------------------------- | ------------------------------------------ |
 | au602135                | Cláudio Ângelo Gonçalves Gomes  | Cyber-Physical Systems  | [claudio.gomes@ece.au.dk](mailto:claudio.gomes@ece.au.dk) |                                            |
 | au522101                | Christian Møldrup Legaard       | Cyber-Physical Systems  | [cml@ece.au.dk](mailto:cml@ece.au.dk)                     |                                            |
+| au513437                | Daniella Tola                   | Cyber-Physical Systems  | [dt@ece.au.dk](mailto:dt@ece.au.dk)                       |                                            |
 
 For more information on access, self-service and management of files: https://medarbejdere.au.dk/en/administration/it/guides/datastorage/data-storage/
 
