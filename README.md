@@ -1,4 +1,4 @@
-# AU Robotics Toolbox (AURT) Overview
+# Aarhus University Robotics Toolbox (AURT) Overview
 
 # Installation
 
