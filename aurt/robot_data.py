@@ -4,6 +4,7 @@ from itertools import compress
 
 from aurt.globals import Njoints  # TODO: Remove 'Njoints' global definition
 from aurt.file_system import safe_open
+from aurt.calibration_aux import find_nonstatic_start_and_end_indices
 
 plot_colors = ['red', 'green', 'blue', 'chocolate', 'crimson', 'fuchsia', 'indigo', 'orange']
 
@@ -15,6 +16,7 @@ class RobotData:
     This class contains sampled robot data related to an experiment.
     """
     def __init__(self, file_path, delimiter, desired_timeframe=None, interpolate_missing_samples=False):
+        self.n_joints = 6  # TODO: CHANGE THIS
         self.fields = [
             f"timestamp",
             f"target_q_{JOINT_N}",
@@ -26,7 +28,12 @@ class RobotData:
             f"actual_q_{JOINT_N}",
             f"actual_qd_{JOINT_N}",
         ]
-        self.__load_data(file_path, desired_timeframe=desired_timeframe, interpolate_missing_samples=interpolate_missing_samples, delimiter=delimiter)
+        self.__load_data(file_path,
+                         desired_timeframe=desired_timeframe,
+                         interpolate_missing_samples=interpolate_missing_samples,
+                         delimiter=delimiter)
+        qd_target = np.array([self.data[f"target_qd_{j}"] for j in range(1, self.n_joints + 1)])
+        self.non_static_start_index, self.non_static_end_index = find_nonstatic_start_and_end_indices(qd_target)
 
     def __load_data(self,
                     file_path,

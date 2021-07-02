@@ -15,11 +15,13 @@ from sklearn.metrics import mean_squared_error
 
 from aurt.calibration_aux import find_nonstatic_start_and_end_indices
 from aurt.robot_data import RobotData, plot_colors
-from aurt.file_system import cache_object, store_object, load_object, project_root, store_numpy_expr, load_numpy_expr
+from aurt.file_system import cache_object, store_object, load_object, project_root
 from aurt.globals import Njoints, get_ur_parameters_symbolic, get_ur_frames, get_ur5e_parameters
 from aurt.num_sym_layers import spzeros_array, spvector, npzeros_array
 from aurt.torques import compute_torques_symbolic_ur
 from aurt.robot_dynamics import RobotDynamics
+from aurt.robot_calibration import RobotCalibration
+from aurt.joint_dynamics import JointDynamics
 from tests import NONINTERACTIVE
 from tests.utils.timed_test import TimedTest
 
@@ -775,7 +777,28 @@ def evaluate_observation_matrix_cost(observation_matrix, metric="cond"):
         raise Exception(f"The specified metric '{metric}' is not supported.")
 
 
+class Foo:
+    def __init__(self):
+        self.__a = 1
+
+    def get_a(self):
+        def get_a_fcn():
+            aa = self.__a
+            return aa
+        return get_a_fcn()
+
+    def set_a(self):
+        def set_a_fcn():
+            self.__a = 3
+        set_a_fcn()
+
+
 class LinearizationTests(TimedTest):
+    def test_a(self):
+        my_foo = Foo()
+        print(f"my_foo.a = {my_foo.get_a()}")
+        my_foo.set_a()
+        print(f"my_foo.a = {my_foo.get_a()}")
 
     def test_joint_dynamics(self):
         compute_joint_torque_basis(np.array(1), np.array(1), np.array(1), robot_param_function=get_ur5e_parameters)
@@ -795,6 +818,23 @@ class LinearizationTests(TimedTest):
         par_base = cache_object(filename_par, compute_parameters_base)
         print(f"idx_base: {idx_base}")
         print(f"par_base: {par_base}")
+
+    def test_calibration_new(self):
+        my_joint_dynamics = JointDynamics(6)
+
+        mdh = None
+        robot_data_path = os.path.join(project_root(), 'resources', 'Dataset', 'ur5e_all_joints_same_time', 'random_motion.csv')
+        t_est_val_separation = 63.0
+        filename_parameters = 'parameters'
+        filename_predicted_output = 'predicted_output'
+
+        my_robot_dynamics = RobotDynamics(mdh)
+        my_robot_calibration_data = RobotData(robot_data_path, delimiter=' ', desired_timeframe=(-np.inf, t_est_val_separation), interpolate_missing_samples=True)
+        my_robot_validation_data = RobotData(robot_data_path, delimiter=' ', desired_timeframe=(t_est_val_separation, np.inf), interpolate_missing_samples=True)
+
+        my_robot_calibration = RobotCalibration(my_robot_dynamics, my_robot_calibration_data)
+        my_robot_calibration.calibrate(filename_parameters)
+        my_robot_calibration.predict(my_robot_validation_data, filename_parameters, filename_predicted_output)
 
     def test_calibrate_parameters(self):
         t_est_val_separation = 63.0  # timely separation of estimation and validation datasets
