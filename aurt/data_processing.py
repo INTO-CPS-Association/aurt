@@ -1,11 +1,10 @@
-<<<<<<< HEAD
-=======
 import csv
 from itertools import compress
 from math import pi
-
+from dataclasses import dataclass
 import numpy as np
 import pandas as pd
+import sympy as sp
 
 
 # Taken from https://scipy-cookbook.readthedocs.io/items/SignalSmooth.html
@@ -30,6 +29,26 @@ ur5e_fields = [
         ]
 
 
+@dataclass
+class ModifiedDH:
+    d: list
+    a: list
+    alpha: list
+    q: list
+    n_joints: int
+
+    def __init__(self, d, a, alpha, q) -> None:
+        self.d = d
+        self.a = a
+        self.alpha = alpha
+        self.q = q
+        assert len(self.d) == len(self.a) == len(self.alpha)
+        self.set_n_joints()
+    
+    def set_n_joints(self) -> int:
+        self.n_joints = len(self.d)-1 # TODO: remove "-1"
+
+
 def convert_file_to_mdh(filename):
     if filename[-3:] == "csv":
         df = pd.read_csv(filename)
@@ -39,7 +58,10 @@ def convert_file_to_mdh(filename):
     alpha = []
     for alpha_i in df.alpha:
         alpha.append(input_with_pi_to_float(alpha_i))
-    return d, a, alpha
+    mdh = ModifiedDH(d,a,alpha,None) # TODO: add q to the listing, and remove njoints, remove sp.integer(0)
+    q = [sp.Integer(0)] + [sp.symbols(f"q{j}") for j in range(1, mdh.n_joints + 1)]
+    mdh.q = q
+    return mdh
 
 
 def input_with_pi_to_float(input):
@@ -267,4 +289,3 @@ def ensure_data_consistent(time_range, data):
     signal_length = len(time_range)
     for f in data.keys():
         assert len(data[f]) == signal_length, f"Field {f} in data is inconsistent. Expected {signal_length} samples. Got {len(data[f])} instead."
->>>>>>> 661ff98a0978b8ff4df920f640cc6011ddfa2462

@@ -2,8 +2,8 @@ import argparse
 from logging.config import fileConfig
 import logging
 import numpy as np
-import api as api
-
+import aurt.api as api
+from aurt.data_processing import *
 
 def setup_logger(args):
     if args.logger_config is not None:
@@ -135,7 +135,10 @@ def main():
 
     args = args_parser.parse_args()
 
-    args.command(args)
+    mdh = convert_file_to_mdh("resources/robot_parameters/ur3e_params.csv")
+    #print(mdh)
+
+    #args.command(args)
 
 
 if __name__ == '__main__':
