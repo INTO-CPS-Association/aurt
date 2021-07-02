@@ -67,37 +67,6 @@ class RobotDynamics:
         n_par_jd = self.joint_dynamics.number_of_parameters()
         return [n_par_rbd[j] + n_par_jd[j] for j in range(self.n_joints + 1)]
 
-    def evaluate_rigid_body_dynamics_basis(self, q_num, qd_num, qdd_num):
-        """
-        This method computes the joint torque by evaluating the rigid body dynamics with instantiated DH parameters,
-        gravity, and TCP force/torque. If values for rigid-body parameters are not provided they are set equal to ones.
-        """
-        assert q_num.shape == qd_num.shape == qdd_num.shape
-
-        rbd_reg = self.rigid_body_dynamics.regressor()
-        tauJ_basis = [sp.summation(rbd_reg[j, :]) for j in range(rbd_reg.shape[0])]
-        args_sym = self.q[1:] + self.qd[1:] + self.qdd[1:]
-        args_num = np.concatenate((q_num, qd_num, qdd_num))
-        tauJ_num = np.zeros((len(tauJ_basis), args_num.shape[1]))
-        sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
-
-        # ******************************************* PARALLEL COMPUTATION *********************************************
-        # js = list(range(self.n_joints + 1))
-        # tau_per_task = [tauJ_basis[j] for j in js]  # Allows one to control how many tasks by controlling how many js
-        # data_per_task = list(product(zip(tau_per_task, js), [self.__parameters_linear()]))
-        #
-        # with Pool() as p:
-        #     tauJ_basis = p.map(compute_dynamics, data_per_task)
-        # **************************************************************************************************************
-
-        for j in range(self.n_joints + 1):
-            print(f"Computing lamdified expression RobotDynamics.evaluate()[j={j}]...")
-            tauJ_j_function = sp.lambdify(args_sym, tauJ_basis[j], 'numpy')
-            print(f"Evaluating numerically RobotDynamics.evaluate()[j={j}]...")
-            tauJ_num[j, :] = tauJ_j_function(*args_num)
-        print(f"Successfully computed RobotDynamics.evaluate()...")
-        return tauJ_num
-
     def observation_matrix_joint(self, j, q_num, qd_num, qdd_num):
         assert q_num.shape == qd_num.shape == qdd_num.shape
         assert 0 < j <= self.n_joints
@@ -180,10 +149,3 @@ class RobotDynamics:
     @staticmethod
     def number_of_joints(mdh):
         return 6#mdh.shape[0]  # TODO: Fix the 'number_of_joints' function
-
-    @staticmethod
-    def mdh_csv2obj(mdh_csv_path):
-        # Converts csv file to some object, dictionary, or whatever containing the modified DH parameters. It would be
-        # nice to be able to get 'a' by doing something like 'self.mdh.a', 'self.mdh['a']', or similar.
-        mdh = load_object(mdh_csv_path)
-        return mdh

@@ -830,10 +830,12 @@ class LinearizationTests(TimedTest):
 
         my_robot_dynamics = RobotDynamics(mdh)
         my_robot_calibration_data = RobotData(robot_data_path, delimiter=' ', desired_timeframe=(-np.inf, t_est_val_separation), interpolate_missing_samples=True)
-        my_robot_validation_data = RobotData(robot_data_path, delimiter=' ', desired_timeframe=(t_est_val_separation, np.inf), interpolate_missing_samples=True)
 
         my_robot_calibration = RobotCalibration(my_robot_dynamics, my_robot_calibration_data)
         my_robot_calibration.calibrate(filename_parameters)
+        my_robot_validation_data = RobotData(robot_data_path, delimiter=' ',
+                                             desired_timeframe=(t_est_val_separation, np.inf),
+                                             interpolate_missing_samples=True)
         my_robot_calibration.predict(my_robot_validation_data, filename_parameters, filename_predicted_output)
 
     def test_calibrate_parameters(self):

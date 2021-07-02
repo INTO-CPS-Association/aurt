@@ -132,14 +132,6 @@ class JointDynamics:
         # return observation_matrix
         return [self.observation_matrix_joint(j, qd_num[j, :], tauJ_num[j, :]) for j in range(self.n_joints)]
 
-    def evaluate_regressor(self, qd_num, tauJ_num):
-        args_sym = self.__qd[1:] + self.__tauJ[1:]
-        sys.setrecursionlimit(int(1e6))
-        reg_fcn = sp.lambdify(args_sym, self.regressor())
-
-        args_num = np.concatenate(qd_num, tauJ_num)
-        return reg_fcn(*args_num)
-
     def regressor(self):
         """
         Returns an (n_joints x n_joints) sympy diagonal matrix.
