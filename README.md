@@ -110,19 +110,20 @@ If the data is large, then:
 - the larger version should be placed in the shared drive (see below).
 
 There is a shared drive for large datasets.
-The shared drive **Nat_UR-robot-datasets** has been created with **Emil Madsen** as owner.
+The shared drive **Nat_robot-datasets** has been created with **Emil Madsen** as owner.
 
-| **Navn/Name**         | **Drev-ansvarlig/Shared  drive owner** |
-| --------------------- | -------------------------------------- |
-| Nat_UR-robot-datasets | au504769  (Emil Madsen)                |
+| **Shared Drive**   | **Owner**              | **E-mail**                            | **Department**                            |
+| ------------------ | ---------------------- | ------------------------------------- | ----------------------------------------- |
+| Nat_robot-datasets | au504769 (Emil Madsen) | [ema@ece.au.dk](mailto:ema@ece.au.dk) | Electrical and Computer Engineering (ECE) |
 
 
  **Read/write access is assigned to:** 
 
-| **Brugernavn/Username** | **Navn/Name**                   | **Afdeling/department** | **E-mail**                                                | **Tilføjet via  gruppe/assigned by group** |
-| ----------------------- | ------------------------------- | ----------------------- | --------------------------------------------------------- | ------------------------------------------ |
-| au602135                | Cláudio Ângelo Gonçalves Gomes  | Cyber-Physical Systems  | [claudio.gomes@ece.au.dk](mailto:claudio.gomes@ece.au.dk) |                                            |
-| au522101                | Christian Møldrup Legaard       | Cyber-Physical Systems  | [cml@ece.au.dk](mailto:cml@ece.au.dk)                     |                                            |
+| **Username** | **Name**                       | **E-mail**                                                | **Department**                            |
+| ------------ | ------------------------------ | --------------------------------------------------------- | ----------------------------------------- |
+| au602135     | Cláudio Ângelo Gonçalves Gomes | [claudio.gomes@ece.au.dk](mailto:claudio.gomes@ece.au.dk) | Electrical and Computer Engineering (ECE) |
+| au522101     | Christian Møldrup Legaard      | [cml@ece.au.dk](mailto:cml@ece.au.dk)                     | Electrical and Computer Engineering (ECE) |
+| au513437     | Daniella Tola                  | [dt@ece.au.dk](mailto:dt@ece.au.dk)                       | Electrical and Computer Engineering (ECE) |
 
 For more information on access, self-service and management of files: https://medarbejdere.au.dk/en/administration/it/guides/datastorage/data-storage/
 
