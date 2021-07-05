@@ -447,7 +447,7 @@ class RigidBodyDynamics:
             assert N[j+1].shape == (3, 1)
 
         # Inward calculations i: 6 -> 1
-        for j in reversed(range(self.n_joints)):
+        for j in reversed(range(1, self.n_joints + 1)):
             f[j] = spdot(R_i_im1[j+1], f[j+1]) + F[j]
             n[j] = N[j] + spdot(R_i_im1[j+1], n[j+1]) + spcross(PC[j], F[j]) + spcross(P[j+1], spdot(R_i_im1[j+1], f[j+1]))
             assert n[j].shape == (3, 1), n[j]

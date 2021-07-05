@@ -1,6 +1,5 @@
 from aurt.rigid_body_dynamics import RigidBodyDynamics
 from aurt.data_processing import *
-from aurt.rigid_body_dynamics import RigidBodyDynamics
 
 
 def compile_rbd(mdh_path, gravity, output_path):

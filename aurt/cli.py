@@ -20,9 +20,9 @@ def compile_rbd(args):
     # TODO: Do some error checking on the user provided parameters, convert their types, check that files exists
     #  (or that they will not be overwritten) etc.
 
-    mdh_path = ""
+    mdh_path = args.mdh_path
     gravity = np.array(args.gravity)
-    output_path = ""
+    output_path = args.output_path
 
     api.compile_rbd(mdh_path, gravity, output_path)
 
