@@ -15,7 +15,7 @@ plot_colors = ['red', 'green', 'blue', 'chocolate', 'crimson', 'fuchsia', 'indig
 
 JOINT_N = "#"
 
-
+# TODO: change name to something more general
 ur5e_fields = [
             f"timestamp",
             f"target_q_{JOINT_N}",
