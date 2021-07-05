@@ -346,7 +346,7 @@ class RigidBodyDynamics:
 
         return cache_object(self.filepath_dynamics, compute_dynamics_and_replace_first_moments)
 
-    def __get_p(self, a, d, alpha):
+    def __get_P(self, a, d, alpha):
         """
         P[i] means the position of frame i wrt to i-1
         P[2] = [d, -0.2]^T
@@ -428,31 +428,31 @@ class RigidBodyDynamics:
         (R_i_im1, R_im1_i) = self.__get_forward_kinematics(alpha)
 
         # Outputs
-        tau = [sp.zeros(1, 1) for i in range(self.n_joints + 1)]
+        tau = [sp.zeros(1, 1) for _ in range(self.n_joints + 1)]
 
         # Outward calculations i: 0 -> 5
-        for i in range(self.n_joints):
-            w[i+1] = spdot(R_im1_i[i+1], w[i]) + self.qd[i+1] * Z
-            assert w[i+1].shape == (3, 1)
-            wd[i+1] = spdot(R_im1_i[i+1], wd[i]) + spcross(spdot(R_im1_i[i+1], w[i]), self.qd[i+1] * Z) + self.qdd[i+1] * Z
-            assert wd[i+1].shape == (3, 1)
-            assert vd[i].shape == (3, 1)
-            vd[i+1] = spdot(R_im1_i[i+1], spcross(wd[i], P[i+1]) + spcross(w[i], spcross(w[i], P[i+1])) + vd[i])
-            assert vd[i+1].shape == (3, 1)
-            vcd[i+1] = spcross(wd[i+1], PC[i+1]) + spcross(w[i+1], spcross(w[i+1], PC[i+1])) + vd[i+1]
-            assert vcd[i+1].shape == (3, 1)
-            F[i+1] = m[i+1] * vcd[i+1]
-            assert F[i+1].shape == (3, 1)
-            N[i+1] = spdot(I_CoM[i+1], wd[i+1]) + spcross(w[i+1], spdot(I_CoM[i+1], w[i+1]))
-            assert N[i+1].shape == (3, 1)
+        for j in range(self.n_joints):
+            w[j+1] = spdot(R_im1_i[j+1], w[j]) + self.qd[j+1] * Z
+            assert w[j+1].shape == (3, 1)
+            wd[j+1] = spdot(R_im1_i[j+1], wd[j]) + spcross(spdot(R_im1_i[j+1], w[j]), self.qd[j+1] * Z) + self.qdd[j+1] * Z
+            assert wd[j+1].shape == (3, 1)
+            assert vd[j].shape == (3, 1)
+            vd[j+1] = spdot(R_im1_i[j+1], spcross(wd[j], P[j+1]) + spcross(w[j], spcross(w[j], P[j+1])) + vd[j])
+            assert vd[j+1].shape == (3, 1)
+            vcd[j+1] = spcross(wd[j+1], PC[j+1]) + spcross(w[j+1], spcross(w[j+1], PC[j+1])) + vd[j+1]
+            assert vcd[j+1].shape == (3, 1)
+            F[j+1] = m[j+1] * vcd[j+1]
+            assert F[j+1].shape == (3, 1)
+            N[j+1] = spdot(I_CoM[j+1], wd[j+1]) + spcross(w[j+1], spdot(I_CoM[j+1], w[j+1]))
+            assert N[j+1].shape == (3, 1)
 
         # Inward calculations i: 6 -> 1
         for j in reversed(range(self.n_joints)):
-            f[i] = spdot(R_i_im1[i+1], f[i+1]) + F[i]
-            n[i] = N[i] + spdot(R_i_im1[i+1], n[i+1]) + spcross(PC[i], F[i]) + spcross(P[i+1], spdot(R_i_im1[i+1], f[i+1]))
-            assert n[i].shape == (3, 1), n[i]
-            tau[i] = spdot(n[i].transpose(), Z)
-            assert tau[i].shape == (1, 1)
+            f[j] = spdot(R_i_im1[j+1], f[j+1]) + F[j]
+            n[j] = N[j] + spdot(R_i_im1[j+1], n[j+1]) + spcross(PC[j], F[j]) + spcross(P[j+1], spdot(R_i_im1[j+1], f[j+1]))
+            assert n[j].shape == (3, 1), n[j]
+            tau[j] = spdot(n[j].transpose(), Z)
+            assert tau[j].shape == (1, 1)
 
         tau_list = [t[0, 0] for t in tau]
 

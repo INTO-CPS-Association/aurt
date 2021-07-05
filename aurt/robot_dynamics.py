@@ -113,7 +113,7 @@ class RobotDynamics:
 
             reg = sp.zeros((self.n_joints, sum(self.number_of_parameters())))
             for j in range(self.n_joints):
-                f=
+                f=1
                 column_idx_start_rbd = sum(n_par_rbd[:j])
                 column_idx_end_rbd = column_idx_start_rbd + n_par_rbd[j]
                 # column_idx_start_jd = sum(n_par_jd[:j])

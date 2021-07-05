@@ -828,6 +828,7 @@ class LinearizationTests(TimedTest):
         mdh_filepath = "C:/sourcecontrol/github/aurt/resources/robot_parameters/ur3e_params.csv"
         mdh = convert_file_to_mdh(mdh_filepath)
         my_robot_dynamics = RobotDynamics(mdh)
+        my_robot_dynamics.regressor()
 
         robot_data_path = os.path.join(project_root(), 'resources', 'Dataset', 'ur5e_all_joints_same_time', 'random_motion.csv')
         t_est_val_separation = 63.0
