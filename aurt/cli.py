@@ -135,8 +135,9 @@ def main():
 
     args = args_parser.parse_args()
 
-    mdh_path = "resources/robot_parameters/ur3e_params.csv"
+    mdh_path = "resources/robot_parameters/two_link_model.csv"
     gravity = [0, 0, -9.81]
+    gravity = [0, -9.81, 0]
     output_path = "rigid-body_dynamics.pickle"
     api.compile_rbd(mdh_path, gravity, output_path)
 

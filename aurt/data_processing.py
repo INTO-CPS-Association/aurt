@@ -63,7 +63,6 @@ def convert_file_to_mdh(filename):
     mdh.q = q
     return mdh
 
-
 def input_with_pi_to_float(input):
     if input == 'None':
         return None

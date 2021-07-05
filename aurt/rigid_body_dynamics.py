@@ -174,10 +174,21 @@ class RigidBodyDynamics:
 
         return idx_is_base, n_par_base, p_base
 
+    def __numerical_alpha_to_symbolical_pi(self):
+        alpha_sym = []
+        for i in range(len(self.mdh.alpha)):
+            pi_factor = self.mdh.alpha[i] / (np.pi / 2)
+            if abs(round(pi_factor) - pi_factor) < 1e-2:
+                alpha_sym.append(round(pi_factor)*sp.pi/2)
+            else:
+                alpha_sym.append(sp.symbols(f"alpha{i}"))
+        return alpha_sym
+
     def __mdh_num_to_sym(self):
         d = [sp.symbols(f"d{i}") if d != 0 else sp.Integer(0) for i, d in enumerate(self.mdh.d)]
         a = [sp.symbols(f"a{i}") if a != 0 else sp.Integer(0) for i, a in enumerate(self.mdh.a)]
-        alpha = [0, sp.pi / 2, 0, 0, sp.pi / 2, -sp.pi / 2, 0] # TODO: fix, so we do not hardcode values
+        #alpha = [0, sp.pi / 2, 0, 0, sp.pi / 2, -sp.pi / 2, 0] # TODO: fix, so we do not hardcode values
+        alpha = self.__numerical_alpha_to_symbolical_pi()
         m = [0] * (self.n_joints + 1)
         for j in range(1, self.n_joints + 1):
             m[j] = sp.symbols(f"m{j}")
