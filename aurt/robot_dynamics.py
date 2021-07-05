@@ -1,43 +1,25 @@
-import os
-import sys
 import sympy as sp
 import numpy as np
 
-from aurt.file_system import cache_object, store_object, load_object, from_cache
+from aurt.file_system import cache_object, from_cache
 from aurt.rigid_body_dynamics import RigidBodyDynamics
 from aurt.joint_dynamics import JointDynamics
-
-# TODO: DELETE BELOW GLOBALS
-from aurt.num_sym_layers import spzeros_array
-from aurt.globals import get_ur_parameters_symbolic
-gx, gy, gz = sp.symbols(f"gx gy gz")
-g = sp.Matrix([gx, gy, gz])
-g_num = np.array([0.0, 0.0, 9.81])
-
-fx, fy, fz, nx, ny, nz = sp.symbols(f"fx fy fz nx ny nz")
-f_tcp = sp.Matrix([fx, fy, fz])  # Force at the TCP
-n_tcp = sp.Matrix([nx, ny, nz])  # Moment at the TCP
-f_tcp_num = sp.Matrix([0.0, 0.0, 0.0])
-n_tcp_num = sp.Matrix([0.0, 0.0, 0.0])
-
-(_, d, a, _) = get_ur_parameters_symbolic(spzeros_array)
+from aurt.data_processing import ModifiedDH
 
 
 class RobotDynamics:
-    def __init__(self, modified_dh, gravity=None, tcp_force_torque=None, viscous_friction_powers=None, friction_load_model=None, hysteresis_model=None):
-        print(f"RobotDynamics.__init__()")
+    def __init__(self, modified_dh: ModifiedDH, gravity=None, tcp_force_torque=None, viscous_friction_powers=None, friction_load_model=None, hysteresis_model=None):
         # TODO: Change constructor to take directly 'RigidBodyDynamics' and 'JointDynamics' objects instead of their
         #  arguments.
 
         self.mdh = modified_dh
-        self.n_joints = RobotDynamics.number_of_joints(modified_dh)  # TODO: Correct this
+        self.n_joints = modified_dh.n_joints
         self.q = [sp.Integer(0)] + [sp.symbols(f"q{j}") for j in range(1, self.n_joints + 1)]
         self.qd = [sp.Integer(0)] + [sp.symbols(f"qd{j}") for j in range(1, self.n_joints + 1)]
         self.qdd = [sp.Integer(0)] + [sp.symbols(f"qdd{j}") for j in range(1, self.n_joints + 1)]
         self.tauJ = sp.symbols([f"tauJ{j}" for j in range(self.n_joints + 1)])
 
-        self.rigid_body_dynamics = RigidBodyDynamics(modified_dh,
-                                                     self.n_joints,
+        self.rigid_body_dynamics = RigidBodyDynamics(modified_dh=modified_dh,
                                                      gravity=gravity,
                                                      tcp_force_torque=tcp_force_torque)
         self.joint_dynamics = JointDynamics(self.n_joints,
@@ -81,6 +63,7 @@ class RobotDynamics:
         obs_mat_j_rbd_split = np.hsplit(obs_mat_j_rbd, column_idx_split)
         for j in reversed(range(self.n_joints)):
             f=1
+            # obs_mat_j =
             # obs_mat_j[] = np.hstack((obs_mat_j_rbd_split[j], obs_mat_j_jd))
             # obs_mat_j[] = #np.insert(obs_mat, obs_mat_j_jd, column_idx, axis=1)  #= np.concatenate(obs_mat_j_rbd[column_idx:column_idx], obs_mat_j_jd)
 
@@ -121,31 +104,26 @@ class RobotDynamics:
 
     def regressor(self):
         def compute_regressor():
+            """Merges regressor matrices for rigid-body dynamics and joint dynamics to construct a regressor for the
+            robot dynamics."""
             reg_rbd = self.rigid_body_dynamics.regressor()
             reg_jd = self.joint_dynamics.regressor()
             n_par_rbd = self.rigid_body_dynamics.number_of_parameters()
             n_par_jd = self.joint_dynamics.number_of_parameters()
 
-            # Merge regressors for rigid-body dynamics and joint dynamcis
-            # reg = []
-            # reg_matrix = sp.zeros((self.n_joints, sum(self.number_of_parameters())))
-            reg_matrix = sp.Matrix(0, self.n_joints, [])
-            for j in range(self.n_joints + 1):
+            reg = sp.zeros((self.n_joints, sum(self.number_of_parameters())))
+            for j in range(self.n_joints):
+                f=
                 column_idx_start_rbd = sum(n_par_rbd[:j])
                 column_idx_end_rbd = column_idx_start_rbd + n_par_rbd[j]
-                column_idx_start_jd = sum(n_par_jd[:j])
-                column_idx_end_jd = column_idx_start_jd + n_par_jd[j]
+                # column_idx_start_jd = sum(n_par_jd[:j])
+                # column_idx_end_jd = column_idx_start_jd + n_par_jd[j]
+                column_idx_start = column_idx_start_rbd
+                column_idx_end = column_idx_start_rbd + n_par_rbd[j] + n_par_jd[j]
                 reg_rbd_j = reg_rbd[:, column_idx_start_rbd:column_idx_end_rbd]
-                reg_jd_j = reg_jd[:, column_idx_start_jd:column_idx_end_jd]
-                # reg[j] = reg_rbd[:, column_idx_start_rbd:column_idx_end_rbd]
-                # reg_matrix = reg_rbd[:, column_idx_start_rbd:column_idx_end_rbd].row_join(reg_jd[:, column_idx_start_jd:column_idx_end_jd])
-                reg_matrix = reg_matrix.row_join(reg_rbd_j).row_join(reg_jd_j)
+                reg[:, column_idx_start:column_idx_end] = reg_rbd_j.row_join(reg_jd[j])
 
             for j in range(self.n_joints):
-                cache_object(from_cache(f"robot_dynamics_regressor_joint_{j}"), lambda: reg_matrix[j, :])
+                cache_object(from_cache(f"robot_dynamics_regressor_joint_{j+1}"), lambda: reg[j, :])
 
         return cache_object(from_cache('robot_dynamics_regressor'), compute_regressor)
-
-    @staticmethod
-    def number_of_joints(mdh):
-        return 6#mdh.shape[0]  # TODO: Fix the 'number_of_joints' function

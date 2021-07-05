@@ -53,11 +53,11 @@ class JointDynamics:
 
         fcs = self.__coulomb_friction_parameters()
         fvs = self.__viscous_friction_parameters()
-        return [[*fcs[j], *fvs[j]] for j in range(self.n_joints + 1)]
+        return [[*fcs[j], *fvs[j]] for j in range(1, self.n_joints + 1)]
 
     def number_of_parameters(self):
         par = self.parameters()
-        return [len(par[j]) for j in range(self.n_joints + 1)]
+        return [len(par[j]) for j in range(self.n_joints)]
 
     def __coulomb_friction_basis(self):
         """
@@ -108,7 +108,7 @@ class JointDynamics:
         n_samples = qd_j_num.size
         args_sym = [self.__qd[j], self.__tauJ[j]]
         args_num = np.concatenate((qd_j_num[:, np.newaxis], tauJ_j_num[:, np.newaxis]), axis=1).transpose()
-        regressor_j = self.regressor()[j-1, :]
+        regressor_j = self.regressor()[j-1]
         observation_matrix_j = np.zeros((n_samples, regressor_j.shape[1]))
         sys.setrecursionlimit(int(1e6))
         reg_j_nonzeros_fcn = sp.lambdify(args_sym, regressor_j, 'numpy')
@@ -134,12 +134,12 @@ class JointDynamics:
 
     def regressor(self):
         """
-        Returns an (n_joints x n_joints) sympy diagonal matrix.
+        Returns an 'n_joints' list of regressors.
         """
 
         fc_basis = self.__coulomb_friction_basis()
         fv_basis = self.__viscous_friction_basis()
-        return sp.diag([[*fc_basis[j], *fv_basis[j]] for j in range(1, self.n_joints + 1)])
+        return [sp.Matrix([*fc_basis[j], *fv_basis[j]]).T for j in range(1, self.n_joints + 1)]
 
     def dynamics(self):
         """
@@ -147,4 +147,4 @@ class JointDynamics:
         """
         jd_basis = self.regressor()
         jd_par = self.parameters()
-        return [sum([b * p for b, p in zip(jd_basis[j, j], jd_par[j])]) for j in range(len(jd_basis))]
+        return [sum([b * p for b, p in zip(jd_basis[i], jd_par[i])]) for i in range(len(jd_basis))]

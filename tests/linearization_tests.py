@@ -21,6 +21,7 @@ from aurt.num_sym_layers import spzeros_array, spvector, npzeros_array
 from aurt.torques import compute_torques_symbolic_ur
 from aurt.robot_dynamics import RobotDynamics
 from aurt.robot_calibration import RobotCalibration
+from aurt.data_processing import convert_file_to_mdh
 from aurt.joint_dynamics import JointDynamics
 from tests import NONINTERACTIVE
 from tests.utils.timed_test import TimedTest
@@ -820,15 +821,18 @@ class LinearizationTests(TimedTest):
         print(f"par_base: {par_base}")
 
     def test_calibration_new(self):
-        my_joint_dynamics = JointDynamics(6)
+        # my_joint_dynamics = JointDynamics(6)
+        # print(my_joint_dynamics.regressor())
 
-        mdh = None
+        # mdh = None
+        mdh_filepath = "C:/sourcecontrol/github/aurt/resources/robot_parameters/ur3e_params.csv"
+        mdh = convert_file_to_mdh(mdh_filepath)
+        my_robot_dynamics = RobotDynamics(mdh)
+
         robot_data_path = os.path.join(project_root(), 'resources', 'Dataset', 'ur5e_all_joints_same_time', 'random_motion.csv')
         t_est_val_separation = 63.0
         filename_parameters = 'parameters'
         filename_predicted_output = 'predicted_output'
-
-        my_robot_dynamics = RobotDynamics(mdh)
         my_robot_calibration_data = RobotData(robot_data_path, delimiter=' ', desired_timeframe=(-np.inf, t_est_val_separation), interpolate_missing_samples=True)
 
         my_robot_calibration = RobotCalibration(my_robot_dynamics, my_robot_calibration_data)

@@ -8,13 +8,7 @@ import sys
 from aurt.file_system import cache_object, from_cache
 from aurt.torques import compute_torques_symbolic_ur
 from aurt.dynamics_aux import sym_mat_to_subs, replace_first_moments, compute_regressor_row
-
-
-
-# TODO: DELETE BELOW GLOBALS
 from aurt.num_sym_layers import spvector, spcross, spdot
-from aurt.globals import get_ur5e_parameters
-
 
 
 class RigidBodyDynamics:
@@ -41,7 +35,6 @@ class RigidBodyDynamics:
         for j in range(1, self.n_joints + 1):
             PC[j] = spvector([sp.symbols(f"PCx{j}"), sp.symbols(f"PCy{j}"), sp.symbols(f"PCz{j}")])
         self.__pc = PC
-        #self.__pc = [sp.Matrix([Pc]) for j in range(self.n_joints)]
 
         self.__m_pc = [[self.__mX[j], self.__mY[j], self.__mZ[j]] for j in range(self.n_joints + 1)]
 
@@ -154,7 +147,7 @@ class RigidBodyDynamics:
             sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
             regressor_with_instantiated_parameters_func = sp.lambdify(args_sym, cache_object(
                 from_cache('rigid_body_dynamics_regressor_with_instantiated_parameters'),
-                lambda: self.__regressor_linear_with_instantiated_parameters(robot_parameter_function=get_ur5e_parameters)))
+                lambda: self.__regressor_linear_with_instantiated_parameters()))
             idx_base_global = self.__indices_base_exist(regressor_with_instantiated_parameters_func)
 
             idx_linear_exist, n_par_linear_exist, p_linear_exist = self.__parameters_linear_exist(self.__regressor_linear())
@@ -184,31 +177,22 @@ class RigidBodyDynamics:
 
         return idx_is_base, n_par_base, p_base
 
-
     def __mdh_num_to_sym(self):
-        d = [sp.symbols(f"d{i}") if d != 0 else sp.Integer(0) for i,d in enumerate(self.mdh.d)]
-        a = [sp.symbols(f"a{i}") if a != 0 else sp.Integer(0) for i,a in enumerate(self.mdh.a)]
+        d = [sp.symbols(f"d{i}") if d != 0 else sp.Integer(0) for i, d in enumerate(self.mdh.d)]
+        a = [sp.symbols(f"a{i}") if a != 0 else sp.Integer(0) for i, a in enumerate(self.mdh.a)]
         alpha = [0, sp.pi / 2, 0, 0, sp.pi / 2, -sp.pi / 2, 0] # TODO: fix, so we do not hardcode values
         m = [0] * (self.n_joints + 1)
         for j in range(1, self.n_joints + 1):
             m[j] = sp.symbols(f"m{j}")
-        return m,d,a,alpha
+        return m, d, a, alpha
 
-    def __regressor_linear_with_instantiated_parameters(self, robot_parameter_function):
-        #(_, d_num, a_num, _) = robot_parameter_function(npzeros_array)
-
-        # def to_fname(l):
-        #     return "_".join(map(lambda s: "%1.2f" % s, l))
-
-        # data_id = f"{to_fname(d_num)}_{to_fname(a_num)}_{'%1.2f' % g_num[0]}_{'%1.2f' % g_num[1]}_{'%1.2f' % g_num[2]}"
+    def __regressor_linear_with_instantiated_parameters(self):
+        _, d, a, _ = self.__mdh_num_to_sym()
 
         def load_regressor_and_subs():
             regressor_reduced = self.__regressor_linear_exist()
             return regressor_reduced.subs(
                 sym_mat_to_subs([a, d, self.__g, self.__f_tcp, self.__n_tcp], [self.mdh.a, self.mdh.d, self.gravity, self.__f_tcp_num, self.__n_tcp_num]))
-
-        # regressor_reduced_params = cache_object(from_cache(f'rigid_body_dynamics_regressor_linear_exist_{data_id}'),
-        #                                         lambda: load_regressor_and_subs())
 
         return load_regressor_and_subs()
 
@@ -334,7 +318,7 @@ class RigidBodyDynamics:
 
     def regressor(self):
         def compute_regressor():
-            regressor_linear_exist = self.__regressor_linear_with_instantiated_parameters(robot_parameter_function=get_ur5e_parameters)
+            regressor_linear_exist = self.__regressor_linear_with_instantiated_parameters()
 
             args_sym = self.q[1:] + self.qd[1:] + self.qdd[1:]  # list concatenation
             sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
@@ -364,8 +348,7 @@ class RigidBodyDynamics:
 
         return cache_object(self.filepath_dynamics, compute_dynamics_and_replace_first_moments)
 
-
-    def __get_P(self, a, d, alpha):
+    def __get_p(self, a, d, alpha):
         """
         P[i] means the position of frame i wrt to i-1
         P[2] = [d, -0.2]^T
@@ -420,7 +403,7 @@ class RigidBodyDynamics:
         # Parameters
         (m, d, a, alpha) = self.__mdh_num_to_sym()
 
-        P = self._get_P(self, a, d, alpha)
+        P = self.__get_p(a, d, alpha)
 
         PC = self.__pc
 
