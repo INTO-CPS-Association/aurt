@@ -3,7 +3,7 @@ from logging.config import fileConfig
 import logging
 import numpy as np
 import aurt.api as api
-from aurt.data_processing import *
+
 
 def setup_logger(args):
     if args.logger_config is not None:
@@ -135,8 +135,12 @@ def main():
 
     args = args_parser.parse_args()
 
-    mdh = convert_file_to_mdh("resources/robot_parameters/ur3e_params.csv")
-    #print(mdh)
+    mdh_path = "resources/robot_parameters/ur3e_params.csv"
+    gravity = [0, 0, -9.81]
+    output_path = "rigid-body_dynamics.pickle"
+    api.compile_rbd(mdh_path, gravity, output_path)
+
+
 
     #args.command(args)
 

@@ -6,7 +6,6 @@ from itertools import product, chain
 import sys
 
 from aurt.file_system import cache_object, from_cache
-from aurt.torques import compute_torques_symbolic_ur
 from aurt.dynamics_aux import sym_mat_to_subs, replace_first_moments, compute_regressor_row
 from aurt.num_sym_layers import spvector, spcross, spdot
 
@@ -20,7 +19,6 @@ class RigidBodyDynamics:
         self.mdh = modified_dh
         self.n_joints = modified_dh.n_joints
 
-        # TODO: Change such that q, qd, and qdd are generated based on 'mdh'
         self.q = self.mdh.q
         self.qd = [sp.Integer(0)] + [sp.symbols(f"qd{j}") for j in range(1, self.n_joints + 1)]
         self.qdd = [sp.Integer(0)] + [sp.symbols(f"qdd{j}") for j in range(1, self.n_joints + 1)]
@@ -72,7 +70,6 @@ class RigidBodyDynamics:
 
         # Filepaths
         self.filepath_dynamics = from_cache('rigid_body_dynamics')
-        self.filepath_regressor = from_cache('rigid_body_dynamics_regressor')
         self.__filepath_regressor_joint = from_cache('rigid_body_dynamics_regressor_joint_')
 
     def filepath_regressor_joint(self, j):
@@ -316,9 +313,11 @@ class RigidBodyDynamics:
     def regressor_joint(self, j):
         return cache_object(self.filepath_regressor_joint(j), lambda: self.regressor()[j, :])
 
-    def regressor(self):
+    def regressor(self, output_path="rigid_body_dynamics_regressor"):
+        filepath_regressor = from_cache(output_path)
         def compute_regressor():
             regressor_linear_exist = self.__regressor_linear_with_instantiated_parameters()
+            
 
             args_sym = self.q[1:] + self.qd[1:] + self.qdd[1:]  # list concatenation
             sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
@@ -327,17 +326,16 @@ class RigidBodyDynamics:
             parameter_indices_base = self.__indices_base_exist(regressor_linear_exist_func)
 
             for j in range(1, self.n_joints+1):
-                cache_object(from_cache(f"rigid_body_dynamics_regressor_joint_{j}"),
+                cache_object(self.filepath_regressor_joint(j), 
                              lambda: regressor_linear_exist[j, parameter_indices_base])
 
             return regressor_linear_exist[1:, parameter_indices_base]
 
-        return cache_object(self.filepath_regressor, compute_regressor)
+        return cache_object(filepath_regressor, compute_regressor)
 
     def dynamics(self):
         def compute_dynamics_and_replace_first_moments():
-            rbd = compute_torques_symbolic_ur(self.q, self.qd, self.qdd, self.__f_tcp, self.__n_tcp,self.__i_cor,
-                                              sp.Matrix(self.gravity), inertia_is_wrt_CoM=False)
+            rbd = self.__rigid_body_dynamics()
             js = list(range(self.n_joints + 1))
             dynamics_per_task = [rbd[j] for j in js]  # Allows one to control how many tasks by controlling how many js.
             data_per_task = list(product(zip(dynamics_per_task, js), [self.__m], [self.__pc], [self.__m_pc], [self.n_joints]))
@@ -361,7 +359,7 @@ class RigidBodyDynamics:
 
         return P
 
-    def __get_forward_kinematics(self, alpha, P):
+    def __get_forward_kinematics(self, alpha):
         c = lambda i: sp.cos(self.q[i])
         s = lambda i: sp.sin(self.q[i])
 
@@ -383,16 +381,8 @@ class RigidBodyDynamics:
 
         return R_i_im1, R_im1_i
 
-    def rigid_body_dynamics(self, q, qd, qdd, f_tcp, n_tcp, inertia, g, inertia_is_wrt_CoM=True):
+    def __rigid_body_dynamics(self):
         """
-        Inputs: q, qd, qdd:             Joint angular positions and their first and second-order time derivatives.
-                f_tcp, n_tcp:           Force/torque at the tool center point (tcp)
-                inertia:                inertia tensor (3 x 3 matrix for each joint)
-                g:                      gravity vector (3 x 1 vector, e.g [0, 0, 9.81])
-                inertia_is_wrt_CoM:     flag to indicate whether or not the reference frame for the provided inertia
-                                        is located at the center of mass (CoM) or if not, it is assumed located at
-                                        the joint axes of rotation.
-
         Follows algorithm described in
         Craig, John J. 2009. Introduction to Robotics: Mechanics and Control, 3/E. Pearson Education India.
         """
@@ -403,51 +393,48 @@ class RigidBodyDynamics:
         # Parameters
         (m, d, a, alpha) = self.__mdh_num_to_sym()
 
-        P = self.__get_p(a, d, alpha)
+        P = self.__get_P(a, d, alpha)
 
         PC = self.__pc
 
-        if inertia_is_wrt_CoM:
-            I_CoM = inertia
-        else:
-            I_CoM = [sp.zeros(3, 3) for i in range(0, self.n_joints + 1)]
-            for i in range(1, self.n_joints + 1):
-                PC_dot_left = spdot(PC[i].transpose(), PC[i])
-                PC_dot_right = spdot(PC[i], (PC[i].transpose()))
-                assert PC_dot_left.shape == (1, 1)
-                assert PC_dot_right.shape == (3, 3)
-                PC_dot_scalar = PC_dot_left[0, 0]
-                I_CoM[i] = inertia[i] - m[i] * (PC_dot_scalar * identity_3 - PC_dot_right)
+        I_CoM = [sp.zeros(3, 3) for _ in range(self.n_joints + 1)]
+        for j in range(1, self.n_joints + 1):
+            PC_dot_left = spdot(PC[j].transpose(), PC[j])
+            PC_dot_right = spdot(PC[j], (PC[j].transpose()))
+            assert PC_dot_left.shape == (1, 1)
+            assert PC_dot_right.shape == (3, 3)
+            PC_dot_scalar = PC_dot_left[0, 0]
+            I_CoM[j] = self.__i_cor[j] - m[j] * (PC_dot_scalar * identity_3 - PC_dot_right)
 
         # State
-        w = [spvector([0, 0, 0]) for i in range(self.n_joints + 1)]  # Angular velocity
-        wd = [spvector([0, 0, 0]) for i in range(self.n_joints + 1)]  # Angular acceleration
-        vd = [spvector([0, 0, 0]) for i in range(self.n_joints + 1)]  # Translational acceleration
+        w = [spvector([0, 0, 0]) for _ in range(self.n_joints + 1)]  # Angular velocity
+        wd = [spvector([0, 0, 0]) for _ in range(self.n_joints + 1)]  # Angular acceleration
+        vd = [spvector([0, 0, 0]) for _ in range(self.n_joints + 1)]  # Translational acceleration
 
         # Gravity
-        vd[0] = -g
+        vd[0] = -self.__g
 
-        vcd = [spvector([0, 0, 0]) for i in range(self.n_joints + 1)]
-        F = [spvector([0, 0, 0]) for i in range(self.n_joints + 1)]
-        N = [spvector([0, 0, 0]) for i in range(self.n_joints + 1)]
+        vcd = [spvector([0, 0, 0]) for _ in range(self.n_joints + 1)]
+        F = [spvector([0, 0, 0]) for _ in range(self.n_joints + 1)]
+        N = [spvector([0, 0, 0]) for _ in range(self.n_joints + 1)]
 
-        f = [spvector([0, 0, 0]) for i in range(self.n_joints + 1)]
-        f.append(f_tcp)
+        f = [spvector([0, 0, 0]) for _ in range(self.n_joints + 1)]
+        f.append(self.__f_tcp)
 
-        n = [spvector([0, 0, 0]) for i in range(self.n_joints + 1)]
-        n.append(n_tcp)
+        n = [spvector([0, 0, 0]) for _ in range(self.n_joints + 1)]
+        n.append(self.__n_tcp)
 
         Z = spvector([0, 0, 1])
-        (R_i_im1, R_im1_i) = self.__get_forward_kinematics(q, alpha)
+        (R_i_im1, R_im1_i) = self.__get_forward_kinematics(alpha)
 
         # Outputs
         tau = [sp.zeros(1, 1) for i in range(self.n_joints + 1)]
 
         # Outward calculations i: 0 -> 5
         for i in range(self.n_joints):
-            w[i+1] = spdot(R_im1_i[i+1], w[i]) + qd[i+1] * Z
+            w[i+1] = spdot(R_im1_i[i+1], w[i]) + self.qd[i+1] * Z
             assert w[i+1].shape == (3, 1)
-            wd[i+1] = spdot(R_im1_i[i+1], wd[i]) + spcross(spdot(R_im1_i[i+1], w[i]), qd[i+1] * Z) + qdd[i+1] * Z
+            wd[i+1] = spdot(R_im1_i[i+1], wd[i]) + spcross(spdot(R_im1_i[i+1], w[i]), self.qd[i+1] * Z) + self.qdd[i+1] * Z
             assert wd[i+1].shape == (3, 1)
             assert vd[i].shape == (3, 1)
             vd[i+1] = spdot(R_im1_i[i+1], spcross(wd[i], P[i+1]) + spcross(w[i], spcross(w[i], P[i+1])) + vd[i])
@@ -460,8 +447,7 @@ class RigidBodyDynamics:
             assert N[i+1].shape == (3, 1)
 
         # Inward calculations i: 6 -> 1
-        for j in range(self.n_joints):
-            i = self.n_joints - j
+        for j in reversed(range(self.n_joints)):
             f[i] = spdot(R_i_im1[i+1], f[i+1]) + F[i]
             n[i] = N[i] + spdot(R_i_im1[i+1], n[i+1]) + spcross(PC[i], F[i]) + spcross(P[i+1], spdot(R_i_im1[i+1], f[i+1]))
             assert n[i].shape == (3, 1), n[i]
