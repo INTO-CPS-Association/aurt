@@ -14,6 +14,9 @@ def from_project_root(filepath):
 
 
 def from_cache(filepath):
+    new_dir = project_root().joinpath('cache')
+    if not Path(new_dir).is_dir():
+        os.mkdir(new_dir)
     return str(project_root().joinpath('cache', filepath))
 
 
