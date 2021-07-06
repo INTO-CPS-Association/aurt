@@ -15,7 +15,7 @@ plot_colors = ['red', 'green', 'blue', 'chocolate', 'crimson', 'fuchsia', 'indig
 
 JOINT_N = "#"
 
-
+# TODO: change name to something more general
 ur5e_fields = [
             f"timestamp",
             f"target_q_{JOINT_N}",
@@ -62,7 +62,6 @@ def convert_file_to_mdh(filename):
     q = [sp.Integer(0)] + [sp.symbols(f"q{j}") for j in range(1, mdh.n_joints + 1)]
     mdh.q = q
     return mdh
-
 
 def input_with_pi_to_float(input):
     if input == 'None':

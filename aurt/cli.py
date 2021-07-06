@@ -20,9 +20,9 @@ def compile_rbd(args):
     # TODO: Do some error checking on the user provided parameters, convert their types, check that files exists
     #  (or that they will not be overwritten) etc.
 
-    mdh_path = ""
+    mdh_path = args.mdh
     gravity = np.array(args.gravity)
-    output_path = ""
+    output_path = args.out
 
     api.compile_rbd(mdh_path, gravity, output_path)
 
@@ -90,28 +90,28 @@ def main():
     compile_rbd_parser.set_defaults(command=compile_rbd)
 
     ## compile_jointd
-    compile_jointd_parser = subparsers.add_parser("compile-jointd")
+    compile_robotd_parser = subparsers.add_parser("compile-rd")
 
-    compile_jointd_parser.add_argument('--model-rbd', required=True,
+    compile_robotd_parser.add_argument('--model-rbd', required=True,
                                        help="The rigid body dynamics model created with the compile-rbd command.")
 
-    compile_jointd_parser.add_argument('--friction-load-model', required=True,
+    compile_robotd_parser.add_argument('--friction-load-model', required=True,
                                        choices=["none", "square", "absolute"],
                                        help="The friction load model.")
 
-    compile_jointd_parser.add_argument('--friction-viscous-powers', required=True, nargs="+",
+    compile_robotd_parser.add_argument('--friction-viscous-powers', required=True, nargs="+",
                                        type=float,
                                        metavar='R',
                                        help="The viscous friction polynomial powers.")
 
-    compile_jointd_parser.add_argument('--friction-hysteresis-model', required=True,
+    compile_robotd_parser.add_argument('--friction-hysteresis-model', required=True,
                                        choices=["sign", "maxwells"],
                                        help="The friction hysteresis model.")
 
-    compile_jointd_parser.add_argument('--out', required=True,
+    compile_robotd_parser.add_argument('--out', required=True,
                                        help="Path of outputted robot dynamics model (pickle).")
 
-    compile_jointd_parser.set_defaults(command=compile_jointd)
+    compile_robotd_parser.set_defaults(command=compile_jointd)
 
     ## calibrate
     calibrate_parser = subparsers.add_parser("calibrate")
@@ -135,14 +135,14 @@ def main():
 
     args = args_parser.parse_args()
 
-    mdh_path = "resources/robot_parameters/ur3e_params.csv"
-    gravity = [0, 0, -9.81]
-    output_path = "rigid-body_dynamics.pickle"
-    api.compile_rbd(mdh_path, gravity, output_path)
+    args.command(args)
+    
 
+    # for testing, remove
+    # mdh_path = "resources/robot_parameters/two_link_model.csv"
+    # gravity = [0, -9.81, 0]
+    # output_path = "rigid-body_dynamics.pickle"
 
-
-    #args.command(args)
 
 
 if __name__ == '__main__':

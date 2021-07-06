@@ -175,10 +175,21 @@ class RigidBodyDynamics:
 
         return idx_is_base, n_par_base, p_base
 
+    def __numerical_alpha_to_symbolical_pi(self):
+        alpha_sym = []
+        for i in range(len(self.mdh.alpha)):
+            pi_factor = self.mdh.alpha[i] / (np.pi / 2)
+            if abs(round(pi_factor) - pi_factor) < 1e-2:
+                alpha_sym.append(round(pi_factor)*sp.pi/2)
+            else:
+                alpha_sym.append(sp.symbols(f"alpha{i}"))
+        return alpha_sym
+
     def __mdh_num_to_sym(self):
         d = [sp.symbols(f"d{i}") if d != 0 else sp.Integer(0) for i, d in enumerate(self.mdh.d)]
         a = [sp.symbols(f"a{i}") if a != 0 else sp.Integer(0) for i, a in enumerate(self.mdh.a)]
-        alpha = [0, sp.pi / 2, 0, 0, sp.pi / 2, -sp.pi / 2, 0] # TODO: fix, so we do not hardcode values
+        #alpha = [0, sp.pi / 2, 0, 0, sp.pi / 2, -sp.pi / 2, 0] # TODO: fix, so we do not hardcode values
+        alpha = self.__numerical_alpha_to_symbolical_pi()
         m = [0] * (self.n_joints + 1)
         for j in range(1, self.n_joints + 1):
             m[j] = sp.symbols(f"m{j}")
@@ -456,7 +467,11 @@ class RigidBodyDynamics:
             N[j+1] = spdot(I_CoM[j+1], wd[j+1]) + spcross(w[j+1], spdot(I_CoM[j+1], w[j+1]))
             assert N[j+1].shape == (3, 1)
 
+<<<<<<< HEAD
         # Inward calculations j: 6 -> 1
+=======
+        # Inward calculations i: 6 -> 1
+>>>>>>> 5c9147ed380c2721aeeaf16f3f24521af10e8e89
         for j in reversed(range(1, self.n_joints + 1)):
             f[j] = spdot(R_i_im1[j+1], f[j+1]) + F[j]
             n[j] = N[j] + spdot(R_i_im1[j+1], n[j+1]) + spcross(PC[j], F[j]) + spcross(P[j+1], spdot(R_i_im1[j+1], f[j+1]))

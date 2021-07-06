@@ -45,7 +45,7 @@ The friction configuration options are:
 ## Calibration
 
 ```
-aurt calibrate --model robot_dynamics.pickle --data measured_data.csv --out-base-params calibrated_parameters.csv
+aurt calibrate --model robot_dynamics.pickle --data measured_data.csv --out-reduced-params calibrated_parameters.csv
 ```
 
 Reads the model produced in [Compile Robot Dynamics Model](#compile-joint-dynamics-model), the measured data in `measured_data.csv`, 
