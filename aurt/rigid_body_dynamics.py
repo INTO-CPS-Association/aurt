@@ -451,7 +451,7 @@ class RigidBodyDynamics:
         # Outputs
         tau = [sp.zeros(1, 1) for _ in range(self.n_joints + 1)]
 
-        # Outward calculations j: 0 -> 5
+        # Outward recursion j: 0 -> 5
         for j in range(self.n_joints):
             w[j+1] = spdot(R_im1_i[j+1], w[j]) + self.qd[j+1] * Z
             assert w[j+1].shape == (3, 1)
@@ -467,11 +467,7 @@ class RigidBodyDynamics:
             N[j+1] = spdot(I_CoM[j+1], wd[j+1]) + spcross(w[j+1], spdot(I_CoM[j+1], w[j+1]))
             assert N[j+1].shape == (3, 1)
 
-<<<<<<< HEAD
-        # Inward calculations j: 6 -> 1
-=======
-        # Inward calculations i: 6 -> 1
->>>>>>> 5c9147ed380c2721aeeaf16f3f24521af10e8e89
+        # Inward recursion j: 6 -> 1
         for j in reversed(range(1, self.n_joints + 1)):
             f[j] = spdot(R_i_im1[j+1], f[j+1]) + F[j]
             n[j] = N[j] + spdot(R_i_im1[j+1], n[j+1]) + spcross(PC[j], F[j]) + spcross(P[j+1], spdot(R_i_im1[j+1], f[j+1]))
