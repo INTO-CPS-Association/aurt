@@ -38,92 +38,87 @@ class RobotDynamics:
         Returns a list of 'n_joints + 1' elements with each element comprising a list of all parameters related to that
         corresponding link and joint.
         """
-        print(f"RobotDynamics.__parameters_linear()")
 
         par_rigid_body = self.rigid_body_dynamics.parameters()
         par_joint = self.joint_dynamics.parameters()
-        return [par_rigid_body[j] + par_joint[j] for j in range(self.n_joints + 1)]
+        return [par_rigid_body[j] + par_joint[j] for j in range(self.n_joints)]
 
     def number_of_parameters(self):
         n_par_rbd = self.rigid_body_dynamics.number_of_parameters()
         n_par_jd = self.joint_dynamics.number_of_parameters()
-        return [n_par_rbd[j] + n_par_jd[j] for j in range(self.n_joints + 1)]
+        return [n_par_rbd[j] + n_par_jd[j] for j in range(self.n_joints)]
 
     def observation_matrix_joint(self, j, q_num, qd_num, qdd_num):
         assert q_num.shape == qd_num.shape == qdd_num.shape
-        assert 0 < j <= self.n_joints
-
-        obs_mat_j_rbd = self.rigid_body_dynamics.observation_matrix_joint(j+1, q_num, qd_num, qdd_num)
-        tauJ_j_basis_num = np.sum(obs_mat_j_rbd, axis=1).transpose()
-        obs_mat_j_jd = self.joint_dynamics.observation_matrix_joint(j+1, qd_num[j, :], tauJ_j_basis_num)
+        assert 0 <= j < self.n_joints
 
         n_samples = q_num.shape[1]
-        obs_mat_j = np.empty((n_samples, sum(self.number_of_parameters())))  #obs_mat_j_rbd  # Initialization
-        column_idx_split = [sum(self.number_of_parameters()[:j]) for j in range(1, self.n_joints + 1)]
-        obs_mat_j_rbd_split = np.hsplit(obs_mat_j_rbd, column_idx_split)
-        for j in reversed(range(self.n_joints)):
-            f=1
-            # obs_mat_j =
-            # obs_mat_j[] = np.hstack((obs_mat_j_rbd_split[j], obs_mat_j_jd))
-            # obs_mat_j[] = #np.insert(obs_mat, obs_mat_j_jd, column_idx, axis=1)  #= np.concatenate(obs_mat_j_rbd[column_idx:column_idx], obs_mat_j_jd)
+        obs_mat_j = np.empty((n_samples, 0))
+        obs_mat_j_rbd = self.rigid_body_dynamics.observation_matrix_joint(j, q_num, qd_num, qdd_num)
+        for j_par in range(self.n_joints):
+            if j_par == j:
+                tauJ_j_basis_num = np.sum(obs_mat_j_rbd, axis=1).transpose()
+                obs_mat_j_jd = self.joint_dynamics.observation_matrix_joint(j, qd_num[j, :], tauJ_j_basis_num)
+            else:
+                obs_mat_j_jd = np.zeros((n_samples, self.joint_dynamics.number_of_parameters()[j_par]))
 
-        # return obs_mat
+            col_start = sum(self.rigid_body_dynamics.number_of_parameters()[:j_par])
+            col_end = col_start + self.rigid_body_dynamics.number_of_parameters()[j_par]
+            obs_mat_j_jpar_rbd = obs_mat_j_rbd[:, col_start:col_end]
+            print(f"obs_mat_j.shape: {obs_mat_j.shape}")
+            print(f"obs_mat_j_jpar_rbd.shape: {obs_mat_j_jpar_rbd.shape}")
+            print(f"obs_mat_j_jd.shape: {obs_mat_j_jd.shape}")
+            obs_mat_j = np.hstack((obs_mat_j, obs_mat_j_jpar_rbd, obs_mat_j_jd))
+        return obs_mat_j
 
     def observation_matrix(self, q_num, qd_num, qdd_num):
         assert q_num.shape == qd_num.shape == qdd_num.shape
-
-        n_par_rbd = self.rigid_body_dynamics.number_of_parameters()
-        n_par_jd = self.joint_dynamics.number_of_parameters()
 
         n_samples = q_num.shape[1]
 
         # Merge observation matrices for rigid-body dynamics and joint dynamcis
         observation_matrix = np.empty((self.n_joints*n_samples, sum(self.number_of_parameters())))
-        for j in reversed(range(self.n_joints + 1)):
-            column_idx_start_rbd = sum(n_par_rbd[:j])
-            column_idx_end_rbd = column_idx_start_rbd + n_par_rbd[j]
-            column_idx_start_jd = sum(n_par_jd[:j])
-            column_idx_end_jd = column_idx_start_jd + n_par_jd[j]
-
-            obs_mat_j_rbd = self.rigid_body_dynamics.observation_matrix_joint(j+1, q_num, qd_num, qdd_num)
-            tauJ_j_basis_num = np.sum(obs_mat_j_rbd, axis=1).transpose()
-            obs_mat_j_jd = self.joint_dynamics.observation_matrix_joint(j+1, qd_num[j, :], tauJ_j_basis_num)
-
-            observation_matrix = observation_matrix.row_stack(obs_mat_j_rbd).row_stack(obs_mat_j_jd)
-
         for j in range(self.n_joints):
-            obs_mat_j_rbd = self.rigid_body_dynamics.observation_matrix_joint(j+1, q_num, qd_num, qdd_num)
-            tauJ_j_basis_num = np.sum(obs_mat_j_rbd, axis=1).transpose()
-            obs_mat_j_jd = self.joint_dynamics.observation_matrix_joint(j+1, qd_num[j, :], tauJ_j_basis_num)
-            observation_matrix[j*n_samples:(j+1)*n_samples, :] = np.concatenate(obs_mat_j_rbd, obs_mat_j_jd)
+            observation_matrix[j*n_samples:(j+1)*n_samples, :] = self.observation_matrix_joint(j, q_num, qd_num, qdd_num)
 
         return observation_matrix
 
     def regressor_joint(self, j):
-        return cache_object(self.filepath_regressor_joint(j), lambda: self.regressor()[j, :])
+        """Constructs row 'j' of the regressor matrix."""
+        def compute_regressor_joint():
+            reg_j = sp.Matrix(1, 0, [])
 
-    def regressor(self):
+            for j_par in range(self.n_joints):
+                reg_j_rbd_par_j = self.rigid_body_dynamics.regressor_joint_parameters_for_joint(j, j_par)
+                if j_par == j:
+                    reg_j_jd = self.joint_dynamics.regressor()[j_par]
+                else:
+                    reg_j_jd = sp.zeros(1, self.joint_dynamics.number_of_parameters()[j_par])
+                print(f"reg_j_rbd_par_j.shape[1]: {reg_j_rbd_par_j.shape[1]}")
+                print(f"self.rigid_body_dynamics.number_of_parameters()[j_par]: {self.rigid_body_dynamics.number_of_parameters()[j_par]}")
+
+                reg_j = sp.Matrix.hstack(reg_j, reg_j_rbd_par_j, reg_j_jd)
+            return reg_j
+
+        return compute_regressor_joint()#cache_object(self.filepath_regressor_joint(j+1), compute_regressor_joint)
+
+    def regressor(self, output_filename="robot_dynamics_regressor"):
+        filepath_regressor = from_cache(output_filename)
+
         def compute_regressor():
             """Merges regressor matrices for rigid-body dynamics and joint dynamics to construct a regressor for the
             robot dynamics."""
-            reg_rbd = self.rigid_body_dynamics.regressor()
-            reg_jd = self.joint_dynamics.regressor()
-            n_par_rbd = self.rigid_body_dynamics.number_of_parameters()
-            n_par_jd = self.joint_dynamics.number_of_parameters()
-
-            reg = sp.zeros((self.n_joints, sum(self.number_of_parameters())))
+            reg = sp.zeros(self.n_joints, sum(self.number_of_parameters()))
             for j in range(self.n_joints):
-                f=1
-                column_idx_start_rbd = sum(n_par_rbd[:j])
-                column_idx_end_rbd = column_idx_start_rbd + n_par_rbd[j]
-                # column_idx_start_jd = sum(n_par_jd[:j])
-                # column_idx_end_jd = column_idx_start_jd + n_par_jd[j]
-                column_idx_start = column_idx_start_rbd
-                column_idx_end = column_idx_start_rbd + n_par_rbd[j] + n_par_jd[j]
-                reg_rbd_j = reg_rbd[:, column_idx_start_rbd:column_idx_end_rbd]
-                reg[:, column_idx_start:column_idx_end] = reg_rbd_j.row_join(reg_jd[j])
+                reg_j = self.regressor_joint(j)
+                print(f"joint: {j}")
+                # print(f"reg_j: {reg_j}")
+                print(f"reg[j, :].shape: {reg[j, :].shape}")
+                print(f"reg_j.shape: {reg_j.shape}")
+                reg[j, :] = reg_j
 
-            for j in range(self.n_joints):
-                cache_object(from_cache(f"robot_dynamics_regressor_joint_{j+1}"), lambda: reg[j, :])
+            # for j in range(self.n_joints):
+            #     cache_object(from_cache(f"robot_dynamics_regressor_joint_{j+1}"), lambda: reg[j, :])
+            return reg
 
-        return cache_object(from_cache('robot_dynamics_regressor'), compute_regressor)
+        return cache_object(filepath_regressor, compute_regressor)

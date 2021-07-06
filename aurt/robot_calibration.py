@@ -1,11 +1,9 @@
-import sys
 import numpy as np
-import sympy as sp
 from scipy import signal
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 
-from aurt.file_system import cache_numpy, store_numpy, load_numpy, from_cache
+from aurt.file_system import cache_numpy, load_numpy, from_cache, cache_object, load_object
 
 
 class RobotCalibration:
@@ -92,16 +90,18 @@ class RobotCalibration:
             #     plt.show()
             # *************************************************************************************************************
 
-            n_samples_ds = self.__measurement_vector(robot_data, start_index=start_index, end_index=end_index).shape[0]  # No. of samples in downsampled data
+            n_samples_ds = self.__measurement_vector(robot_data, start_index=start_index, end_index=end_index).shape[0] // self.robot_dynamics.n_joints  # No. of samples in downsampled data
+            print(f"n_samples_ds: {n_samples_ds}")
             observation_matrix = np.zeros((self.robot_dynamics.n_joints * n_samples_ds, sum(self.robot_dynamics.number_of_parameters())))  # Initialization
-            for j in range(1, self.robot_dynamics.n_joints+1):
+            for j in range(self.robot_dynamics.n_joints):
                 # Obtain the rows of the observation matrix related to joint j
                 obs_mat_j = self.robot_dynamics.observation_matrix_joint(j, q_tf, qd_tf, qdd_tf)
 
                 # Parallel filter and decimate/downsample the rows of the observation matrix related to joint j.
                 obs_mat_j_ds = RobotCalibration.__downsample(RobotCalibration.__parallel_filter(obs_mat_j, robot_data.dt_nominal, self.f_dyn), robot_data.dt_nominal, self.f_dyn)
-
-                observation_matrix[(j-1) * n_samples_ds:j*n_samples_ds, :] = obs_mat_j_ds
+                print(f"observation_matrix[j*n_samples_ds:(j+1)*n_samples_ds, :].shape = {observation_matrix[j*n_samples_ds:(j+1)*n_samples_ds, :].shape}")
+                print(f"obs_mat_j_ds.shape: {obs_mat_j_ds.shape}")
+                observation_matrix[j*n_samples_ds:(j+1)*n_samples_ds, :] = obs_mat_j_ds
             return observation_matrix
 
         return cache_numpy(from_cache('observation_matrix'), compute_observation_matrix)
@@ -134,7 +134,7 @@ class RobotCalibration:
         # Compute weights (the reciprocal of the estimated standard deviation of the error)
         residuals = measurement_vector_reshape - measurement_vector_ols_estimation_reshape
         residual_sum_of_squares = np.sum(np.square(residuals), axis=1)
-        variance_residual = residual_sum_of_squares / (n_samples_est - np.array(self.robot_dynamics.number_of_parameters_at_joint_level[1:]))
+        variance_residual = residual_sum_of_squares / (n_samples_est - np.array(self.robot_dynamics.number_of_parameters()))
 
         if calibration_method.lower() == 'wls':
             wls_sample_weights = np.repeat(1 / variance_residual, n_samples_est)
@@ -150,42 +150,38 @@ class RobotCalibration:
         wls_calibration = LinearRegression(fit_intercept=False)
         wls_calibration.fit(observation_matrix, measurement_vector, sample_weight=wls_sample_weights)
 
-        store_numpy(filename_parameters, wls_calibration.coef_)
+        cache_numpy(from_cache(filename_parameters), lambda: wls_calibration.coef_)
 
     def predict(self, robot_data_predict, filename_parameters, filename_predicted_output):
-        print(f"RobotCalibration.predict()")
-        parameters = load_numpy(filename_parameters)
 
         def compute_prediction():
+            parameters = load_numpy(filename_parameters + '.npy')
             observation_matrix = self.__observation_matrix(robot_data_predict)
-            measurement_vector = self.__measurement_vector(robot_data_predict)
-            wls_calibration = LinearRegression(fit_intercept=False)
-            params_dict = {['']*parameters.shape[0]: parameters}
-            mydict = {k: v for k in [1, 2, 3]}
-            wls_calibration.set_params(params_dict)
-            estimated_output = self.__WLS.predict(observation_matrix)
+            estimated_output = observation_matrix @ parameters
 
-            n_samples_ds = round(measurement_vector.size / self.robot_dynamics.n_joints)
+            n_samples_ds = round(observation_matrix.shape[0] / self.robot_dynamics.n_joints)
             assert n_samples_ds * self.robot_dynamics.n_joints == observation_matrix.shape[0]
-            assert n_samples_ds * self.robot_dynamics.n_joints == measurement_vector.shape[0]
+            print(f"estimated_output.shape: {estimated_output.shape}")
             output_predicted_reshaped = np.reshape(estimated_output, (self.robot_dynamics.n_joints, n_samples_ds))
 
             return robot_data_predict.time, output_predicted_reshaped
 
-        store_numpy(filename_predicted_output + '.npy', compute_prediction)
+        cache_object(from_cache(filename_predicted_output), compute_prediction)
 
-    # def calibrate_and_predict(self, robot_data_predict, filename_predict, calibration_method='wls', weighting='variance'):
-    #     self.calibrate(calibration_method=calibration_method, weighting=weighting)
-    #     self.predict(robot_data_predict, filename)
+    def plot_calibration(self, filename_calibration_data, filename_parameters):
 
-    def plot_calibration(self):
+        parameters = load_object(from_cache(filename_parameters + '.pickle'))
 
         import matplotlib.pyplot as plt
+        # t, y = load_object(from_cache(filename_calibration + '.pickle'))
+        plt.plot(t, y)
 
     def plot_prediction(self, filename_predict):
-        t_prediction, output_reshaped_prediction = load_numpy(filename_predict + '.npy')
+
+        t, y = load_object(from_cache(filename_predict + '.pickle'))
 
         import matplotlib.pyplot as plt
+        plt.plot(t, y)
 
     def plot_estimation_and_prediction(self, filename_predict):
         t_prediction, output_predicted_reshaped = load_numpy(filename_predict + '.npy')

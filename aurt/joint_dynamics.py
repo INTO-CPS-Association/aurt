@@ -103,16 +103,16 @@ class JointDynamics:
     def observation_matrix_joint(self, j, qd_j_num, tauJ_j_num):
         """Returns a (n_samples x self.number_of_parameters[j]) observation matrix"""
         assert qd_j_num.size == tauJ_j_num.size
-        assert 0 < j <= self.n_joints
+        assert 0 <= j < self.n_joints
 
         n_samples = qd_j_num.size
-        args_sym = [self.__qd[j], self.__tauJ[j]]
+        args_sym = [self.__qd[j+1], self.__tauJ[j+1]]
         args_num = np.concatenate((qd_j_num[:, np.newaxis], tauJ_j_num[:, np.newaxis]), axis=1).transpose()
-        regressor_j = self.regressor()[j-1]
+        regressor_j = self.regressor()[j]
         observation_matrix_j = np.zeros((n_samples, regressor_j.shape[1]))
         sys.setrecursionlimit(int(1e6))
-        reg_j_nonzeros_fcn = sp.lambdify(args_sym, regressor_j, 'numpy')
-        observation_matrix_j[:n_samples, :] = reg_j_nonzeros_fcn(*args_num).squeeze().transpose()
+        reg_j_fcn = sp.lambdify(args_sym, regressor_j, 'numpy')
+        observation_matrix_j[:n_samples, :] = reg_j_fcn(*args_num).squeeze().transpose()
 
         return observation_matrix_j
 
@@ -120,16 +120,6 @@ class JointDynamics:
         """Returns a list of observation matrices for each joint."""
         assert qd_num.shape == tauJ_num.shape
 
-        # n_samples = qd_num.shape[1]
-        # observation_matrix = np.empty((self.n_joints * n_samples, sum(self.number_of_parameters())))
-        # column_idx_start = [sum(self.number_of_parameters()[:j+1]) for j in range(self.n_joints)]  # column indices for each joint
-        # row_idx_start = [j*n_samples for j in range(self.n_joints)]
-        # for j in reversed(range(self.n_joints)):
-        #     observation_matrix[row_idx_start[j]:row_idx_start[j] + n_samples,
-        #                        column_idx_start[j]:column_idx_start[j] + self.number_of_parameters()[j]] \
-        #         = self.observation_matrix_joint(j, qd_num[j, :], tauJ_num[j, :])
-
-        # return observation_matrix
         return [self.observation_matrix_joint(j, qd_num[j, :], tauJ_num[j, :]) for j in range(self.n_joints)]
 
     def regressor(self):

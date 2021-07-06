@@ -842,6 +842,7 @@ class LinearizationTests(TimedTest):
                                              desired_timeframe=(t_est_val_separation, np.inf),
                                              interpolate_missing_samples=True)
         my_robot_calibration.predict(my_robot_validation_data, filename_parameters, filename_predicted_output)
+        my_robot_calibration.plot_prediction(filename_predicted_output)
 
     def test_calibrate_parameters(self):
         t_est_val_separation = 63.0  # timely separation of estimation and validation datasets

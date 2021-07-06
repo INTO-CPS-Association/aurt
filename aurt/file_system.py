@@ -55,7 +55,9 @@ def cache_object(filename, callable):
 
 def store_numpy(file, nparr):
     assert file[-4:] == '.npy'
-    assert isinstance(nparr, (np.ndarray, np.generic))
+    # assert isinstance(nparr, (np.ndarray, np.generic))
+    print(f"file: {file}")
+    print(f"nparr: {nparr}")
     with open(file, "wb") as f:
         np.save(f, nparr)
 
@@ -65,11 +67,13 @@ def load_numpy(file):
         return np.load(f)
 
 
-def cache_numpy(filename, callable):
+def cache_numpy(file, callable):
     """
         Caches the return value of the callable using numpy.
     """
-    file = filename + '.npy'
+    if not file[-4:] == '.npy':
+        file = file + '.npy'
+
     if os.path.exists(file):
         return load_numpy(file)
     else:

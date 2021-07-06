@@ -14,6 +14,7 @@ class RigidBodyDynamics:
     __qr_numerical_threshold = 1e-12  # Numerical threshold used in identifying the base inertial parameters
     __max_number_of_rank_evaluations = 100  # Max. no. of rank evaluations in computing the base inertial parameters
     __n_regressor_evals_per_rank_calculation = 2  # No. of regressor evaluations per rank calculation
+    __min_rank_evals = 4
 
     def __init__(self, modified_dh: ModifiedDH, gravity=None, tcp_force_torque=None):
         self.mdh = modified_dh
@@ -81,10 +82,10 @@ class RigidBodyDynamics:
         related to that corresponding link.
         """
 
-        return self.__base_parameters_information()[2]
+        return self.__base_parameters_information()[2][1:]
 
     def number_of_parameters(self):
-        return self.__base_parameters_information()[1]
+        return self.__base_parameters_information()[1][1:]
 
     def __parameters_linear(self):
         """
@@ -189,7 +190,8 @@ class RigidBodyDynamics:
         def load_regressor_and_subs():
             regressor_reduced = self.__regressor_linear_exist()
             return regressor_reduced.subs(
-                sym_mat_to_subs([a, d, self.__g, self.__f_tcp, self.__n_tcp], [self.mdh.a, self.mdh.d, self.gravity, self.__f_tcp_num, self.__n_tcp_num]))
+                sym_mat_to_subs([a, d, self.__g, self.__f_tcp, self.__n_tcp],
+                                [self.mdh.a, self.mdh.d, self.gravity, self.__f_tcp_num, self.__n_tcp_num]))
 
         return load_regressor_and_subs()
 
@@ -219,7 +221,7 @@ class RigidBodyDynamics:
         W = regressor_with_instantiated_parameters(*dummy_args_init)
 
         # Continue the computations while the rank of the observation matrix 'W' keeps improving
-        while n_rank_evals < 3 or rank_W[-1] > rank_W[-2]:  # While the rank of the observation matrix keeps increasing
+        while n_rank_evals < RigidBodyDynamics.__min_rank_evals or rank_W[-1] > rank_W[-3]:  # While the rank of the observation matrix keeps increasing
             # Generate random indices for the dummy observations
             random_idx = [[[np.random.randint(self.n_joints + 1) for _ in range(self.n_joints)]
                            for _ in range(RigidBodyDynamics.__n_regressor_evals_per_rank_calculation)] for _ in range(3)]
@@ -279,9 +281,26 @@ class RigidBodyDynamics:
         print(f"Successfully computed RobotDynamics.evaluate()...")
         return tauJ_num
 
+    def observation_matrix_joint_parameters_for_joint(self, j, j_par, q_num, qd_num, qdd_num):
+        assert q_num.shape == qd_num.shape == qdd_num.shape
+        assert 0 <= j < self.n_joints
+        assert 0 <= j_par < self.n_joints
+
+        regressor_j_jpar = self.regressor_joint_parameters_for_joint(j, j_par)
+        args_sym = self.q[1:] + self.qd[1:] + self.qdd[1:]
+        nonzeros = [not elem.is_zero for elem in regressor_j_jpar]
+        sys.setrecursionlimit(int(1e6))
+        regressor_j_jpar_nonzeros_fcn = sp.lambdify(args_sym, regressor_j_jpar[:, nonzeros], 'numpy')
+
+        n_samples = q_num.shape[1]
+        observation_matrix_j = np.zeros((n_samples, regressor_j_jpar.shape[1]))
+        args_num = np.concatenate((q_num, qd_num, qdd_num))
+        observation_matrix_j[:, nonzeros] = regressor_j_jpar_nonzeros_fcn(*args_num).transpose().squeeze(axis=2)
+        return observation_matrix_j
+
     def observation_matrix_joint(self, j, q_num, qd_num, qdd_num):
         assert q_num.shape == qd_num.shape == qdd_num.shape
-        assert 0 < j <= self.n_joints
+        assert 0 <= j < self.n_joints
 
         n_samples = q_num.shape[1]
         regressor_j = self.regressor_joint(j)
@@ -297,27 +316,24 @@ class RigidBodyDynamics:
     def observation_matrix(self, q_num, qd_num, qdd_num):
         assert q_num.shape == qd_num.shape == qdd_num.shape
 
-        n_samples = q_num.shape[1]
-        args_sym = self.q[1:] + self.qd[1:] + self.qdd[1:]
-        args_num = np.concatenate(q_num, qd_num, qdd_num)
-        regressor = self.regressor()
-        observation_matrix = np.zeros((self.n_joints * n_samples, sum(self.number_of_parameters())))
-        sys.setrecursionlimit(int(1e6))
-        for j in range(self.n_joints):
-            nonzeros_j = [not elem.is_zero for elem in regressor[j, :]]
-            regressor_j_nonzeros_fcn = sp.lambdify(args_sym, regressor[j, nonzeros_j], 'numpy')
-            observation_matrix[j*n_samples:(j+1)*n_samples, nonzeros_j] = regressor_j_nonzeros_fcn(*args_num)
-
         return np.vstack([self.observation_matrix_joint(j, q_num, qd_num, qdd_num) for j in range(self.n_joints)])
 
-    def regressor_joint(self, j):
-        return cache_object(self.filepath_regressor_joint(j), lambda: self.regressor()[j, :])
+    def regressor_joint_parameters_for_joint(self, j, par_j):
+        column_idx_start = sum(self.number_of_parameters()[:par_j])
+        column_idx_end = column_idx_start + self.number_of_parameters()[par_j]
+        print(f"column_idx_start: {column_idx_start},  column_idx_end: {column_idx_end}")
+        return self.regressor_joint(j)[:, column_idx_start:column_idx_end]
 
-    def regressor(self, output_path="rigid_body_dynamics_regressor"):
-        filepath_regressor = from_cache(output_path)
+    def regressor_joint(self, j):
+        return cache_object(self.filepath_regressor_joint(j+1), lambda: self.regressor()[j, :])
+
+    def regressor(self, output_filename="rigid_body_dynamics_regressor"):
+        filepath_regressor = from_cache(output_filename)
+
         def compute_regressor():
             regressor_linear_exist = self.__regressor_linear_with_instantiated_parameters()
-            
+            print(f"regressor_linear_exist.shape == {regressor_linear_exist.shape}   (should be 7 x <something_large>)")
+            print(f"regressor[6, :] = {regressor_linear_exist[6, :]}")
 
             args_sym = self.q[1:] + self.qd[1:] + self.qdd[1:]  # list concatenation
             sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
@@ -325,9 +341,8 @@ class RigidBodyDynamics:
 
             parameter_indices_base = self.__indices_base_exist(regressor_linear_exist_func)
 
-            for j in range(1, self.n_joints+1):
-                cache_object(self.filepath_regressor_joint(j), 
-                             lambda: regressor_linear_exist[j, parameter_indices_base])
+            for j in range(self.n_joints):
+                cache_object(self.filepath_regressor_joint(j+1), lambda: regressor_linear_exist[j+1, parameter_indices_base])
 
             return regressor_linear_exist[1:, parameter_indices_base]
 
@@ -383,19 +398,14 @@ class RigidBodyDynamics:
 
     def __rigid_body_dynamics(self):
         """
-        Follows algorithm described in
-        Craig, John J. 2009. Introduction to Robotics: Mechanics and Control, 3/E. Pearson Education India.
+        Follows algorithm described in:
+        Craig, John J. 2009. "Introduction to Robotics: Mechanics and Control", 3/E. Pearson Education India.
         """
 
-        # vector, matrix, zeros_array, zeros_matrix, cos, sin, cross, dot, identity
-
         identity_3 = sp.eye(3)
-        # Parameters
         (m, d, a, alpha) = self.__mdh_num_to_sym()
-
-        P = self.__get_P(a, d, alpha)
-
-        PC = self.__pc
+        P = self.__get_P(a, d, alpha)  # position vectors
+        PC = self.__pc  # center-of-mass locations
 
         I_CoM = [sp.zeros(3, 3) for _ in range(self.n_joints + 1)]
         for j in range(1, self.n_joints + 1):
@@ -430,7 +440,7 @@ class RigidBodyDynamics:
         # Outputs
         tau = [sp.zeros(1, 1) for _ in range(self.n_joints + 1)]
 
-        # Outward calculations i: 0 -> 5
+        # Outward calculations j: 0 -> 5
         for j in range(self.n_joints):
             w[j+1] = spdot(R_im1_i[j+1], w[j]) + self.qd[j+1] * Z
             assert w[j+1].shape == (3, 1)
@@ -446,8 +456,8 @@ class RigidBodyDynamics:
             N[j+1] = spdot(I_CoM[j+1], wd[j+1]) + spcross(w[j+1], spdot(I_CoM[j+1], w[j+1]))
             assert N[j+1].shape == (3, 1)
 
-        # Inward calculations i: 6 -> 1
-        for j in reversed(range(self.n_joints)):
+        # Inward calculations j: 6 -> 1
+        for j in reversed(range(1, self.n_joints + 1)):
             f[j] = spdot(R_i_im1[j+1], f[j+1]) + F[j]
             n[j] = N[j] + spdot(R_i_im1[j+1], n[j+1]) + spcross(PC[j], F[j]) + spcross(P[j+1], spdot(R_i_im1[j+1], f[j+1]))
             assert n[j].shape == (3, 1), n[j]
