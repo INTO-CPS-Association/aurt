@@ -821,10 +821,6 @@ class LinearizationTests(TimedTest):
         print(f"par_base: {par_base}")
 
     def test_calibration_new(self):
-        # my_joint_dynamics = JointDynamics(6)
-        # print(my_joint_dynamics.regressor())
-
-        # mdh = None
         mdh_filepath = "C:/sourcecontrol/github/aurt/resources/robot_parameters/ur3e_params.csv"
         mdh = convert_file_to_mdh(mdh_filepath)
         my_robot_dynamics = RobotDynamics(mdh)
@@ -834,14 +830,19 @@ class LinearizationTests(TimedTest):
         t_est_val_separation = 63.0
         filename_parameters = 'parameters'
         filename_predicted_output = 'predicted_output'
-        my_robot_calibration_data = RobotData(robot_data_path, delimiter=' ', desired_timeframe=(-np.inf, t_est_val_separation), interpolate_missing_samples=True)
-
+        my_robot_calibration_data = RobotData(robot_data_path,
+                                              delimiter=' ',
+                                              desired_timeframe=(-np.inf, t_est_val_separation),
+                                              interpolate_missing_samples=True)
         my_robot_calibration = RobotCalibration(my_robot_dynamics, my_robot_calibration_data)
-        my_robot_calibration.calibrate(filename_parameters)
-        my_robot_validation_data = RobotData(robot_data_path, delimiter=' ',
+        parameters = my_robot_calibration.calibrate(filename_parameters)
+        my_robot_calibration.plot_calibration(parameters)
+
+        my_robot_validation_data = RobotData(robot_data_path,
+                                             delimiter=' ',
                                              desired_timeframe=(t_est_val_separation, np.inf),
                                              interpolate_missing_samples=True)
-        my_robot_calibration.predict(my_robot_validation_data, filename_parameters, filename_predicted_output)
+        t, y_pred = my_robot_calibration.predict(my_robot_validation_data, filename_parameters, filename_predicted_output)
         my_robot_calibration.plot_prediction(filename_predicted_output)
 
     def test_calibrate_parameters(self):
