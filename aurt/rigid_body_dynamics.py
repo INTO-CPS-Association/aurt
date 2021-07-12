@@ -188,7 +188,6 @@ class RigidBodyDynamics:
     def __mdh_num_to_sym(self):
         d = [sp.symbols(f"d{i}") if d != 0 else sp.Integer(0) for i, d in enumerate(self.mdh.d)]
         a = [sp.symbols(f"a{i}") if a != 0 else sp.Integer(0) for i, a in enumerate(self.mdh.a)]
-        #alpha = [0, sp.pi / 2, 0, 0, sp.pi / 2, -sp.pi / 2, 0] # TODO: fix, so we do not hardcode values
         alpha = self.__numerical_alpha_to_symbolical_pi()
         m = [0] * (self.n_joints + 1)
         for j in range(1, self.n_joints + 1):
@@ -343,8 +342,6 @@ class RigidBodyDynamics:
 
         def compute_regressor():
             regressor_linear_exist = self.__regressor_linear_with_instantiated_parameters()
-            print(f"regressor_linear_exist.shape == {regressor_linear_exist.shape}   (should be 7 x <something_large>)")
-            print(f"regressor[6, :] = {regressor_linear_exist[6, :]}")
 
             args_sym = self.q[1:] + self.qd[1:] + self.qdd[1:]  # list concatenation
             sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify

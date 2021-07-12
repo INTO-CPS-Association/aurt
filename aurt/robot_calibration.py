@@ -119,7 +119,7 @@ class RobotCalibration:
                                                        end_index=self.robot_data_calibration.non_static_end_index)
         measurement_vector = self.__measurement_vector(self.robot_data_calibration,
                                                        start_index=self.robot_data_calibration.non_static_start_index,
-                                                       end_index=self.robot_data_calibration.non_static_end_index)  # TODO: ADDED 'start_idx' and 'end_idx' arguments, is 'measurement_vector.size' == 'observation_matrix.shape[0]//n_joints'?
+                                                       end_index=self.robot_data_calibration.non_static_end_index) 
 
         # sklearn fit
         OLS = LinearRegression(fit_intercept=False)

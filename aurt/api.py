@@ -4,7 +4,6 @@ from aurt.data_processing import *
 
 def compile_rbd(mdh_path, gravity, output_path):
     mdh = convert_file_to_mdh(mdh_path)
-    print(mdh) # TODO: remove
     rbd = RigidBodyDynamics(mdh, gravity)
     rbd.regressor(output_path)
     

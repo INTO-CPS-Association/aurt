@@ -2,7 +2,6 @@ import numpy as np
 import csv
 from itertools import compress
 
-from aurt.globals import Njoints  # TODO: Remove 'Njoints' global definition
 from aurt.file_system import safe_open
 from aurt.calibration_aux import find_nonstatic_start_and_end_indices
 
@@ -16,7 +15,7 @@ class RobotData:
     This class contains sampled robot data related to an experiment.
     """
     def __init__(self, file_path, delimiter, desired_timeframe=None, interpolate_missing_samples=False):
-        self.n_joints = 6  # TODO: CHANGE THIS
+        self.n_joints = 6  # TODO: automatically determine number of joints from csv data
         self.fields = [
             f"timestamp",
             f"target_q_{JOINT_N}",
@@ -107,6 +106,8 @@ class RobotData:
                     # Also add timestamps as nan
                     self.time = insert_val(self.time, idx_insert_before, float("nan"), samples_missing[k])
 
+            assert self.data["interpolated"] == self.data["interpolated_new"]
+
             # The following two assertions ensure that the right number of samples were added.
             assert len(self.time) == len_data_before_interpolation + n_samples_to_add
             self.__ensure_data_consistent()
@@ -149,7 +150,7 @@ class RobotData:
             self.data = {}
             for f in self.fields:
                 if JOINT_N in f:
-                    for j in range(1, Njoints + 1):
+                    for j in range(1, self.n_joints + 1):
                         f_j = f.replace(JOINT_N, str(j))
                         self.data[f_j] = np.empty(0)
                 else:
@@ -161,7 +162,7 @@ class RobotData:
                 self.time = np.append(self.time, float(row["timestamp"]))
                 for f in self.fields:
                     if JOINT_N in f:
-                        for j in range(1, Njoints + 1):
+                        for j in range(1, self.n_joints + 1):
                             f_j_out = f.replace(JOINT_N, str(j))
                             index_in = j - 1
                             f_j_in = f.replace(JOINT_N, str(index_in))

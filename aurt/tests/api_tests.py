@@ -3,6 +3,7 @@ import unittest
 import pickle
 import os
 
+from aurt.file_system import from_cache
 from aurt import api
 
 class APITests(unittest.TestCase):
@@ -14,8 +15,7 @@ class APITests(unittest.TestCase):
         output_path = "rbd_twolink"
 
         api.compile_rbd(mdh_path, gravity, output_path)
-
-        filename = os.path.join(os.getcwd(),"cache", output_path + ".pickle")
+        filename = from_cache(output_path + ".pickle")
         with open(filename, 'rb') as f:
             rbd_twolink_estimate = pickle.load(f)
         with open("aurt/tests/resources/rbd_twolink.pickle", 'rb') as f:

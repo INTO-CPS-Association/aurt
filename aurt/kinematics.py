@@ -1,7 +1,8 @@
-from aurt.globals import Njoints
+
 
 # TODO: remove, when we fix plotting.py
 def get_forward_kinematics(q, alpha, P, zeros_matrix, matrix, cos, sin):
+    Njoints = 6 # TODO delete
     c = lambda i: cos(q[i])
     s = lambda i: sin(q[i])
 

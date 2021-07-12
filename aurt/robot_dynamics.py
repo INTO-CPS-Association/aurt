@@ -9,9 +9,6 @@ from aurt.data_processing import ModifiedDH
 
 class RobotDynamics:
     def __init__(self, modified_dh: ModifiedDH, gravity=None, tcp_force_torque=None, viscous_friction_powers=None, friction_load_model=None, hysteresis_model=None):
-        # TODO: Change constructor to take directly 'RigidBodyDynamics' and 'JointDynamics' objects instead of their
-        #  arguments.
-
         self.mdh = modified_dh
         self.n_joints = modified_dh.n_joints
         self.q = [sp.Integer(0)] + [sp.symbols(f"q{j}") for j in range(1, self.n_joints + 1)]
