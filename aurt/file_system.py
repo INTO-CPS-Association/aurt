@@ -3,6 +3,7 @@ import sys
 import pickle
 import numpy as np
 from pathlib import Path
+import pandas as pd
 
 
 def project_root() -> Path:
@@ -61,11 +62,17 @@ def store_numpy(file, nparr):
     with open(file, "wb") as f:
         np.save(f, nparr)
 
+def store_csv(file, data):
+    assert file[-4:] == '.csv'
+    df = pd.DataFrame(data)
+    df.to_csv(file, index=False, header=False)
 
 def load_numpy(file):
     with safe_open(file, "rb") as f:
         return np.load(f)
 
+def load_csv(file):
+    return pd.read_csv(file)
 
 def cache_numpy(file, callable):
     """
@@ -79,4 +86,17 @@ def cache_numpy(file, callable):
     else:
         expr = callable()
         store_numpy(file, expr)
+        return expr
+
+
+
+def cache_csv(file, callable):
+    if not file[-4:] == '.csv':
+        file = file + '.csv'
+
+    if os.path.exists(file):
+        return load_csv(file)
+    else:
+        expr = callable()
+        store_csv(file, expr)
         return expr

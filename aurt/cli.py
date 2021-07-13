@@ -51,9 +51,24 @@ def calibrate(args):
 
     model_path = args.model
     data_path = args.data
-    output_path = args.out
+    params_path = args.out_params
+    calbration_model_path = args.out_calibration_model
     
-    api.calibrate(model_path, data_path, output_path)
+    api.calibrate(model_path, data_path, params_path, calbration_model_path)
+
+
+def predict(args):
+    l = setup_logger(args)
+    l.info("Predicting robot current.")
+
+    # TODO: Do some error checking on the user provided parameters, convert their types, check that files exists
+    #  (or that they will not be overwritten) etc.
+
+    model_path = args.model
+    data_path = args.data
+    output_path = args.prediction
+    
+    api.predict(model_path, data_path, output_path)
 
 
 
@@ -121,10 +136,28 @@ def main():
     calibrate_parser.add_argument('--data', required=True,
                                     help="The measured data (csv).")
 
-    calibrate_parser.add_argument('--out',
+    calibrate_parser.add_argument('--out-params',
                                     help="The resulting parameter values (csv).")
 
+    calibrate_parser.add_argument('--out-calibration-model',
+                                    help="Path of the outputted robot calibration model (pickle).")
+
     calibrate_parser.set_defaults(command=calibrate)
+
+    
+    ## predict
+    predict_parser = subparsers.add_parser("predict")
+
+    predict_parser.add_argument('--model', required=True,
+                                    help="The calibration model created with the calibrate command.")
+
+    predict_parser.add_argument('--data', required=True,
+                                    help="The measured data (csv).")
+
+    predict_parser.add_argument('--prediction', required=True,
+                                    help="Path of outputted prediction values (csv).")
+
+    predict_parser.set_defaults(command=predict)
 
     # Force help display when error occurrs. See https://stackoverflow.com/questions/3636967/python-argparse-how-can-i-display-help-automatically-on-error
     args_parser.usage = args_parser.format_help().replace("usage: ", "")
