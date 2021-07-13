@@ -17,16 +17,16 @@ which takes a long time.
 ## Compile Rigid Body Dynamics Model
 
 ```
-aurt compile-rbd --mdh mdh.csv --gravity 0.0 0.0 -9.81 --out rigid-body_dynamics.pickle
+aurt compile-rbd --mdh mdh.csv --gravity 0.0 0.0 -9.81 --out rigid-body_dynamics
 ```
-Reads the Modified Denavit-Hartenberg (MDH) parameters in file `mdh.csv` and outputs the linear and minimal robot dynamics model to file `rigid-body_dynamics.pickle`.
+Reads the Modified Denavit-Hartenberg (MDH) parameters in file `mdh.csv` and outputs the linear and minimal robot dynamics model to file `rigid-body_dynamics`.
 The gravity vector determines the orientation of the robot for which the parameters will be calibrated.
 The generated model does not include the joint dynamics.
 
 ## Compile Robot Dynamics Model
 
 ```
-aurt compile-rd --model-rbd rigid-body_dynamics.pickle --friction-load-model square --friction-viscous-powers 2 1 4 --friction-hysteresis-model sign --out robot_dynamics.pickle
+aurt compile-rd --model-rbd rigid-body_dynamics --friction-load-model square --friction-viscous-powers 2 1 4 --friction-hysteresis-model sign --out robot_dynamics
 ```
 
 Reads the rigid-body dynamics model created with the `compile-rbd` command, and generates the robot dynamics model, 
@@ -45,15 +45,15 @@ The friction configuration options are:
 ## Calibration
 
 ```
-aurt calibrate --model robot_dynamics.pickle --data measured_data.csv --out-reduced-params calibrated_parameters.csv
+aurt calibrate --model robot_dynamics --data measured_data.csv --out calibrated_parameters.csv
 ```
 
 Reads the model produced in [Compile Robot Dynamics Model](#compile-joint-dynamics-model), the measured data in `measured_data.csv`, 
 and writes the base parameter values to `calibrated_parameters.csv`,
 
-In order to generate the original parameters described in `mdh.csv`, 
+<!--In order to generate the original parameters described in `mdh.csv`, 
 provided in [Compile Rigid Body Dynamics Model](#compile-rigid-body-dynamics-model), 
-use the `--out-full-params calibrated_parameters.csv` instead of `--base-params`
+use the `--out-full-params calibrated_parameters.csv` instead of `--base-params`-->
 
 The measured data should contain the following fields:
 - `time` of type float, representing the number of seconds passed from a given reference point.
@@ -64,7 +64,7 @@ The measured data should contain the following fields:
 ## Predict
 
 ```
-aurt predict --model robot_dynamics.pickle --data measured_data.csv --base-params calibrated_parameters.csv --prediction prediction.csv
+aurt predict --model robot_dynamics --data measured_data.csv --params calibrated_parameters.csv --prediction prediction.csv
 ```
 
 Reads the model produced in [Compile Joint Dynamics Model](#compile-joint-dynamics-model), 
