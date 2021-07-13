@@ -4,6 +4,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 
 from aurt.file_system import cache_numpy, load_numpy, from_cache, cache_object, load_object
+from aurt.robot_data import plot_colors
 
 
 class RobotCalibration:
@@ -32,6 +33,7 @@ class RobotCalibration:
 
         self.__WLS = LinearRegression(fit_intercept=False)
         self.f_dyn = 10  # Approx. cut-off frequency [Hz] of robot dynamics to be estimated
+        self.downsampling_factor = round(0.8 / (4 * self.f_dyn * self.robot_data_calibration.dt_nominal))
         self.parameters = None
         self.estimated_output = None
         self.number_of_samples_in_downsampled_data = None
@@ -40,7 +42,7 @@ class RobotCalibration:
         def compute_measurement_vector():
             i = np.array([robot_data.data[f"actual_current_{j}"] for j in range(1, self.robot_dynamics.n_joints + 1)]).T
             i_pf = RobotCalibration.__parallel_filter(i, robot_data.dt_nominal, self.f_dyn)[start_index:end_index, :]
-            i_pf_ds = RobotCalibration.__downsample(i_pf, robot_data.dt_nominal, self.f_dyn)
+            i_pf_ds = RobotCalibration.__downsample(i_pf, self.downsampling_factor)
             return i_pf_ds.flatten(order='F')  # y = [y1, ..., yi, ..., yN],  yi = [yi_{1}, ..., yi_{n_samples}]
 
         return cache_numpy(from_cache('measurement_vector'), compute_measurement_vector)
@@ -98,7 +100,7 @@ class RobotCalibration:
                 obs_mat_j = self.robot_dynamics.observation_matrix_joint(j, q_tf, qd_tf, qdd_tf)
 
                 # Parallel filter and decimate/downsample the rows of the observation matrix related to joint j.
-                obs_mat_j_ds = RobotCalibration.__downsample(RobotCalibration.__parallel_filter(obs_mat_j, robot_data.dt_nominal, self.f_dyn), robot_data.dt_nominal, self.f_dyn)
+                obs_mat_j_ds = RobotCalibration.__downsample(RobotCalibration.__parallel_filter(obs_mat_j, robot_data.dt_nominal, self.f_dyn), self.downsampling_factor)
                 print(f"observation_matrix[j*n_samples_ds:(j+1)*n_samples_ds, :].shape = {observation_matrix[j*n_samples_ds:(j+1)*n_samples_ds, :].shape}")
                 print(f"obs_mat_j_ds.shape: {obs_mat_j_ds.shape}")
                 observation_matrix[j*n_samples_ds:(j+1)*n_samples_ds, :] = obs_mat_j_ds
@@ -154,8 +156,8 @@ class RobotCalibration:
 
         parameters = wls_calibration.coef_
         cache_numpy(from_cache(filename_parameters), lambda: parameters)
-        # return wls_calibration.coef_
-        return self.predict(self.robot_data_calibration, parameters, 'calibration_output')
+        return wls_calibration.coef_
+        # return self.predict(self.robot_data_calibration, parameters, 'calibration_output')
 
     def predict(self, robot_data_predict, parameters, filename_predicted_output):
 
@@ -177,11 +179,44 @@ class RobotCalibration:
         estimated_output_reshaped = np.reshape(observation_matrix @ parameters, (self.robot_dynamics.n_joints, n_samples))
         measured_output_reshaped = np.reshape(self.__measurement_vector(self.robot_data_calibration),
                                               (self.robot_dynamics.n_joints, n_samples))
+        error = measured_output_reshaped - estimated_output_reshaped
+        t = np.linspace(0, self.robot_data_calibration.dt_nominal*self.downsampling_factor*n_samples, n_samples)
 
+        import matplotlib.colors
         import matplotlib.pyplot as plt
-        t = np.linspace(0, self.robot_data_calibration.dt_nominal*n_samples, n_samples)
-        plt.plot(t, estimated_output_reshaped.T)
-        plt.plot(t, measured_output_reshaped.T)
+        fig = plt.figure()
+        gs = fig.add_gridspec(2, 1, hspace=0.03)
+        axs = gs.subplots(sharex='col', sharey='all')
+        # plt.plot(t, estimated_output_reshaped.T)
+        # plt.plot(t, measured_output_reshaped.T)
+
+        def darken_color(plot_color, darken_amount=0.35):
+            """Computes rgb values to a darkened color"""
+            line_color_rgb = matplotlib.colors.ColorConverter.to_rgb(plot_color)
+            line_color_hsv = matplotlib.colors.rgb_to_hsv(line_color_rgb)
+            darkened_line_color_hsv = line_color_hsv - np.array([0, 0, darken_amount])
+            darkened_line_color_rgb = matplotlib.colors.hsv_to_rgb(darkened_line_color_hsv)
+            return darkened_line_color_rgb
+
+        # Current
+        for j in range(self.robot_dynamics.n_joints):
+            axs[0].plot(t, measured_output_reshaped[j, :], '-', color=plot_colors[j], linewidth=1.5,
+                           label=f'joint {j}, meas.')
+            axs[0].plot(t, estimated_output_reshaped[j, :], color=darken_color(plot_colors[j]), linewidth=1, label=f'joint {j}, pred.')
+        axs[0].set_xlim([t[0], t[-1]])
+        axs[0].set_title('Calibration')
+
+        # Error
+        for j in range(self.robot_dynamics.n_joints):
+            axs[1].plot(t, error[j].T, '-', color=plot_colors[j], linewidth=1.3, label=f'joint {j + 1}')
+        axs[1].set_xlim([t[0], t[-1]])
+
+        for ax in axs.flat:
+            ax.label_outer()
+        plt.setp(axs[0], ylabel='Current [A]')
+        plt.setp(axs[1], ylabel='Error [A]')
+        plt.setp(axs[1], xlabel='Time [s]')
+
         plt.show()
 
     def plot_prediction(self, filename_predict):
@@ -258,14 +293,13 @@ class RobotCalibration:
         return 1
 
     @staticmethod
-    def __downsample(y, dt, f_dyn):
+    def __downsample(y, downsampling_factor):
         """The decimate procedure down-samples the signal such that the matrix system (that is later to be inverted) is not
         larger than strictly required. The signal.decimate() function can also low-pass filter the signal before
         down-sampling, but for IIR filters unfortunately only the Chebyshev filter is available which has (unwanted) ripple
         in the passband unlike the Butterworth filter that we use. The approach for downsampling is simply picking every
         downsampling_factor'th sample of the data."""
 
-        downsampling_factor = round(0.8 / (4 * f_dyn * dt))  # downsampling_factor = 10 for dt = 0.002 s and f_dyn = 10 Hz
         y_ds = y[::downsampling_factor, :]
         return y_ds
 

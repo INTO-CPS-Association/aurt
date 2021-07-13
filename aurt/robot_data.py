@@ -85,7 +85,6 @@ class RobotData:
         if interpolate_missing_samples:
             assert "interpolated" not in self.data
             self.data["interpolated"] = np.zeros(len_data_before_interpolation, dtype=bool)
-            self.data["interpolated_new"] = np.insert(sample_is_missing, 0, False)  # TODO: DELETE "self.data["interpolated"]" if self.data["interpolated"] == self.data["interpolated_new"]
 
             # Inserts values in data at indices of missing samples
             def insert_val(lst, idx_insert_before, v, nsamples):
@@ -105,8 +104,6 @@ class RobotData:
                     self.data["interpolated"] = insert_val(self.data["interpolated"], idx_insert_before, True, samples_missing[k])
                     # Also add timestamps as nan
                     self.time = insert_val(self.time, idx_insert_before, float("nan"), samples_missing[k])
-
-            assert self.data["interpolated"] == self.data["interpolated_new"]
 
             # The following two assertions ensure that the right number of samples were added.
             assert len(self.time) == len_data_before_interpolation + n_samples_to_add
