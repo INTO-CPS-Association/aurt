@@ -30,8 +30,22 @@ def compile_rd(rbd_filename, friction_load_model, friction_viscous_powers, frict
         pickle.dump(rd, f)
 
 
-def calibrate(model_path, data_path, output_path):
+def calibrate(model_path, data_path, output_params, output_calibration):
     rc_data = RobotData(data_path,delimiter=' ', interpolate_missing_samples=True) # TODO should we always interpolate missing samples?
     rc = RobotCalibration(model_path, rc_data)
-    rc.calibrate(output_path)
+    params = rc.calibrate(output_params)
+    rc.plot_calibration(params)
 
+    # save class
+    pathfile = from_cache(output_calibration + ".pickle")
+    with open(pathfile, 'wb') as f:
+        pickle.dump(rc, f)
+
+
+def predict(model_path, data_path, output_path):
+    filename = from_cache(model_path + ".pickle")
+    with open(filename, 'rb') as f:
+        rc: RobotCalibration = pickle.load(f)
+
+    rc_predict_data = RobotData(data_path, delimiter=' ', interpolate_missing_samples=True) # TODO should we always interpolate missing samples?
+    rc.predict(rc_predict_data, rc.parameters, output_path)

@@ -5,7 +5,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 import pickle
 
-from aurt.file_system import cache_numpy, load_numpy, from_cache, cache_object, load_object
+from aurt.file_system import cache_numpy, cache_csv, load_numpy, from_cache, cache_object, load_object
 from aurt.robot_data import plot_colors
 
 
@@ -16,6 +16,9 @@ class RobotCalibration:
         filename = from_cache(rd_filename + ".pickle")
         with open(filename, 'rb') as f:
             self.robot_dynamics: RobotDynamics = pickle.load(f)
+
+        print(f"RBD NPARAMS : {self.robot_dynamics.rigid_body_dynamics.n_params}")
+        print(f"JOINT N PARAMS: {self.robot_dynamics.joint_dynamics.number_of_parameters()}")
 
         if relative_separation_of_calibration_and_prediction is None and robot_data_predict is None:
             self.robot_data_calibration = robot_data
@@ -127,7 +130,7 @@ class RobotCalibration:
         measurement_vector = self.__measurement_vector(self.robot_data_calibration,
                                                        start_index=self.robot_data_calibration.non_static_start_index,
                                                        end_index=self.robot_data_calibration.non_static_end_index) 
-
+        print(f"observation_matrix.shape[1]: {observation_matrix.shape[1]}")
         # sklearn fit
         OLS = LinearRegression(fit_intercept=False)
         OLS.fit(observation_matrix, measurement_vector)
@@ -159,8 +162,10 @@ class RobotCalibration:
         wls_calibration = LinearRegression(fit_intercept=False)
         wls_calibration.fit(observation_matrix, measurement_vector, sample_weight=wls_sample_weights)
 
-        parameters = wls_calibration.coef_
-        cache_numpy(from_cache(filename_parameters), lambda: parameters)
+        self.parameters = wls_calibration.coef_
+        
+        #cache_numpy(from_cache(filename_parameters), lambda: parameters)
+        cache_csv(from_cache(filename_parameters), lambda: self.parameters)
         return wls_calibration.coef_
         # return self.predict(self.robot_data_calibration, parameters, 'calibration_output')
 
