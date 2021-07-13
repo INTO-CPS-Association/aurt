@@ -11,22 +11,22 @@ pip install aurt
 
 The following shows the different use cases that aurt supports.
 In order to improve performance, the model is compiled in different stages, 
-in a way that allows the user to try alternative friction models without having to re-create the full model, 
-which takes a long time.
+in a way that allows the user to try alternative joint dynamics models without having to re-create the full model, 
+which is a computationally demanding procedure.
 
 ## Compile Rigid Body Dynamics Model
 
 ```
-aurt compile-rbd --mdh mdh.csv --gravity 0.0 0.0 -9.81 --out rigid-body_dynamics
+aurt compile-rbd --mdh mdh.csv --gravity 0.0 0.0 -9.81 --out rigid_body_dynamics.pickle
 ```
-Reads the Modified Denavit-Hartenberg (MDH) parameters in file `mdh.csv` and outputs the linear and minimal robot dynamics model to file `rigid-body_dynamics`.
-The gravity vector determines the orientation of the robot for which the parameters will be calibrated.
+Reads the Modified Denavit-Hartenberg (MDH) parameters in file `mdh.csv` and outputs rigid-body dynamics model to file `rigid_body_dynamics.pickle`.
+The gravity vector determines the orientation of the robot base for which the parameters will be calibrated.
 The generated model does not include the joint dynamics.
 
 ## Compile Robot Dynamics Model
 
 ```
-aurt compile-rd --model-rbd rigid-body_dynamics --friction-load-model square --friction-viscous-powers 2 1 4 --friction-hysteresis-model sign --out robot_dynamics
+aurt compile-rd --model-rbd rigid_body_dynamics.pickle --friction-load-model square --friction-viscous-powers 2 1 4 --out robot_dynamics.pickle
 ```
 
 Reads the rigid-body dynamics model created with the `compile-rbd` command, and generates the robot dynamics model, 
@@ -38,22 +38,15 @@ The friction configuration options are:
   - `TYPE=square` means TODO
   - `TYPE=absolute` means TODO 
 - `--friction-viscous-powers POWERS` where `POWERS` has the format `P1 P2 ... PN`, and `PN` is a positive real number representing the `N`-th power of the polynomial.
-- `--friction-hysteresis-model TYPE` where `TYPE in {sign, maxwell-slip}`, and:
-  - `TYPE=sign` means TODO
-  - `TYPE=maxwell-slip` means TODO
   
 ## Calibration
 
 ```
-aurt calibrate --model robot_dynamics --data measured_data.csv --out calibrated_parameters.csv
+aurt calibrate --model robot_dynamics.pickle --data measured_data.csv --out-params calibrated_parameters.csv
 ```
 
 Reads the model produced in [Compile Robot Dynamics Model](#compile-joint-dynamics-model), the measured data in `measured_data.csv`, 
-and writes the base parameter values to `calibrated_parameters.csv`,
-
-<!--In order to generate the original parameters described in `mdh.csv`, 
-provided in [Compile Rigid Body Dynamics Model](#compile-rigid-body-dynamics-model), 
-use the `--out-full-params calibrated_parameters.csv` instead of `--base-params`-->
+and writes the calibrated base parameter values to `calibrated_parameters.csv`.
 
 The measured data should contain the following fields:
 - `time` of type float, representing the number of seconds passed from a given reference point.
@@ -64,12 +57,12 @@ The measured data should contain the following fields:
 ## Predict
 
 ```
-aurt predict --model robot_dynamics --data measured_data.csv --params calibrated_parameters.csv --prediction prediction.csv
+aurt predict --model robot_dynamics.pickle --data measured_data.csv --params calibrated_parameters.csv --predict predicted_output.csv
 ```
 
 Reads the model produced in [Compile Joint Dynamics Model](#compile-joint-dynamics-model), 
 the measured data in `measured_data.csv`, 
-and the base parameter values produced in [Calibration](#calibration), and writes the prediction to `prediction.csv`.
+and the base parameter values produced in [Calibration](#calibration), and writes the predicted output to `predicted_output.csv`.
 
 The prediction fields are:
 - `time` of type float, referring to the time of the measured data, as in [Calibration](#calibration).
@@ -126,4 +119,3 @@ The shared drive **Nat_robot-datasets** has been created with **Emil Madsen** as
 | au513437     | Daniella Tola                  | [dt@ece.au.dk](mailto:dt@ece.au.dk)                       | Electrical and Computer Engineering (ECE) |
 
 For more information on access, self-service and management of files: https://medarbejdere.au.dk/en/administration/it/guides/datastorage/data-storage/
-
