@@ -8,7 +8,7 @@ from aurt.joint_dynamics import JointDynamics
 
 
 class RobotDynamics:
-    def __init__(self, rbd_filename, tcp_force_torque=None, viscous_friction_powers=None, friction_load_model=None, hysteresis_model=None):
+    def __init__(self, rbd_filename, tcp_force_torque=None, viscous_friction_powers=None, friction_load_model=None, hysteresis_model=None): # TODO ask Emil about tcp_force_torque
         # Load saved RigidBodyDynamics model
         filename = from_cache(rbd_filename + ".pickle")
         with open(filename, 'rb') as f:
@@ -19,9 +19,6 @@ class RobotDynamics:
         self.qdd = [sp.Integer(0)] + [sp.symbols(f"qdd{j}") for j in range(1, self.n_joints + 1)]
         self.tauJ = sp.symbols([f"tauJ{j}" for j in range(self.n_joints + 1)])
 
-        # self.rigid_body_dynamics = RigidBodyDynamics(modified_dh=modified_dh,
-        #                                              gravity=gravity,
-        #                                              tcp_force_torque=tcp_force_torque)
         self.joint_dynamics = JointDynamics(self.n_joints,
                                             load_model=friction_load_model,
                                             hysteresis_model=hysteresis_model,

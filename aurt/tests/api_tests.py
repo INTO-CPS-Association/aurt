@@ -71,7 +71,9 @@ class APITests(unittest.TestCase):
         with open("aurt/tests/resources/rd_twolink.pickle", 'rb') as f:
             rd_twolink_true = pickle.load(f)
 
-        self.assertEqual(rd_twolink_estimate,rd_twolink_true)
+        self.assertEqual(rd_twolink_estimate.n_joints,rd_twolink_true.n_joints)
+        self.assertEqual(rd_twolink_estimate.qdd,rd_twolink_true.qdd)
+        self.assertEqual(rd_twolink_estimate.tauJ,rd_twolink_true.tauJ)
 
 
 if __name__ == '__main__':

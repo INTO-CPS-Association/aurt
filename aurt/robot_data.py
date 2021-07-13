@@ -15,7 +15,7 @@ class RobotData:
     This class contains sampled robot data related to an experiment.
     """
     def __init__(self, file_path, delimiter, desired_timeframe=None, interpolate_missing_samples=False):
-        self.n_joints = 6  # TODO: automatically determine number of joints from csv data
+        self.n_joints = None  # TODO: automatically determine number of joints from csv data
         self.fields = [
             f"timestamp",
             f"target_q_{JOINT_N}",
@@ -85,7 +85,6 @@ class RobotData:
         if interpolate_missing_samples:
             assert "interpolated" not in self.data
             self.data["interpolated"] = np.zeros(len_data_before_interpolation, dtype=bool)
-            self.data["interpolated_new"] = np.insert(sample_is_missing, 0, False)  # TODO: DELETE "self.data["interpolated"]" if self.data["interpolated"] == self.data["interpolated_new"]
 
             # Inserts values in data at indices of missing samples
             def insert_val(lst, idx_insert_before, v, nsamples):
@@ -105,8 +104,6 @@ class RobotData:
                     self.data["interpolated"] = insert_val(self.data["interpolated"], idx_insert_before, True, samples_missing[k])
                     # Also add timestamps as nan
                     self.time = insert_val(self.time, idx_insert_before, float("nan"), samples_missing[k])
-
-            assert self.data["interpolated"] == self.data["interpolated_new"]
 
             # The following two assertions ensure that the right number of samples were added.
             assert len(self.time) == len_data_before_interpolation + n_samples_to_add
@@ -146,6 +143,8 @@ class RobotData:
         with safe_open(file_path, mode='r') as csvFile:
             csv_reader = csv.DictReader(csvFile, delimiter=delimiter)
 
+            self.n_joints = len([i for i in csv_reader.fieldnames if "target_q_" in i])
+
             self.time = np.empty(0)
             self.data = {}
             for f in self.fields:
@@ -170,6 +169,7 @@ class RobotData:
                             self.data[f_j_out] = np.append(self.data[f_j_out], float(row[f_j_in]))
                     else:
                         self.data[f] = np.append(self.data[f], float(row[f]))
+            
 
     def __trim_data(self, desired_timeframe):
         start_idx = 0

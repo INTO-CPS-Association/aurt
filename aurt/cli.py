@@ -49,12 +49,11 @@ def calibrate(args):
     # TODO: Do some error checking on the user provided parameters, convert their types, check that files exists
     #  (or that they will not be overwritten) etc.
 
-    model_path = ""
-    data_path = ""
-    reduced = ""
-    output_path = ""
+    model_path = args.model
+    data_path = args.data
+    output_path = args.out
     
-    api.calibrate(model_path, data_path, reduced, output_path)
+    api.calibrate(model_path, data_path, output_path)
 
 
 
@@ -122,11 +121,8 @@ def main():
     calibrate_parser.add_argument('--data', required=True,
                                     help="The measured data (csv).")
 
-    calibrate_parser.add_argument('--out-reduced-params',
-                                    help="The resulting reduced parameter values (csv).")
-
-    calibrate_parser.add_argument('--out-full-params',
-                                    help="The resulting full parameter values (csv).")
+    calibrate_parser.add_argument('--out',
+                                    help="The resulting parameter values (csv).")
 
     calibrate_parser.set_defaults(command=calibrate)
 

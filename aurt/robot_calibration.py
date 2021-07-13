@@ -1,14 +1,20 @@
+from aurt.robot_dynamics import RobotDynamics
 import numpy as np
 from scipy import signal
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
+import pickle
 
 from aurt.file_system import cache_numpy, load_numpy, from_cache, cache_object, load_object
 
 
 class RobotCalibration:
-    def __init__(self, robot_dynamics, robot_data, relative_separation_of_calibration_and_prediction=None, robot_data_predict=None):
-        self.robot_dynamics = robot_dynamics
+    def __init__(self, rd_filename, robot_data, relative_separation_of_calibration_and_prediction=None, robot_data_predict=None):
+
+        # Load saved RobotDynamics model
+        filename = from_cache(rd_filename + ".pickle")
+        with open(filename, 'rb') as f:
+            self.robot_dynamics: RobotDynamics = pickle.load(f)
 
         if relative_separation_of_calibration_and_prediction is None and robot_data_predict is None:
             self.robot_data_calibration = robot_data
