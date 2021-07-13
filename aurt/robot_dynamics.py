@@ -1,24 +1,27 @@
 import sympy as sp
 import numpy as np
+import pickle
 
 from aurt.file_system import cache_object, from_cache
 from aurt.rigid_body_dynamics import RigidBodyDynamics
 from aurt.joint_dynamics import JointDynamics
-from aurt.data_processing import ModifiedDH
 
 
 class RobotDynamics:
-    def __init__(self, modified_dh: ModifiedDH, gravity=None, tcp_force_torque=None, viscous_friction_powers=None, friction_load_model=None, hysteresis_model=None):
-        self.mdh = modified_dh
-        self.n_joints = modified_dh.n_joints
+    def __init__(self, rbd_filename, tcp_force_torque=None, viscous_friction_powers=None, friction_load_model=None, hysteresis_model=None):
+        # Load saved RigidBodyDynamics model
+        filename = from_cache(rbd_filename + ".pickle")
+        with open(filename, 'rb') as f:
+            self.rigid_body_dynamics: RigidBodyDynamics = pickle.load(f)
+        self.n_joints = self.rigid_body_dynamics.mdh.n_joints
         self.q = [sp.Integer(0)] + [sp.symbols(f"q{j}") for j in range(1, self.n_joints + 1)]
         self.qd = [sp.Integer(0)] + [sp.symbols(f"qd{j}") for j in range(1, self.n_joints + 1)]
         self.qdd = [sp.Integer(0)] + [sp.symbols(f"qdd{j}") for j in range(1, self.n_joints + 1)]
         self.tauJ = sp.symbols([f"tauJ{j}" for j in range(self.n_joints + 1)])
 
-        self.rigid_body_dynamics = RigidBodyDynamics(modified_dh=modified_dh,
-                                                     gravity=gravity,
-                                                     tcp_force_torque=tcp_force_torque)
+        # self.rigid_body_dynamics = RigidBodyDynamics(modified_dh=modified_dh,
+        #                                              gravity=gravity,
+        #                                              tcp_force_torque=tcp_force_torque)
         self.joint_dynamics = JointDynamics(self.n_joints,
                                             load_model=friction_load_model,
                                             hysteresis_model=hysteresis_model,
@@ -35,13 +38,12 @@ class RobotDynamics:
         Returns a list of 'n_joints + 1' elements with each element comprising a list of all parameters related to that
         corresponding link and joint.
         """
-
-        par_rigid_body = self.rigid_body_dynamics.parameters()
+        par_rigid_body = self.rigid_body_dynamics.params
         par_joint = self.joint_dynamics.parameters()
         return [par_rigid_body[j] + par_joint[j] for j in range(self.n_joints)]
 
     def number_of_parameters(self):
-        n_par_rbd = self.rigid_body_dynamics.number_of_parameters()
+        n_par_rbd = self.rigid_body_dynamics.n_params
         n_par_jd = self.joint_dynamics.number_of_parameters()
         return [n_par_rbd[j] + n_par_jd[j] for j in range(self.n_joints)]
 
@@ -59,8 +61,8 @@ class RobotDynamics:
             else:
                 obs_mat_j_jd = np.zeros((n_samples, self.joint_dynamics.number_of_parameters()[j_par]))
 
-            col_start = sum(self.rigid_body_dynamics.number_of_parameters()[:j_par])
-            col_end = col_start + self.rigid_body_dynamics.number_of_parameters()[j_par]
+            col_start = sum(self.rigid_body_dynamics.n_params[:j_par])
+            col_end = col_start + self.rigid_body_dynamics.n_params[j_par]
             obs_mat_j_jpar_rbd = obs_mat_j_rbd[:, col_start:col_end]
             print(f"obs_mat_j.shape: {obs_mat_j.shape}")
             print(f"obs_mat_j_jpar_rbd.shape: {obs_mat_j_jpar_rbd.shape}")
@@ -87,12 +89,13 @@ class RobotDynamics:
 
             for j_par in range(self.n_joints):
                 reg_j_rbd_par_j = self.rigid_body_dynamics.regressor_joint_parameters_for_joint(j, j_par)
+                #reg_j_rbd_par_j = getattr(self.rigid_body_dynamics, f"regressor_joint_{j}_{j_par}")
                 if j_par == j:
                     reg_j_jd = self.joint_dynamics.regressor()[j_par]
                 else:
                     reg_j_jd = sp.zeros(1, self.joint_dynamics.number_of_parameters()[j_par])
                 print(f"reg_j_rbd_par_j.shape[1]: {reg_j_rbd_par_j.shape[1]}")
-                print(f"self.rigid_body_dynamics.number_of_parameters()[j_par]: {self.rigid_body_dynamics.number_of_parameters()[j_par]}")
+                print(f"self.rigid_body_dynamics.number_of_parameters()[j_par]: {self.rigid_body_dynamics.n_params[j_par]}") # TODO remove print lines
 
                 reg_j = sp.Matrix.hstack(reg_j, reg_j_rbd_par_j, reg_j_jd)
             return reg_j
@@ -107,12 +110,7 @@ class RobotDynamics:
             robot dynamics."""
             reg = sp.zeros(self.n_joints, sum(self.number_of_parameters()))
             for j in range(self.n_joints):
-                reg_j = self.regressor_joint(j)
-                print(f"joint: {j}")
-                # print(f"reg_j: {reg_j}")
-                print(f"reg[j, :].shape: {reg[j, :].shape}")
-                print(f"reg_j.shape: {reg_j.shape}")
-                reg[j, :] = reg_j
+                reg[j, :] = self.regressor_joint(j)
 
             # for j in range(self.n_joints):
             #     cache_object(from_cache(f"robot_dynamics_regressor_joint_{j+1}"), lambda: reg[j, :])

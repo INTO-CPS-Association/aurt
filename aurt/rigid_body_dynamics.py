@@ -1,4 +1,3 @@
-from aurt.data_processing import ModifiedDH
 import numpy as np
 import sympy as sp
 from multiprocessing import Pool
@@ -8,6 +7,7 @@ import sys
 from aurt.file_system import cache_object, from_cache
 from aurt.dynamics_aux import sym_mat_to_subs, replace_first_moments, compute_regressor_row
 from aurt.num_sym_layers import spvector, spcross, spdot
+from aurt.data_processing import ModifiedDH
 
 
 class RigidBodyDynamics:
@@ -73,19 +73,47 @@ class RigidBodyDynamics:
         self.filepath_dynamics = from_cache('rigid_body_dynamics')
         self.__filepath_regressor_joint = from_cache('rigid_body_dynamics_regressor_joint_')
 
+        self.n_params = None
+        self.params = None
+        self.regressor_linear = None
+        self.idx_base_exist = None
+
     def filepath_regressor_joint(self, j):
         return from_cache(f'{self.__filepath_regressor_joint}{j}')
+
+    @property
+    def n_params(self):
+        if self._n_params is None:
+            self.number_of_parameters()
+        return self._n_params
+
+    @property
+    def params(self):
+        if self._params is None:
+            self.parameters()
+        return self._params
+
+    @n_params.setter
+    def n_params(self, val):
+        self._n_params = val
+
+    @params.setter
+    def params(self, val):
+        self._params = val
 
     def parameters(self):
         """
         Returns a list of 'n_joints + 1' elements with each element comprising a list of all rigid body parameters
         related to that corresponding link.
         """
-
-        return self.__base_parameters_information()[2][1:]
+        base_params_information = self.__base_parameters_information()
+        self.params = base_params_information[2][1:]
+        self.n_params = base_params_information[1][1:]
+        return self.params
 
     def number_of_parameters(self):
-        return self.__base_parameters_information()[1][1:]
+        self.n_params = self.__base_parameters_information()[1][1:]
+        return self.n_params
 
     def __parameters_linear(self):
         """
@@ -96,6 +124,9 @@ class RigidBodyDynamics:
                  self.__mX[j], self.__mY[j], self.__mZ[j], self.__m[j]] for j in range(self.n_joints + 1)]
 
     def __regressor_linear(self):
+        if self.regressor_linear is not None:
+            return self.regressor_linear
+
         dynamics_linearizable = self.dynamics()
 
         js = list(range(self.n_joints + 1))
@@ -105,7 +136,9 @@ class RigidBodyDynamics:
         with Pool() as p:
             reg = p.map(compute_regressor_row, data_per_task)
 
-        return sp.Matrix(reg)
+        res = sp.Matrix(reg)
+        self.regressor_linear = res
+        return res
 
     def __regressor_linear_exist(self):
         # In the eq. for joint j, the dynamic parameters of proximal links (joints < j, i.e. closer to the base) will never
@@ -214,6 +247,9 @@ class RigidBodyDynamics:
         #  indices to produce a 2D list of 'dummy_pos', 'dummy_vel', and 'dummy_acc'. This way, the regressor can be
         #  called with a 2D np.array(), which will drastically speed up the computation of the dummy observation matrix.
 
+        if self.idx_base_exist is not None:
+            return self.idx_base_exist
+
         # The set of dummy observations
         dummy_pos = np.array([-np.pi, -0.5 * np.pi, -0.25 * np.pi, 0.0, 0.25 * np.pi, 0.5 * np.pi, np.pi])
         dummy_vel = np.array([-1.0, -0.5, -0.25, 0.0, 0.25, 0.5, 1.0])
@@ -258,55 +294,25 @@ class RigidBodyDynamics:
         idx_base = np.where(idx_is_base)[0].tolist()
         assert len(idx_base) == rank_W[-1]
 
+        self.idx_base_exist = idx_base
         return idx_base
 
-    def evaluate_dynamics_basis(self, q_num, qd_num, qdd_num):
-        """
-        This method evaluates the rigid-body dynamics basis with instantiated DH parameters, gravity, and
-        TCP force/torque. The rigid-body parameters are set equal to ones.
-        """
-        assert q_num.shape == qd_num.shape == qdd_num.shape
+    # def observation_matrix_joint_parameters_for_joint(self, j, j_par, q_num, qd_num, qdd_num):
+    #     assert q_num.shape == qd_num.shape == qdd_num.shape
+    #     assert 0 <= j < self.n_joints
+    #     assert 0 <= j_par < self.n_joints
 
-        rbd_reg = self.regressor()
-        tauJ_basis = [sp.summation(rbd_reg[j, :]) for j in range(rbd_reg.shape[0])]
-        args_sym = self.q[1:] + self.qd[1:] + self.qdd[1:]
-        args_num = np.concatenate((q_num, qd_num, qdd_num))
-        tauJ_num = np.zeros((len(tauJ_basis), args_num.shape[1]))
-        sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
+    #     regressor_j_jpar = self.regressor_joint_parameters_for_joint(j, j_par)
+    #     args_sym = self.q[1:] + self.qd[1:] + self.qdd[1:]
+    #     nonzeros = [not elem.is_zero for elem in regressor_j_jpar]
+    #     sys.setrecursionlimit(int(1e6))
+    #     regressor_j_jpar_nonzeros_fcn = sp.lambdify(args_sym, regressor_j_jpar[:, nonzeros], 'numpy')
 
-        # ******************************************* PARALLEL COMPUTATION *********************************************
-        # js = list(range(self.n_joints + 1))
-        # tau_per_task = [tauJ_basis[j] for j in js]  # Allows one to control how many tasks by controlling how many js
-        # data_per_task = list(product(zip(tau_per_task, js), [self.__parameters_linear()]))
-        #
-        # with Pool() as p:
-        #     tauJ_basis = p.map(compute_dynamics, data_per_task)
-        # **************************************************************************************************************
-
-        for j in range(self.n_joints + 1):
-            print(f"Computing lamdified expression RobotDynamics.evaluate()[j={j}]...")
-            tauJ_j_function = sp.lambdify(args_sym, tauJ_basis[j], 'numpy')
-            print(f"Evaluating numerically RobotDynamics.evaluate()[j={j}]...")
-            tauJ_num[j, :] = tauJ_j_function(*args_num)
-        print(f"Successfully computed RobotDynamics.evaluate()...")
-        return tauJ_num
-
-    def observation_matrix_joint_parameters_for_joint(self, j, j_par, q_num, qd_num, qdd_num):
-        assert q_num.shape == qd_num.shape == qdd_num.shape
-        assert 0 <= j < self.n_joints
-        assert 0 <= j_par < self.n_joints
-
-        regressor_j_jpar = self.regressor_joint_parameters_for_joint(j, j_par)
-        args_sym = self.q[1:] + self.qd[1:] + self.qdd[1:]
-        nonzeros = [not elem.is_zero for elem in regressor_j_jpar]
-        sys.setrecursionlimit(int(1e6))
-        regressor_j_jpar_nonzeros_fcn = sp.lambdify(args_sym, regressor_j_jpar[:, nonzeros], 'numpy')
-
-        n_samples = q_num.shape[1]
-        observation_matrix_j = np.zeros((n_samples, regressor_j_jpar.shape[1]))
-        args_num = np.concatenate((q_num, qd_num, qdd_num))
-        observation_matrix_j[:, nonzeros] = regressor_j_jpar_nonzeros_fcn(*args_num).transpose().squeeze(axis=2)
-        return observation_matrix_j
+    #     n_samples = q_num.shape[1]
+    #     observation_matrix_j = np.zeros((n_samples, regressor_j_jpar.shape[1]))
+    #     args_num = np.concatenate((q_num, qd_num, qdd_num))
+    #     observation_matrix_j[:, nonzeros] = regressor_j_jpar_nonzeros_fcn(*args_num).transpose().squeeze(axis=2)
+    #     return observation_matrix_j
 
     def observation_matrix_joint(self, j, q_num, qd_num, qdd_num):
         assert q_num.shape == qd_num.shape == qdd_num.shape
@@ -323,16 +329,17 @@ class RigidBodyDynamics:
         observation_matrix_j[:, nonzeros] = regressor_j_nonzeros_fcn(*args_num).squeeze().transpose()
         return observation_matrix_j
 
-    def observation_matrix(self, q_num, qd_num, qdd_num):
-        assert q_num.shape == qd_num.shape == qdd_num.shape
+    # def observation_matrix(self, q_num, qd_num, qdd_num):
+    #     assert q_num.shape == qd_num.shape == qdd_num.shape
 
-        return np.vstack([self.observation_matrix_joint(j, q_num, qd_num, qdd_num) for j in range(self.n_joints)])
+    #     return np.vstack([self.observation_matrix_joint(j, q_num, qd_num, qdd_num) for j in range(self.n_joints)])
 
     def regressor_joint_parameters_for_joint(self, j, par_j):
         column_idx_start = sum(self.number_of_parameters()[:par_j])
         column_idx_end = column_idx_start + self.number_of_parameters()[par_j]
         print(f"column_idx_start: {column_idx_start},  column_idx_end: {column_idx_end}")
-        return self.regressor_joint(j)[:, column_idx_start:column_idx_end]
+        res = self.regressor_joint(j)[:, column_idx_start:column_idx_end]
+        return res
 
     def regressor_joint(self, j):
         return cache_object(self.filepath_regressor_joint(j+1), lambda: self.regressor()[j, :])
@@ -351,7 +358,7 @@ class RigidBodyDynamics:
 
             for j in range(self.n_joints):
                 cache_object(self.filepath_regressor_joint(j+1), lambda: regressor_linear_exist[j+1, parameter_indices_base])
-
+            
             return regressor_linear_exist[1:, parameter_indices_base]
 
         return cache_object(filepath_regressor, compute_regressor)

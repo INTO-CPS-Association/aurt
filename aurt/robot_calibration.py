@@ -30,7 +30,6 @@ class RobotCalibration:
         else:
             print("A wrong combination of arguments was provided.")
 
-        self.__WLS = LinearRegression(fit_intercept=False)
         self.f_dyn = 10  # Approx. cut-off frequency [Hz] of robot dynamics to be estimated
         self.parameters = None
         self.estimated_output = None

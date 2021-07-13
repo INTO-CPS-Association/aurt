@@ -26,7 +26,7 @@ def compile_rbd(args):
 
     api.compile_rbd(mdh_path, gravity, output_path)
 
-def compile_jointd(args):
+def compile_rd(args):
     l = setup_logger(args)
     l.info("Compiling robot dynamics model.")
 
@@ -34,13 +34,13 @@ def compile_jointd(args):
     # TODO: Do some error checking on the user provided parameters, convert their types, check that files exists
     #  (or that they will not be overwritten) etc.
 
-    model_rbd_path = ""
-    friction_load_model = ""
+    model_rbd_path = args.model_rbd
+    friction_load_model = args.friction_load_model
     friction_viscous_powers = args.friction_viscous_powers
     friction_hysteresis_model = args.friction_hysteresis_model
     output_path = args.out
 
-    api.compile_jointd(model_rbd_path, friction_load_model, friction_viscous_powers, friction_hysteresis_model, output_path)
+    api.compile_rd(model_rbd_path, friction_load_model, friction_viscous_powers, friction_hysteresis_model, output_path)
 
 def calibrate(args):
     l = setup_logger(args)
@@ -64,7 +64,7 @@ def main():
 
     args_parser.add_argument('--logger-config', type=open,
                              help="Logger configuration file.")
-    # args_parser.add_argument('command', choices=['compile-rbd', 'compile-jointd', 'calibrate', 'predict'])
+    # args_parser.add_argument('command', choices=['compile-rbd', 'compile-rd', 'calibrate', 'predict'])
     # args_parser.add_argument('-h', help="Show help.", action="store_true")
 
     subparsers = args_parser.add_subparsers(
@@ -89,35 +89,35 @@ def main():
 
     compile_rbd_parser.set_defaults(command=compile_rbd)
 
-    ## compile_jointd
-    compile_robotd_parser = subparsers.add_parser("compile-rd")
+    ## compile_rd
+    compile_rd_parser = subparsers.add_parser("compile-rd")
 
-    compile_robotd_parser.add_argument('--model-rbd', required=True,
+    compile_rd_parser.add_argument('--model-rbd', required=True,
                                        help="The rigid body dynamics model created with the compile-rbd command.")
 
-    compile_robotd_parser.add_argument('--friction-load-model', required=True,
+    compile_rd_parser.add_argument('--friction-load-model', required=True,
                                        choices=["none", "square", "absolute"],
                                        help="The friction load model.")
 
-    compile_robotd_parser.add_argument('--friction-viscous-powers', required=True, nargs="+",
+    compile_rd_parser.add_argument('--friction-viscous-powers', required=True, nargs="+",
                                        type=float,
                                        metavar='R',
                                        help="The viscous friction polynomial powers.")
 
-    compile_robotd_parser.add_argument('--friction-hysteresis-model', required=True,
+    compile_rd_parser.add_argument('--friction-hysteresis-model', required=True,
                                        choices=["sign", "maxwells"],
                                        help="The friction hysteresis model.")
 
-    compile_robotd_parser.add_argument('--out', required=True,
+    compile_rd_parser.add_argument('--out', required=True,
                                        help="Path of outputted robot dynamics model (pickle).")
 
-    compile_robotd_parser.set_defaults(command=compile_jointd)
+    compile_rd_parser.set_defaults(command=compile_rd)
 
     ## calibrate
     calibrate_parser = subparsers.add_parser("calibrate")
 
     calibrate_parser.add_argument('--model', required=True,
-                                    help="The robot dynamics model created with the compile-jointd command.")
+                                    help="The robot dynamics model created with the compile-rd command.")
 
     calibrate_parser.add_argument('--data', required=True,
                                     help="The measured data (csv).")
@@ -136,13 +136,6 @@ def main():
     args = args_parser.parse_args()
 
     args.command(args)
-    
-
-    # for testing, remove
-    # mdh_path = "resources/robot_parameters/two_link_model.csv"
-    # gravity = [0, -9.81, 0]
-    # output_path = "rigid-body_dynamics.pickle"
-
 
 
 if __name__ == '__main__':
