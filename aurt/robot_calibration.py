@@ -174,11 +174,14 @@ class RobotCalibration:
             assert n_samples_ds * self.robot_dynamics.n_joints == observation_matrix.shape[0]
             output_predicted_reshaped = np.reshape(estimated_output, (self.robot_dynamics.n_joints, n_samples_ds))
 
-            return robot_data_predict.time, output_predicted_reshaped  # TODO: CORRECT ERROR; 'time' does not correspond in length to 'output_predicted_reshaped'
+            return robot_data_predict.time[::self.downsampling_factor], output_predicted_reshaped  # TODO: CORRECT ERROR; 'time' does not correspond in length to 'output_predicted_reshaped'
 
         return cache_object(from_cache(filename_predicted_output), compute_prediction)
 
     def plot_calibration(self, parameters):
+
+        t, y = self.predict(self.robot_data_calibration, parameters, "delete_me")
+
         observation_matrix = self.__observation_matrix(self.robot_data_calibration)
         n_samples = observation_matrix.shape[0] // self.robot_dynamics.n_joints
         estimated_output_reshaped = np.reshape(observation_matrix @ parameters, (self.robot_dynamics.n_joints, n_samples))
@@ -192,8 +195,6 @@ class RobotCalibration:
         fig = plt.figure()
         gs = fig.add_gridspec(2, 1, hspace=0.03)
         axs = gs.subplots(sharex='col', sharey='all')
-        # plt.plot(t, estimated_output_reshaped.T)
-        # plt.plot(t, measured_output_reshaped.T)
 
         def darken_color(plot_color, darken_amount=0.35):
             """Computes rgb values to a darkened color"""
@@ -230,8 +231,49 @@ class RobotCalibration:
         # n_samples = self.robot_data_prediction.
         # t = np.linspace(0, self.robot_data_calibration.dt_nominal * n_samples, n_samples)
 
+        observation_matrix = self.__observation_matrix(self.robot_data_calibration)
+        n_samples = observation_matrix.shape[0] // self.robot_dynamics.n_joints
+        estimated_output_reshaped = np.reshape(observation_matrix @ parameters,
+                                               (self.robot_dynamics.n_joints, n_samples))
+        measured_output_reshaped = np.reshape(self.__measurement_vector(self.robot_data_calibration),
+                                              (self.robot_dynamics.n_joints, n_samples))
+        error = measured_output_reshaped - estimated_output_reshaped
+        t = np.linspace(0, self.robot_data_calibration.dt_nominal * self.downsampling_factor * n_samples, n_samples)
+
+        import matplotlib.colors
         import matplotlib.pyplot as plt
-        plt.plot(t, y.T)
+        fig = plt.figure()
+        gs = fig.add_gridspec(2, 1, hspace=0.03)
+        axs = gs.subplots(sharex='col', sharey='all')
+
+        def darken_color(plot_color, darken_amount=0.35):
+            """Computes rgb values to a darkened color"""
+            line_color_rgb = matplotlib.colors.ColorConverter.to_rgb(plot_color)
+            line_color_hsv = matplotlib.colors.rgb_to_hsv(line_color_rgb)
+            darkened_line_color_hsv = line_color_hsv - np.array([0, 0, darken_amount])
+            darkened_line_color_rgb = matplotlib.colors.hsv_to_rgb(darkened_line_color_hsv)
+            return darkened_line_color_rgb
+
+        # Current
+        for j in range(self.robot_dynamics.n_joints):
+            axs[0].plot(t, measured_output_reshaped[j, :], '-', color=plot_colors[j], linewidth=1.5,
+                        label=f'joint {j}, meas.')
+            axs[0].plot(t, estimated_output_reshaped[j, :], color=darken_color(plot_colors[j]), linewidth=1,
+                        label=f'joint {j}, pred.')
+        axs[0].set_xlim([t[0], t[-1]])
+        axs[0].set_title('Prediction')
+
+        # Error
+        for j in range(self.robot_dynamics.n_joints):
+            axs[1].plot(t, error[j].T, '-', color=plot_colors[j], linewidth=1.3, label=f'joint {j + 1}')
+        axs[1].set_xlim([t[0], t[-1]])
+
+        for ax in axs.flat:
+            ax.label_outer()
+        plt.setp(axs[0], ylabel='Current [A]')
+        plt.setp(axs[1], ylabel='Error [A]')
+        plt.setp(axs[1], xlabel='Time [s]')
+
         plt.show()
 
     def plot_estimation_and_prediction(self, filename_predict):
