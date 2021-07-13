@@ -15,7 +15,7 @@ class RobotData:
     This class contains sampled robot data related to an experiment.
     """
     def __init__(self, file_path, delimiter, desired_timeframe=None, interpolate_missing_samples=False):
-        self.n_joints = 6  # TODO: automatically determine number of joints from csv data
+        self.n_joints = None  # TODO: automatically determine number of joints from csv data
         self.fields = [
             f"timestamp",
             f"target_q_{JOINT_N}",
@@ -143,6 +143,8 @@ class RobotData:
         with safe_open(file_path, mode='r') as csvFile:
             csv_reader = csv.DictReader(csvFile, delimiter=delimiter)
 
+            self.n_joints = len([i for i in csv_reader.fieldnames if "target_q_" in i])
+
             self.time = np.empty(0)
             self.data = {}
             for f in self.fields:
@@ -167,6 +169,7 @@ class RobotData:
                             self.data[f_j_out] = np.append(self.data[f_j_out], float(row[f_j_in]))
                     else:
                         self.data[f] = np.append(self.data[f], float(row[f]))
+            
 
     def __trim_data(self, desired_timeframe):
         start_idx = 0
