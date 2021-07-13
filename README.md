@@ -17,16 +17,16 @@ which is a computationally demanding procedure.
 ## Compile Rigid Body Dynamics Model
 
 ```
-aurt compile-rbd --mdh mdh.csv --gravity 0.0 0.0 -9.81 --out rigid_body_dynamics.pickle
+aurt compile-rbd --mdh mdh.csv --gravity 0.0 0.0 -9.81 --out rigid_body_dynamics
 ```
-Reads the Modified Denavit-Hartenberg (MDH) parameters in file `mdh.csv` and outputs rigid-body dynamics model to file `rigid_body_dynamics.pickle`.
+Reads the Modified Denavit-Hartenberg (MDH) parameters in file `mdh.csv` and outputs rigid-body dynamics model to file `rigid_body_dynamics`.
 The gravity vector determines the orientation of the robot base for which the parameters will be calibrated.
 The generated model does not include the joint dynamics.
 
 ## Compile Robot Dynamics Model
 
 ```
-aurt compile-rd --model-rbd rigid_body_dynamics.pickle --friction-load-model square --friction-viscous-powers 2 1 4 --out robot_dynamics.pickle
+aurt compile-rd --model-rbd rigid_body_dynamics --friction-load-model square --friction-viscous-powers 2 1 4 --out robot_dynamics
 ```
 
 Reads the rigid-body dynamics model created with the `compile-rbd` command, and generates the robot dynamics model, 
@@ -36,13 +36,13 @@ The friction configuration options are:
 - `--friction-load-model TYPE` where `TYPE in {none, square, absolute}` and:
   - `TYPE=none` means TODO
   - `TYPE=square` means TODO
-  - `TYPE=absolute` means TODO 
+  - `TYPE=absolute` means TODO
 - `--friction-viscous-powers POWERS` where `POWERS` has the format `P1 P2 ... PN`, and `PN` is a positive real number representing the `N`-th power of the polynomial.
   
 ## Calibration
 
 ```
-aurt calibrate --model robot_dynamics.pickle --data measured_data.csv --out-params calibrated_parameters.csv
+aurt calibrate --model robot_dynamics --data measured_data.csv --out-params calibrated_parameters.csv
 ```
 
 Reads the model produced in [Compile Robot Dynamics Model](#compile-joint-dynamics-model), the measured data in `measured_data.csv`, 
@@ -57,7 +57,7 @@ The measured data should contain the following fields:
 ## Predict
 
 ```
-aurt predict --model robot_dynamics.pickle --data measured_data.csv --params calibrated_parameters.csv --predict predicted_output.csv
+aurt predict --model robot_dynamics --data measured_data.csv --params calibrated_parameters.csv --predict predicted_output.csv
 ```
 
 Reads the model produced in [Compile Joint Dynamics Model](#compile-joint-dynamics-model), 
