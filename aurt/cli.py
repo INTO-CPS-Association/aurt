@@ -2,8 +2,9 @@ import argparse
 from logging.config import fileConfig
 import logging
 import numpy as np
+import os.path
 import aurt.api as api
-
+from aurt.file_system import from_cache
 
 def setup_logger(args):
     if args.logger_config is not None:
@@ -17,28 +18,41 @@ def compile_rbd(args):
     l = setup_logger(args)
     l.info("Compiling rigid body dynamics model.")
     l.debug(f"Gravity vector: {args.gravity}")
-    # TODO: Do some error checking on the user provided parameters, convert their types, check that files exists
-    #  (or that they will not be overwritten) etc.
 
     mdh_path = args.mdh
     gravity = np.array(args.gravity)
     output_path = args.out
+
+    if mdh_path[-4:] != ".csv":
+        raise Exception(f"The provided mdh file {mdh_path} is not a CSV file. AURT only supports CSV files. Please provide a CSV file.")
+    if not os.path.isfile(mdh_path):
+        raise Exception(f"The mdh file {mdh_path} could not be located. Please specify a valid filename (csv).")
+
+    filename = from_cache(output_path + ".pickle")
+    if os.path.isfile(filename):
+        l.warning(f"The rigid body dynamics file {filename} already exists, and its content will be overwritten.")
 
     api.compile_rbd(mdh_path, gravity, output_path)
 
 def compile_rd(args):
     l = setup_logger(args)
     l.info("Compiling robot dynamics model.")
-
     l.debug(f"Viscous friction powers: {args.friction_viscous_powers}.")
-    # TODO: Do some error checking on the user provided parameters, convert their types, check that files exists
-    #  (or that they will not be overwritten) etc.
 
     model_rbd_path = args.model_rbd
     friction_load_model = args.friction_load_model
     friction_viscous_powers = args.friction_viscous_powers
-    friction_hysteresis_model = args.friction_hysteresis_model
+    #friction_hysteresis_model = args.friction_hysteresis_model # TODO: Do we need this?
+    friction_hysteresis_model = None # TODO when implemented, set to args from user
     output_path = args.out
+
+    filename = from_cache(model_rbd_path + ".pickle")
+    if not os.path.isfile(filename):
+        raise Exception(f"The rigid body dynamics file {filename} could not be located. Please specify a valid filename.")
+
+    filename = from_cache(output_path + ".pickle")
+    if os.path.isfile(filename):
+        l.warning(f"The robot dynamics filename {output_path} already exists, and its content will be overwritten.")
 
     api.compile_rd(model_rbd_path, friction_load_model, friction_viscous_powers, friction_hysteresis_model, output_path)
 
@@ -46,13 +60,24 @@ def calibrate(args):
     l = setup_logger(args)
     l.info("Calibrating robot dynamics model.")
 
-    # TODO: Do some error checking on the user provided parameters, convert their types, check that files exists
-    #  (or that they will not be overwritten) etc.
-
     model_path = args.model
     data_path = args.data
     params_path = args.out_params
     calbration_model_path = args.out_calibration_model
+
+    filename = from_cache(model_path + ".pickle")
+    if not os.path.isfile(filename):
+        raise Exception(f"The robot dynamics file {filename} could not be located. Please specify a valid filename.")
+
+    if not os.path.isfile(data_path):
+        raise Exception(f"The data file {data_path} could not be located. Please specify a valid filename.")
+
+    if os.path.isfile(params_path):
+        l.warning(f"The parameters filename {params_path} already exists, and its content will be overwritten.")
+
+    filename = from_cache(calbration_model_path + ".pickle")
+    if os.path.isfile(filename):
+        l.warning(f"The calibration model filename {calbration_model_path} already exists, and its content will be overwritten.")
     
     api.calibrate(model_path, data_path, params_path, calbration_model_path)
 
@@ -61,12 +86,20 @@ def predict(args):
     l = setup_logger(args)
     l.info("Predicting robot current.")
 
-    # TODO: Do some error checking on the user provided parameters, convert their types, check that files exists
-    #  (or that they will not be overwritten) etc.
-
     model_path = args.model
     data_path = args.data
     output_path = args.prediction
+
+    filename = from_cache(model_path + ".pickle")
+    if not os.path.isfile(filename):
+        raise Exception(f"The robot calibration file {filename} could not be located. Please specify a valid filename.")
+    
+    if not os.path.isfile(data_path):
+        raise Exception(f"The data file {data_path} could not be located. Please specify a valid filename.")
+
+    filename = from_cache(output_path)
+    if os.path.isfile(filename):
+        l.warning(f"The output prediction file {filename} already exists, and its content will be overwritten.")
     
     api.predict(model_path, data_path, output_path)
 
@@ -118,9 +151,9 @@ def main():
                                        metavar='R',
                                        help="The viscous friction polynomial powers.")
 
-    compile_rd_parser.add_argument('--friction-hysteresis-model', required=True,
-                                       choices=["sign", "maxwells"],
-                                       help="The friction hysteresis model.")
+    # compile_rd_parser.add_argument('--friction-hysteresis-model', required=True,
+    #                                    choices=["sign", "maxwells"],
+    #                                    help="The friction hysteresis model.")
 
     compile_rd_parser.add_argument('--out', required=True,
                                        help="Path of outputted robot dynamics model (pickle).")

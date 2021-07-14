@@ -181,7 +181,7 @@ class RobotCalibration:
 
             return robot_data_predict.time, output_predicted_reshaped  # TODO: CORRECT ERROR; 'time' does not correspond in length to 'output_predicted_reshaped'
 
-        return cache_object(from_cache(filename_predicted_output), compute_prediction)
+        return cache_csv(from_cache(filename_predicted_output), compute_prediction)
 
     def plot_calibration(self, parameters):
         observation_matrix = self.__observation_matrix(self.robot_data_calibration)
