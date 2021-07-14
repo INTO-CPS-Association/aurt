@@ -42,14 +42,13 @@ The friction configuration options are:
 ## Calibration
 
 ```
-aurt calibrate --model robot_dynamics --data measured_data.csv --out-params calibrated_parameters.csv
+aurt calibrate --model robot_dynamics --data measured_data.csv --out-params calibrated_parameters.csv --out-calibration-model robot_calibration
 ```
 
-Reads the model produced in [Compile Robot Dynamics Model](#compile-joint-dynamics-model), the measured data in `measured_data.csv`, 
-and writes the calibrated base parameter values to `calibrated_parameters.csv`.
+Reads the model produced in [Compile Robot Dynamics Model](#compile-joint-dynamics-model), the measured data in `measured_data.csv`, writes the calibrated base parameter values to `calibrated_parameters.csv`, and writes the calibrated model to `robot_calibration`.
 
 The measured data should contain the following fields:
-- `time` of type float, representing the number of seconds passed from a given reference point.
+- `timestamp` of type float, representing the number of seconds passed from a given reference point.
 - `target_qd_N` of type float, representing the `N`th joint target angular velocity, as computed by the robot controller, where `N` is an integer in `{0, 1, ...}`.
 - `actual_q_N` of type float, representing the `N`th joint angle, as measured by the robot controller, where `N` is an integer in `{0, 1, ...}`.
 - `actual_current_N` of type float, representing the `N`th joint current, as measured by the robot controller, where `N` is an integer in `{0, 1, ...}`.
@@ -57,15 +56,15 @@ The measured data should contain the following fields:
 ## Predict
 
 ```
-aurt predict --model robot_dynamics --data measured_data.csv --params calibrated_parameters.csv --predict predicted_output.csv
+aurt predict --model robot_calibration --data measured_data.csv --prediction predicted_output.csv
 ```
 
-Reads the model produced in [Compile Joint Dynamics Model](#compile-joint-dynamics-model), 
+Reads the model produced in [Calibration](#calibration), 
 the measured data in `measured_data.csv`, 
-and the base parameter values produced in [Calibration](#calibration), and writes the predicted output to `predicted_output.csv`.
+and writes the predicted output to `predicted_output.csv`.
 
 The prediction fields are:
-- `time` of type float, referring to the time of the measured data, as in [Calibration](#calibration).
+- `timestamp` of type float, referring to the time of the measured data, as in [Calibration](#calibration).
 - `predicted_current_N` of type float, representing the `N`th joint current, as predicted by the robot model, where `N` is an integer in `{0, 1, ...}`.
 
 # Contributing
