@@ -185,7 +185,7 @@ class RobotCalibration:
 
     def plot_calibration(self, parameters):
 
-        t, y = self.predict(self.robot_data_calibration, parameters, "delete_me")
+        t = self.predict(self.robot_data_calibration, parameters, "delete_me")
 
         observation_matrix = self.__observation_matrix(self.robot_data_calibration)
         n_samples = observation_matrix.shape[0] // self.robot_dynamics.n_joints
@@ -212,14 +212,16 @@ class RobotCalibration:
         # Current
         for j in range(self.robot_dynamics.n_joints):
             axs[0].plot(t, measured_output_reshaped[j, :], '-', color=plot_colors[j], linewidth=1.5,
-                           label=f'joint {j}, meas.')
-            axs[0].plot(t, estimated_output_reshaped[j, :], color=darken_color(plot_colors[j]), linewidth=1, label=f'joint {j}, pred.')
+                           label=f'joint {j+1}, meas.')
+            axs[0].plot(t, estimated_output_reshaped[j, :], color=darken_color(plot_colors[j]), linewidth=1, label=f'joint {j+1}, pred.')
+            axs[0].legend(loc="best")
         axs[0].set_xlim([t[0], t[-1]])
         axs[0].set_title('Calibration')
 
         # Error
         for j in range(self.robot_dynamics.n_joints):
             axs[1].plot(t, error[j].T, '-', color=plot_colors[j], linewidth=1.3, label=f'joint {j + 1}')
+            plt.legend(loc="upper left")
         axs[1].set_xlim([t[0], t[-1]])
 
         for ax in axs.flat:
@@ -227,6 +229,7 @@ class RobotCalibration:
         plt.setp(axs[0], ylabel='Current [A]')
         plt.setp(axs[1], ylabel='Error [A]')
         plt.setp(axs[1], xlabel='Time [s]')
+        
 
         plt.show()
 
