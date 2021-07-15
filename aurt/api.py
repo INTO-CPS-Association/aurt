@@ -1,5 +1,4 @@
 import pickle
-import numpy as np
 
 from aurt.rigid_body_dynamics import RigidBodyDynamics
 from aurt.robot_dynamics import RobotDynamics
@@ -11,7 +10,7 @@ from aurt.file_system import from_cache
 
 def compile_rbd(mdh_path, gravity, output_path):
     mdh = convert_file_to_mdh(mdh_path)
-    print(f"mdh: {mdh}") # TODO remove
+    print(f"mdh: {mdh}")
     rbd = RigidBodyDynamics(mdh, gravity)
     rbd.regressor()
 
