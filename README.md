@@ -39,7 +39,7 @@ The friction configuration options are:
   - `TYPE=absolute` means TODO
 - `--friction-viscous-powers POWERS` where `POWERS` has the format `P1 P2 ... PN`, and `PN` is a positive real number representing the `N`-th power of the polynomial.
   
-## Calibration
+## Calibrate
 
 ```
 aurt calibrate --model robot_dynamics --data measured_data.csv --out-params calibrated_parameters.csv --out-calibration-model robot_calibration
@@ -59,12 +59,12 @@ The measured data should contain the following fields:
 aurt predict --model robot_calibration --data measured_data.csv --prediction predicted_output.csv
 ```
 
-Reads the model produced in [Calibration](#calibration), 
+Reads the model produced by the `calibrate` command, 
 the measured data in `measured_data.csv`, 
 and writes the predicted output to `predicted_output.csv`.
 
 The prediction fields are:
-- `timestamp` of type float, referring to the time of the measured data, as in [Calibration](#calibration).
+- `timestamp` of type float, referring to the time of the measured data, as in [Calibrate](#predict).
 - `predicted_current_N` of type float, representing the `N`th joint current, as predicted by the robot model, where `N` is an integer in `{0, 1, ...}`.
 
 # Contributing
