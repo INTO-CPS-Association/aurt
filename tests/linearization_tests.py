@@ -91,6 +91,28 @@ class LinearizationTests(TimedTest):
         # t, y_pred = my_robot_calibration.predict(my_robot_validation_data, filename_parameters, filename_predicted_output)
         # my_robot_calibration.plot_prediction(filename_predicted_output)
 
+    def test_calibration_ur5e_45deg_base(self):
+        mdh_filepath = "C:/sourcecontrol/github/aurt/resources/robot_parameters/ur5e_params.csv"
+        mdh = convert_file_to_mdh(mdh_filepath)
+        my_robot_dynamics = RobotDynamics(mdh)
+
+        robot_data_path = os.path.join(project_root(), 'resources', 'Dataset', 'ur5e_all_joints_same_time', 'calibration_motion.csv')
+        filename_parameters = 'parameters'
+        my_robot_calibration_data = RobotData(robot_data_path,
+                                              delimiter=' ',
+                                              interpolate_missing_samples=True)
+        my_robot_calibration = RobotCalibration(my_robot_dynamics, my_robot_calibration_data)
+        parameters = my_robot_calibration.calibrate(filename_parameters)
+        my_robot_calibration.plot_calibration(parameters)
+
+        filename_predicted_output = 'predicted_output'
+        # my_robot_validation_data = RobotData(robot_data_path,
+        #                                      delimiter=' ',
+        #                                      desired_timeframe=(t_est_val_separation, np.inf),
+        #                                      interpolate_missing_samples=True)
+        # t, y_pred = my_robot_calibration.predict(my_robot_validation_data, filename_parameters, filename_predicted_output)
+        # my_robot_calibration.plot_prediction(filename_predicted_output)
+
     def test_calibrate_parameters(self):
         t_est_val_separation = 63.0  # timely separation of estimation and validation datasets
         # TODO: make it possible to specify the relative portion of the dataset you want, e.g. 0.5 for half of the

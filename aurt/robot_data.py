@@ -80,7 +80,7 @@ class RobotData:
         n_samples_to_add = sum(samples_missing)
 
         if any(sample_is_missing):
-            print(f"Warning: {n_samples_to_add} samples are missing in this dataset.")
+            print(f"Warning: {n_samples_to_add}/{len_data_before_interpolation+n_samples_to_add} ({round(n_samples_to_add/(len_data_before_interpolation+n_samples_to_add), 2)} %) samples are missing in this dataset.")
 
         if interpolate_missing_samples:
             assert "interpolated" not in self.data
@@ -169,7 +169,6 @@ class RobotData:
                             self.data[f_j_out] = np.append(self.data[f_j_out], float(row[f_j_in]))
                     else:
                         self.data[f] = np.append(self.data[f], float(row[f]))
-            
 
     def __trim_data(self, desired_timeframe):
         start_idx = 0
@@ -190,3 +189,8 @@ class RobotData:
     def __ensure_data_consistent(self):
         for f in self.data.keys():
             assert len(self.data[f]) == len(self.time), f"Field {f} in data is inconsistent. Expected {len(self.time)} samples. Got {len(self.data[f])} instead."
+
+    def plot_missing_samples(self):
+        import matplotlib.pyplot as plt
+        plt.plot(self.data["interpolated"])
+        plt.show()

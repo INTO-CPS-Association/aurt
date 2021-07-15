@@ -461,7 +461,6 @@ class RigidBodyDynamics:
             assert w[j+1].shape == (3, 1)
             wd[j+1] = spdot(R_im1_i[j+1], wd[j]) + spcross(spdot(R_im1_i[j+1], w[j]), self.qd[j+1] * Z) + self.qdd[j+1] * Z
             assert wd[j+1].shape == (3, 1)
-            assert vd[j].shape == (3, 1)
             vd[j+1] = spdot(R_im1_i[j+1], spcross(wd[j], P[j+1]) + spcross(w[j], spcross(w[j], P[j+1])) + vd[j])
             assert vd[j+1].shape == (3, 1)
             vcd[j+1] = spcross(wd[j+1], PC[j+1]) + spcross(w[j+1], spcross(w[j+1], PC[j+1])) + vd[j+1]
