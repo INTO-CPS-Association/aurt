@@ -194,3 +194,38 @@ class RobotData:
         import matplotlib.pyplot as plt
         plt.plot(self.data["interpolated"])
         plt.show()
+
+    def plot_target_trajectory(self):
+        q_m = self.data[f"actual_q_"]
+        qd_m = np.gradient(q_m, self.dt_nominal, edge_order=2, axis=1)
+        qdd_m = (q_m[:, 2:] - 2 * q_m[:, 1:-1] + q_m[:, :-2]) / (self.dt_nominal ** 2)  # two fewer indices than q and qd
+
+        t = self.data["timestamp"]
+        qd_m = qd_m[:, 1:-2]
+        qdd_m = qdd_m[:, -1:-1], np.append(qdd_m, None, axis=1)
+
+        import matplotlib.pyplot as plt
+
+        _, axs = plt.subplots(3, 1, sharex='all')
+        axs[0].set(ylabel='Position [rad]')
+        axs[1].set(ylabel='Velocity [rad/s]')
+        axs[2].set(ylabel='Acceleration [rad/s^2]')
+
+        for j in range(self.n_joints):
+            # Actual
+            axs[0].plot(t, q_m[j, :], ':', color=plot_colors[j], label=f"actual_{j}")
+            axs[1].plot(t, qd_m[j, :], ':', color=plot_colors[j], label=f"actual_{j}")
+            axs[2].plot(t, qdd_m[j, :], ':', color=plot_colors[j], label=f"actual_{j}")
+            # Target
+            axs[0].plot(t, self.data[f"target_q_{j+1}"], color=plot_colors[j], label=f"target_{j}")
+            axs[1].plot(t, self.data[f"target_qd_{j+1}"], color=plot_colors[j], label=f"target_{j}")
+            axs[2].plot(t, self.data[f"target_qdd_{j+1}"], color=plot_colors[j], label=f"target_{j}")
+
+        for ax in axs:
+            ax.legend()
+
+
+        for j in range(self.n_joints):
+            plt.plot(self.data["timestamp"], self.data[f"target_q_{j+1}"])
+
+        plt.show()
