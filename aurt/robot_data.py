@@ -80,7 +80,7 @@ class RobotData:
         n_samples_to_add = sum(samples_missing)
 
         if any(sample_is_missing):
-            print(f"Warning: {n_samples_to_add}/{len_data_before_interpolation+n_samples_to_add} ({round(n_samples_to_add/(len_data_before_interpolation+n_samples_to_add), 2)} %) samples are missing in this dataset.")
+            print(f"Warning: {n_samples_to_add}/{len_data_before_interpolation+n_samples_to_add} ({round(n_samples_to_add/(len_data_before_interpolation+n_samples_to_add) * 100, 2)} %) samples are missing in this dataset.")
 
         if interpolate_missing_samples:
             assert "interpolated" not in self.data
