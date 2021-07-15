@@ -58,9 +58,6 @@ class RobotDynamics:
             col_start = sum(self.rigid_body_dynamics.n_params[:j_par])
             col_end = col_start + self.rigid_body_dynamics.n_params[j_par]
             obs_mat_j_jpar_rbd = obs_mat_j_rbd[:, col_start:col_end]
-            print(f"obs_mat_j.shape: {obs_mat_j.shape}")
-            print(f"obs_mat_j_jpar_rbd.shape: {obs_mat_j_jpar_rbd.shape}")
-            print(f"obs_mat_j_jd.shape: {obs_mat_j_jd.shape}")
             obs_mat_j = np.hstack((obs_mat_j, obs_mat_j_jpar_rbd, obs_mat_j_jd))
         return obs_mat_j
 

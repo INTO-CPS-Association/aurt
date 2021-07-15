@@ -17,9 +17,6 @@ class RobotCalibration:
         with open(filename, 'rb') as f:
             self.robot_dynamics: RobotDynamics = pickle.load(f)
 
-        print(f"RBD NPARAMS : {self.robot_dynamics.rigid_body_dynamics.n_params}")
-        print(f"JOINT N PARAMS: {self.robot_dynamics.joint_dynamics.number_of_parameters()}")
-
         if relative_separation_of_calibration_and_prediction is None and robot_data_predict is None:
             self.robot_data_calibration = robot_data
             self.robot_data_prediction = None
@@ -53,7 +50,7 @@ class RobotCalibration:
             i_pf_ds = RobotCalibration.__downsample(i_pf, self.downsampling_factor)
             return i_pf_ds.flatten(order='F')  # y = [y1, ..., yi, ..., yN],  yi = [yi_{1}, ..., yi_{n_samples}]
 
-        return cache_numpy(from_cache('measurement_vector'), compute_measurement_vector)
+        return compute_measurement_vector()
 
     def __observation_matrix(self, robot_data, start_index=1, end_index=-1):
         def compute_observation_matrix():
@@ -101,7 +98,6 @@ class RobotCalibration:
             # *************************************************************************************************************
 
             n_samples_ds = self.__measurement_vector(robot_data, start_index=start_index, end_index=end_index).shape[0] // self.robot_dynamics.n_joints  # No. of samples in downsampled data
-            print(f"n_samples_ds: {n_samples_ds}")
             observation_matrix = np.zeros((self.robot_dynamics.n_joints * n_samples_ds, sum(self.robot_dynamics.number_of_parameters())))  # Initialization
             for j in range(self.robot_dynamics.n_joints):
                 # Obtain the rows of the observation matrix related to joint j
@@ -109,12 +105,10 @@ class RobotCalibration:
 
                 # Parallel filter and decimate/downsample the rows of the observation matrix related to joint j.
                 obs_mat_j_ds = RobotCalibration.__downsample(RobotCalibration.__parallel_filter(obs_mat_j, robot_data.dt_nominal, self.f_dyn), self.downsampling_factor)
-                print(f"observation_matrix[j*n_samples_ds:(j+1)*n_samples_ds, :].shape = {observation_matrix[j*n_samples_ds:(j+1)*n_samples_ds, :].shape}")
-                print(f"obs_mat_j_ds.shape: {obs_mat_j_ds.shape}")
                 observation_matrix[j*n_samples_ds:(j+1)*n_samples_ds, :] = obs_mat_j_ds
             return observation_matrix
 
-        return cache_numpy(from_cache('observation_matrix'), compute_observation_matrix)
+        return compute_observation_matrix()
 
     def calibrate(self, filename_parameters):#, calibration_method='wls', weighting='variance'):
         # TODO: make it possible to specify the relative portion of the dataset you want, e.g. 0.5 for half of the
@@ -130,7 +124,7 @@ class RobotCalibration:
         measurement_vector = self.__measurement_vector(self.robot_data_calibration,
                                                        start_index=self.robot_data_calibration.non_static_start_index,
                                                        end_index=self.robot_data_calibration.non_static_end_index) 
-        print(f"observation_matrix.shape[1]: {observation_matrix.shape[1]}")
+
         # sklearn fit
         OLS = LinearRegression(fit_intercept=False)
         OLS.fit(observation_matrix, measurement_vector)
@@ -184,8 +178,6 @@ class RobotCalibration:
         return cache_csv(from_cache(filename_predicted_output), compute_prediction)
 
     def plot_calibration(self, parameters):
-
-        t = self.predict(self.robot_data_calibration, parameters, "delete_me")
 
         observation_matrix = self.__observation_matrix(self.robot_data_calibration)
         n_samples = observation_matrix.shape[0] // self.robot_dynamics.n_joints
@@ -384,11 +376,19 @@ class RobotCalibration:
         qdd_tf = (q_tf[:, 2:] - 2 * q_tf[:, 1:-1] + q_tf[:, :-2]) / (dt ** 2)  # two fewer indices than q and qd
 
         # Truncate data
+        print(f"idx_start: {idx_start}")
+        print(f"idx_end: {idx_end}")
+        print(f"q_tf.shape: {q_tf.shape}")
+        print(f"qd_tf.shape: {qd_tf.shape}")
+        print(f"qdd_tf.shape: {qdd_tf.shape}")
         q_tf = q_tf[:, idx_start:idx_end]
         qd_tf = qd_tf[:, idx_start:idx_end]
         qdd_tf = qdd_tf[:, idx_start - 1:idx_end - 1]  # shifted due to a "lost" index in the start of the dataset
+        print(f"q_tf.shape: {q_tf.shape}")
+        print(f"qd_tf.shape: {qd_tf.shape}")
+        print(f"qdd_tf.shape: {qdd_tf.shape}")
 
-        assert q_tf.shape == qd_tf.shape == qdd_tf.shape
+        assert q_tf.shape == qd_tf.shape == qdd_tf.shape, f"q_tf.shape == {q_tf.shape}, qd_tf.shape == {qd_tf.shape}, qdd_tf.shape == {qdd_tf.shape}"
 
         return q_tf, qd_tf, qdd_tf
 
