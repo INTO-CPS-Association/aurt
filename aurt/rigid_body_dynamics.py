@@ -70,8 +70,8 @@ class RigidBodyDynamics:
         self.__n_tcp_num = tcp_force_torque[1]
 
         # Filepaths
-        self.filepath_dynamics = from_cache('rigid_body_dynamics')
-        self.__filepath_regressor_joint = from_cache('rigid_body_dynamics_regressor_joint_')
+        #self.filepath_dynamics = from_cache('rigid_body_dynamics')
+        #self.__filepath_regressor_joint = from_cache('rigid_body_dynamics_regressor_joint_')
 
         self.n_params = None
         self.params = None
@@ -79,7 +79,7 @@ class RigidBodyDynamics:
         self.idx_base_exist = None
 
     def filepath_regressor_joint(self, j):
-        return from_cache(f'{self.__filepath_regressor_joint}{j}')
+        return from_cache(f'rigid_body_dynamics_regressor_joint_{j}')
 
     @property
     def n_params(self):
@@ -337,7 +337,6 @@ class RigidBodyDynamics:
     def regressor_joint_parameters_for_joint(self, j, par_j):
         column_idx_start = sum(self.number_of_parameters()[:par_j])
         column_idx_end = column_idx_start + self.number_of_parameters()[par_j]
-        print(f"column_idx_start: {column_idx_start},  column_idx_end: {column_idx_end}")
         res = self.regressor_joint(j)[:, column_idx_start:column_idx_end]
         return res
 
@@ -374,7 +373,7 @@ class RigidBodyDynamics:
                 rbd_lin = p.map(replace_first_moments, data_per_task)
             return rbd_lin
 
-        return cache_object(self.filepath_dynamics, compute_dynamics_and_replace_first_moments)
+        return cache_object(from_cache('rigid_body_dynamics'), compute_dynamics_and_replace_first_moments)
 
     def __get_P(self, a, d, alpha):
         """

@@ -34,6 +34,7 @@ def compile_rbd(args):
 
     api.compile_rbd(mdh_path, gravity, output_path)
 
+
 def compile_rd(args):
     l = setup_logger(args)
     l.info("Compiling robot dynamics model.")
@@ -55,6 +56,7 @@ def compile_rd(args):
         l.warning(f"The robot dynamics filename {output_path} already exists, and its content will be overwritten.")
 
     api.compile_rd(model_rbd_path, friction_load_model, friction_viscous_powers, friction_hysteresis_model, output_path)
+
 
 def calibrate(args):
     l = setup_logger(args)

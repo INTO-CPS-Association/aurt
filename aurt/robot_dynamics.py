@@ -24,11 +24,8 @@ class RobotDynamics:
                                             hysteresis_model=hysteresis_model,
                                             viscous_powers=viscous_friction_powers)
 
-        self.filepath_regressor = from_cache('robot_dynamics_regressor')
-        self.__filepath_regressor_joint = from_cache('robot_dynamics_regressor_joint_')
-
     def filepath_regressor_joint(self, j):
-        return from_cache(f'{self.__filepath_regressor_joint}{j}')
+        return from_cache(f'robot_dynamics_regressor_joint_{j}')
 
     def parameters(self):
         """
@@ -86,13 +83,10 @@ class RobotDynamics:
 
             for j_par in range(self.n_joints):
                 reg_j_rbd_par_j = self.rigid_body_dynamics.regressor_joint_parameters_for_joint(j, j_par)
-                #reg_j_rbd_par_j = getattr(self.rigid_body_dynamics, f"regressor_joint_{j}_{j_par}")
                 if j_par == j:
                     reg_j_jd = self.joint_dynamics.regressor()[j_par]
                 else:
                     reg_j_jd = sp.zeros(1, self.joint_dynamics.number_of_parameters()[j_par])
-                print(f"reg_j_rbd_par_j.shape[1]: {reg_j_rbd_par_j.shape[1]}")
-                print(f"self.rigid_body_dynamics.number_of_parameters()[j_par]: {self.rigid_body_dynamics.n_params[j_par]}") # TODO remove print lines
 
                 reg_j = sp.Matrix.hstack(reg_j, reg_j_rbd_par_j, reg_j_jd)
             return reg_j
