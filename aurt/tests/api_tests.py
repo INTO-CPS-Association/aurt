@@ -54,7 +54,6 @@ class APITests(unittest.TestCase):
         model_rbd = "rbd_twolink"
         friction_load_model = "square"
         friction_viscous_powers = [2,1,4]
-        friction_hysteresis_model = "sign"
         output_file = "rd_twolink"
 
         # Create RigidBodyDynamics Model
@@ -63,7 +62,7 @@ class APITests(unittest.TestCase):
         rbd_output_path = "rbd_twolink"
         api.compile_rbd(mdh_path, gravity, rbd_output_path)
 
-        api.compile_rd(model_rbd, friction_load_model, friction_viscous_powers, friction_hysteresis_model, output_file)
+        api.compile_rd(model_rbd, friction_load_model, friction_viscous_powers, output_file)
 
         filename = from_cache(output_file + ".pickle")
         with open(filename, 'rb') as f:
@@ -75,6 +74,14 @@ class APITests(unittest.TestCase):
         self.assertEqual(rd_twolink_estimate.qdd,rd_twolink_true.qdd)
         self.assertEqual(rd_twolink_estimate.tauJ,rd_twolink_true.tauJ)
 
+
+    def test_calibrate(self):
+        model_rd = "rd_twolink"
+        data_file = "aurt/tests/resources/twolink_data.csv"
+        params_out = "twolink_params.csv"
+        calibration_out = "rc_twolink"
+
+        
 
 
 if __name__ == '__main__':
