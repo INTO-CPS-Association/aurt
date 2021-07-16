@@ -63,40 +63,6 @@ class RobotCalibration:
                                                                                                  start_index,
                                                                                                  end_index)
 
-            # *************************************************** PLOTS ***************************************************
-            # qd_m = np.gradient(q_m, dt, edge_order=2, axis=1)
-            # qdd_m = (q_m[:, 2:] - 2 * q_m[:, 1:-1] + q_m[:, :-2]) / (dt ** 2)  # two fewer indices than q and qd
-            #
-            # t = t[idx_start:idx_end]
-            # qd_m = qd_m[:, idx_start:idx_end]
-            # qdd_m = qdd_m[:, idx_start - 1:idx_end - 1]
-            #
-            # _, axs = plt.subplots(3, 1, sharex='all')
-            # axs[0].set(ylabel='Position [rad]')
-            # axs[1].set(ylabel='Velocity [rad/s]')
-            # axs[2].set(ylabel='Acceleration [rad/s^2]')
-            #
-            # for j in range(Njoints):
-            #     # Actual
-            #     axs[0].plot(t, q_m[j,:], ':', color=plot_colors[j], label=f"actual_{j}")
-            #     axs[1].plot(t, qd_m[j,:], ':', color=plot_colors[j], label=f"actual_{j}")
-            #     axs[2].plot(t, qdd_m[j,:], ':', color=plot_colors[j], label=f"actual_{j}")
-            #     # Filtered
-            #     axs[0].plot(t, q_tf[j,:], '--', color=plot_colors[j], label=f"filtered_{j}")
-            #     axs[1].plot(t, qd_tf[j,:], '--', color=plot_colors[j], label=f"filtered_{j}")
-            #     axs[2].plot(t, qdd_f[j,:], '--', color=plot_colors[j], label=f"filtered_{j}")
-            #     # Target
-            #     axs[0].plot(t, data[f"target_q_{j+1}"][idx_start:idx_end], color=plot_colors[j], label=f"target_{j}")
-            #     axs[1].plot(t, data[f"target_qd_{j+1}"][idx_start:idx_end], color=plot_colors[j], label=f"target_{j}")
-            #     axs[2].plot(t, data[f"target_qdd_{j+1}"][idx_start:idx_end], color=plot_colors[j], label=f"target_{j}")
-            #
-            # for ax in axs:
-            #     ax.legend()
-            #
-            # if not NONINTERACTIVE:
-            #     plt.show()
-            # *************************************************************************************************************
-
             n_samples_ds = self.__measurement_vector(robot_data, start_index=start_index, end_index=end_index).shape[0] // self.robot_dynamics.n_joints  # No. of samples in downsampled data
             observation_matrix = np.zeros((self.robot_dynamics.n_joints * n_samples_ds, sum(self.robot_dynamics.number_of_parameters())))  # Initialization
             for j in range(self.robot_dynamics.n_joints):
