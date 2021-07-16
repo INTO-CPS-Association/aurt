@@ -53,62 +53,61 @@ class RobotCalibration:
         return compute_measurement_vector()
 
     def __observation_matrix(self, robot_data, start_index=1, end_index=-1):
-        def compute_observation_matrix():
-            q_m = np.array([robot_data.data[f"actual_q_{j}"] for j in range(1, self.robot_dynamics.n_joints + 1)])  # (6 x n_samples) numpy array of measured angular positions
+        q_m = np.array([robot_data.data[f"actual_q_{j}"] for j in range(1, self.robot_dynamics.n_joints + 1)])  # (6 x n_samples) numpy array of measured angular positions
 
-            # Low-pass filter (smoothen) measured angular position and obtain 1st and 2nd order time-derivatives
-            q_tf, qd_tf, qdd_tf = RobotCalibration.__trajectory_filtering_and_central_difference(q_m,
-                                                                                                 robot_data.dt_nominal,
-                                                                                                 self.f_dyn,
-                                                                                                 start_index,
-                                                                                                 end_index)
+        # Low-pass filter (smoothen) measured angular position and obtain 1st and 2nd order time-derivatives
+        q_tf, qd_tf, qdd_tf = RobotCalibration.__trajectory_filtering_and_central_difference(q_m,
+                                                                                                robot_data.dt_nominal,
+                                                                                                self.f_dyn,
+                                                                                                start_index,
+                                                                                                end_index)
 
-            # *************************************************** PLOTS ***************************************************
-            # qd_m = np.gradient(q_m, dt, edge_order=2, axis=1)
-            # qdd_m = (q_m[:, 2:] - 2 * q_m[:, 1:-1] + q_m[:, :-2]) / (dt ** 2)  # two fewer indices than q and qd
-            #
-            # t = t[idx_start:idx_end]
-            # qd_m = qd_m[:, idx_start:idx_end]
-            # qdd_m = qdd_m[:, idx_start - 1:idx_end - 1]
-            #
-            # _, axs = plt.subplots(3, 1, sharex='all')
-            # axs[0].set(ylabel='Position [rad]')
-            # axs[1].set(ylabel='Velocity [rad/s]')
-            # axs[2].set(ylabel='Acceleration [rad/s^2]')
-            #
-            # for j in range(Njoints):
-            #     # Actual
-            #     axs[0].plot(t, q_m[j,:], ':', color=plot_colors[j], label=f"actual_{j}")
-            #     axs[1].plot(t, qd_m[j,:], ':', color=plot_colors[j], label=f"actual_{j}")
-            #     axs[2].plot(t, qdd_m[j,:], ':', color=plot_colors[j], label=f"actual_{j}")
-            #     # Filtered
-            #     axs[0].plot(t, q_tf[j,:], '--', color=plot_colors[j], label=f"filtered_{j}")
-            #     axs[1].plot(t, qd_tf[j,:], '--', color=plot_colors[j], label=f"filtered_{j}")
-            #     axs[2].plot(t, qdd_f[j,:], '--', color=plot_colors[j], label=f"filtered_{j}")
-            #     # Target
-            #     axs[0].plot(t, data[f"target_q_{j+1}"][idx_start:idx_end], color=plot_colors[j], label=f"target_{j}")
-            #     axs[1].plot(t, data[f"target_qd_{j+1}"][idx_start:idx_end], color=plot_colors[j], label=f"target_{j}")
-            #     axs[2].plot(t, data[f"target_qdd_{j+1}"][idx_start:idx_end], color=plot_colors[j], label=f"target_{j}")
-            #
-            # for ax in axs:
-            #     ax.legend()
-            #
-            # if not NONINTERACTIVE:
-            #     plt.show()
-            # *************************************************************************************************************
+        # *************************************************** PLOTS ***************************************************
+        # qd_m = np.gradient(q_m, dt, edge_order=2, axis=1)
+        # qdd_m = (q_m[:, 2:] - 2 * q_m[:, 1:-1] + q_m[:, :-2]) / (dt ** 2)  # two fewer indices than q and qd
+        #
+        # t = t[idx_start:idx_end]
+        # qd_m = qd_m[:, idx_start:idx_end]
+        # qdd_m = qdd_m[:, idx_start - 1:idx_end - 1]
+        #
+        # _, axs = plt.subplots(3, 1, sharex='all')
+        # axs[0].set(ylabel='Position [rad]')
+        # axs[1].set(ylabel='Velocity [rad/s]')
+        # axs[2].set(ylabel='Acceleration [rad/s^2]')
+        #
+        # for j in range(Njoints):
+        #     # Actual
+        #     axs[0].plot(t, q_m[j,:], ':', color=plot_colors[j], label=f"actual_{j}")
+        #     axs[1].plot(t, qd_m[j,:], ':', color=plot_colors[j], label=f"actual_{j}")
+        #     axs[2].plot(t, qdd_m[j,:], ':', color=plot_colors[j], label=f"actual_{j}")
+        #     # Filtered
+        #     axs[0].plot(t, q_tf[j,:], '--', color=plot_colors[j], label=f"filtered_{j}")
+        #     axs[1].plot(t, qd_tf[j,:], '--', color=plot_colors[j], label=f"filtered_{j}")
+        #     axs[2].plot(t, qdd_f[j,:], '--', color=plot_colors[j], label=f"filtered_{j}")
+        #     # Target
+        #     axs[0].plot(t, data[f"target_q_{j+1}"][idx_start:idx_end], color=plot_colors[j], label=f"target_{j}")
+        #     axs[1].plot(t, data[f"target_qd_{j+1}"][idx_start:idx_end], color=plot_colors[j], label=f"target_{j}")
+        #     axs[2].plot(t, data[f"target_qdd_{j+1}"][idx_start:idx_end], color=plot_colors[j], label=f"target_{j}")
+        #
+        # for ax in axs:
+        #     ax.legend()
+        #
+        # if not NONINTERACTIVE:
+        #     plt.show()
+        # *************************************************************************************************************
 
-            n_samples_ds = self.__measurement_vector(robot_data, start_index=start_index, end_index=end_index).shape[0] // self.robot_dynamics.n_joints  # No. of samples in downsampled data
-            observation_matrix = np.zeros((self.robot_dynamics.n_joints * n_samples_ds, sum(self.robot_dynamics.number_of_parameters())))  # Initialization
-            for j in range(self.robot_dynamics.n_joints):
-                # Obtain the rows of the observation matrix related to joint j
-                obs_mat_j = self.robot_dynamics.observation_matrix_joint(j, q_tf, qd_tf, qdd_tf)
+        n_samples_ds = self.__measurement_vector(robot_data, start_index=start_index, end_index=end_index).shape[0] // self.robot_dynamics.n_joints  # No. of samples in downsampled data
+        observation_matrix = np.zeros((self.robot_dynamics.n_joints * n_samples_ds, sum(self.robot_dynamics.number_of_parameters())))  # Initialization
+        for j in range(self.robot_dynamics.n_joints):
+            # Obtain the rows of the observation matrix related to joint j
+            obs_mat_j = self.robot_dynamics.observation_matrix_joint(j, q_tf, qd_tf, qdd_tf)
 
-                # Parallel filter and decimate/downsample the rows of the observation matrix related to joint j.
-                obs_mat_j_ds = RobotCalibration.__downsample(RobotCalibration.__parallel_filter(obs_mat_j, robot_data.dt_nominal, self.f_dyn), self.downsampling_factor)
-                observation_matrix[j*n_samples_ds:(j+1)*n_samples_ds, :] = obs_mat_j_ds
-            return observation_matrix
+            # Parallel filter and decimate/downsample the rows of the observation matrix related to joint j.
+            obs_mat_j_ds = RobotCalibration.__downsample(RobotCalibration.__parallel_filter(obs_mat_j, robot_data.dt_nominal, self.f_dyn), self.downsampling_factor)
+            observation_matrix[j*n_samples_ds:(j+1)*n_samples_ds, :] = obs_mat_j_ds
+        return observation_matrix
 
-        return compute_observation_matrix()
+
 
     def calibrate(self, filename_parameters):#, calibration_method='wls', weighting='variance'):
         # TODO: make it possible to specify the relative portion of the dataset you want, e.g. 0.5 for half of the
@@ -363,6 +362,9 @@ class RobotCalibration:
 
     @staticmethod
     def __trajectory_filtering_and_central_difference(q_m, dt, f_dyn, idx_start=1, idx_end=-1):
+
+        assert idx_start != 0, "idx_start must not be 0"
+
         trajectory_filter_order = 4
         cutoff_freq_trajectory = 5 * f_dyn  # Cut-off frequency should be around 5*f_dyn = 50 Hz(?)
         trajectory_filter = signal.butter(trajectory_filter_order, cutoff_freq_trajectory, btype='low', output='sos',
@@ -374,19 +376,11 @@ class RobotCalibration:
         # Using the gradient function a second time to obtain the second-order time derivative would result in
         # additional unwanted smoothing, see https://stackoverflow.com/questions/23419193/second-order-gradient-in-numpy
         qdd_tf = (q_tf[:, 2:] - 2 * q_tf[:, 1:-1] + q_tf[:, :-2]) / (dt ** 2)  # two fewer indices than q and qd
-
+        
         # Truncate data
-        print(f"idx_start: {idx_start}")
-        print(f"idx_end: {idx_end}")
-        print(f"q_tf.shape: {q_tf.shape}")
-        print(f"qd_tf.shape: {qd_tf.shape}")
-        print(f"qdd_tf.shape: {qdd_tf.shape}")
         q_tf = q_tf[:, idx_start:idx_end]
         qd_tf = qd_tf[:, idx_start:idx_end]
-        qdd_tf = qdd_tf[:, idx_start - 1:idx_end - 1]  # shifted due to a "lost" index in the start of the dataset
-        print(f"q_tf.shape: {q_tf.shape}")
-        print(f"qd_tf.shape: {qd_tf.shape}")
-        print(f"qdd_tf.shape: {qdd_tf.shape}")
+        qdd_tf = qdd_tf[:, idx_start-1:qd_tf.shape[1]]
 
         assert q_tf.shape == qd_tf.shape == qdd_tf.shape, f"q_tf.shape == {q_tf.shape}, qd_tf.shape == {qd_tf.shape}, qdd_tf.shape == {qdd_tf.shape}"
 
