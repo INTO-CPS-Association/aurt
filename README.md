@@ -1,3 +1,4 @@
+![Install and run api tests](https://github.com/INTO-CPS-Association/aurt/actions/workflows/run_tests.yml/badge.svg)
 # Aarhus University Robotics Toolbox (AURT) Overview
 
 # Installation
