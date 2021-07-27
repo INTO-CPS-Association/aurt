@@ -19,8 +19,8 @@ def compile_rbd(mdh_path, gravity, output_path):
     with open(pathfile, 'wb') as f:
         pickle.dump(rbd, f)
 
-def compile_rd(rbd_filename, friction_load_model, friction_viscous_powers, friction_hysteresis_model, output_path):
-    rd = RobotDynamics(rbd_filename, viscous_friction_powers=friction_viscous_powers, friction_load_model=friction_load_model, hysteresis_model=friction_hysteresis_model)
+def compile_rd(rbd_filename, friction_load_model, friction_viscous_powers, output_path):
+    rd = RobotDynamics(rbd_filename, viscous_friction_powers=friction_viscous_powers, friction_load_model=friction_load_model)
     rd.regressor()
 
     # save class
