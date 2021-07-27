@@ -9,15 +9,18 @@ from aurt import api
 from aurt.rigid_body_dynamics import RigidBodyDynamics
 
 class APITests(unittest.TestCase):
+    
+    # The naming of the test cases control the order of the tests
 
-    def setUp(self) -> None:
+    def init_cache_dir(self) -> None:
         # delete cache folder before starting tests
         new_dir = Path(__file__).parent.parent.parent.joinpath('cache')
         if Path(new_dir).is_dir():
             rmtree(Path(new_dir))
         return super().setUp()
 
-    def test_compile_rbd(self):
+    def test01_compile_rbd(self):
+        self.init_cache_dir()
         mdh_path = "aurt/tests/resources/two_link_model.csv"
         gravity = [0.0, -9.81, 0.0]
         output_path = "rbd_twolink"
@@ -34,13 +37,13 @@ class APITests(unittest.TestCase):
         self.assertEqual(rbd_twolink_estimate.n_params, rbd_twolink_true.n_params)
         self.assertEqual(rbd_twolink_estimate.params, rbd_twolink_true.params)
 
-    def test_compile_rbd_save_class(self):
+    def test02_compile_rbd_save_class(self):
         # test that class is saved properly
         mdh_path = "aurt/tests/resources/two_link_model.csv"
         gravity = [0.0, -9.81, 0.0]
         output_path = "rbd_twolink"
 
-        api.compile_rbd(mdh_path, gravity, output_path)
+        # api.compile_rbd(mdh_path, gravity, output_path)
         filename = from_cache(output_path + ".pickle")
     
         with open(filename, 'rb') as f:
@@ -50,17 +53,17 @@ class APITests(unittest.TestCase):
         self.assertIsNotNone(newrbd.params, "The paramters are not set")
 
 
-    def test_compile_rd(self):
+    def test03_compile_rd(self):
         model_rbd = "rbd_twolink"
         friction_load_model = "square"
         friction_viscous_powers = [2,1,4]
         output_file = "rd_twolink"
 
         # Create RigidBodyDynamics Model
-        mdh_path = "aurt/tests/resources/two_link_model.csv"
-        gravity = [0.0, -9.81, 0.0]
-        rbd_output_path = "rbd_twolink"
-        api.compile_rbd(mdh_path, gravity, rbd_output_path)
+        # mdh_path = "aurt/tests/resources/two_link_model.csv"
+        # gravity = [0.0, -9.81, 0.0]
+        # rbd_output_path = "rbd_twolink"
+        # api.compile_rbd(mdh_path, gravity, rbd_output_path)
 
         api.compile_rd(model_rbd, friction_load_model, friction_viscous_powers, output_file)
 
@@ -75,7 +78,7 @@ class APITests(unittest.TestCase):
         self.assertEqual(rd_twolink_estimate.tauJ,rd_twolink_true.tauJ)
 
 
-    def test_calibrate(self):
+    def test04_calibrate(self):
         model_rd = "rd_twolink"
         data_file = "aurt/tests/resources/twolink_data.csv"
         params_out = "twolink_params.csv"
