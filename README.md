@@ -43,10 +43,11 @@ The friction configuration options are:
 ## Calibrate
 
 ```
-aurt calibrate --model robot_dynamics --data measured_data.csv --out-params calibrated_parameters.csv --out-calibration-model robot_calibration
+aurt calibrate --model robot_dynamics --data measured_data.csv --out-params calibrated_parameters.csv --out-calibration-model robot_calibration --plot
 ```
 
 Reads the model produced by the `compile-rd` command, the measured data in `measured_data.csv`, writes the calibrated base parameter values to `calibrated_parameters.csv`, and writes the calibrated model parameters to `robot_calibration`.
+For showing the calibration plot, use the argument `--plot`.
 
 The measured data should contain the following fields:
 - `timestamp` of type float, representing the number of seconds passed from a given reference point.
@@ -74,7 +75,7 @@ The prediction fields are:
 
 To setup the development environment:
 1. Open terminal in the current folder.
-2. Install all packages for development: `pip install -e .[dev]`
+2. Install all packages for development: `pip install -e .`
 3. Unpack the datasets (see [Dataset management](#dataset-management))
 4. To run `api` tests, open a command prompt or powershell in the repository root, and run `python --run-tests api`. If you are using Linux, use `python3` instead of `python`.
 <!--5. To run the full tests, use the command `python --run-tests full-offline`.-->

@@ -144,8 +144,9 @@ class RobotCalibration:
             assert n_samples_ds * self.robot_dynamics.n_joints == observation_matrix.shape[0]
             output_predicted_reshaped = np.reshape(estimated_output, (self.robot_dynamics.n_joints, n_samples_ds))
 
-            return robot_data_predict.time[
-                   ::self.downsampling_factor], output_predicted_reshaped  # TODO: CORRECT ERROR; 'time' does not correspond in length to 'output_predicted_reshaped'
+            #return robot_data_predict.time[
+            #       ::self.downsampling_factor], output_predicted_reshaped  # TODO: CORRECT ERROR; 'time' does not correspond in length to 'output_predicted_reshaped'
+            return output_predicted_reshaped
 
         return cache_csv(from_cache(filename_predicted_output), compute_prediction)
 
@@ -352,11 +353,17 @@ class RobotCalibration:
         # Using the gradient function a second time to obtain the second-order time derivative would result in
         # additional unwanted smoothing, see https://stackoverflow.com/questions/23419193/second-order-gradient-in-numpy
         qdd_tf = (q_tf[:, 2:] - 2 * q_tf[:, 1:-1] + q_tf[:, :-2]) / (dt ** 2)  # two fewer indices than q and qd
-
+        
         # Truncate data
         q_tf = q_tf[:, idx_start:idx_end]
         qd_tf = qd_tf[:, idx_start:idx_end]
-        qdd_tf = qdd_tf[:, idx_start - 1:qd_tf.shape[1]]
+
+        if idx_end == -1:
+            qdd_end_idx = qd_tf.shape[1]
+        else:
+            qdd_end_idx = idx_end+1
+
+        qdd_tf = qdd_tf[:, idx_start - 1:qdd_end_idx]
 
         assert q_tf.shape == qd_tf.shape == qdd_tf.shape, f"q_tf.shape == {q_tf.shape}, qd_tf.shape == {qd_tf.shape}, qdd_tf.shape == {qdd_tf.shape}"
 

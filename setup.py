@@ -17,11 +17,12 @@ setuptools.setup(
         "numpy>=1",
         "sympy>=1",
         "pandas>=1",
-        "scikit-learn>=0.24"
+        "scikit-learn>=0.24",
+        "matplotlib>=1"
     ],
-    extras_require={
-        "dev": ["matplotlib"]
-    },
+    # extras_require={
+    #     "dev": ["matplotlib"]
+    # },
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",

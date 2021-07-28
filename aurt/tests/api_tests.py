@@ -24,7 +24,7 @@ class APITests(unittest.TestCase):
 
     def test01_compile_rbd(self):
         self.init_cache_dir()
-        mdh_path = "aurt/tests/resources/two_link_model.csv"
+        mdh_path = "aurt/tests/resources/twolink_model.csv"
         gravity = [0.0, -9.81, 0.0]
         output_path = "rbd_twolink"
 
@@ -76,7 +76,10 @@ class APITests(unittest.TestCase):
         data_file = "aurt/tests/resources/twolink_data.csv"
         params_out = "twolink_params.csv"
         calibration_out = "rc_twolink"
+        plotting = False
 
+        api.calibrate(model_rd, data_file, params_out, calibration_out, plotting)
+        
         
 
 

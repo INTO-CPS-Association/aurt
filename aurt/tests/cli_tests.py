@@ -1,11 +1,13 @@
+from dataclasses import dataclass
 import unittest
 import pickle
 from pathlib import Path
 from shutil import rmtree
+import os
 
 from aurt.cli import *
 from aurt.cli import _init_cmd_parser, _create_compile_rbd_parser, _create_calibrate_parser, _create_compile_rd_parser, _create_predict_parser
-from aurt.file_system import from_cache
+from aurt.file_system import from_cache, load_csv
 
 #### TODO:
 ##    o add tests for compile-rd
@@ -24,7 +26,7 @@ class CLITests(unittest.TestCase):
 
     def init_rbd(self):
         self.init_cache_dir()
-        mdh_filename = str(Path("resources","robot_parameters", "two_link_model.csv"))
+        mdh_filename = str(Path("aurt","tests", "resources", "twolink_model.csv"))
         out_filename = "out_rbd"
         gravity = [0.0, -9.81, 0.0]
         parser = self.set_compile_rbd_arguments(
@@ -47,6 +49,23 @@ class CLITests(unittest.TestCase):
             out
         )
         compile_rd(parser)
+
+    def init_calibrate(self):
+        self.init_rd()
+        model = "out_rbd"
+        data = str(Path("aurt","tests", "resources", "twolink_data.csv"))
+        out_params = "twolink_model_params.csv"
+        out_calibration_model = "out_calibrate"
+        plot = False
+        parser = self.set_calibrate_arguments(
+            model,
+            data,
+            out_params,
+            out_calibration_model,
+            plot
+        )
+        calibrate(parser)
+
     
     def set_compile_rbd_arguments(self, mdh, gravity, out, logger_config=None):
         subparsers,_ = _init_cmd_parser()
@@ -67,18 +86,28 @@ class CLITests(unittest.TestCase):
         compile_rd_parser.logger_config = logger_config
         return compile_rd_parser
 
-    def set_calibrate_arguments(self,model, data, out_params, out_calibration_model, logger_config=None):
+    def set_calibrate_arguments(self,model, data, out_params, out_calibration_model, plot, logger_config=None):
         subparsers,_ = _init_cmd_parser()
         calibrate_parser = _create_calibrate_parser(subparsers)
         calibrate_parser.model = model
         calibrate_parser.data = data
         calibrate_parser.out_params = out_params
         calibrate_parser.out_calibration_model = out_calibration_model
+        calibrate_parser.plot = plot
         calibrate_parser.logger_config = logger_config
         return calibrate_parser
 
+    def set_predict_arguments(self, model, data, prediction, logger_config=None):
+        subparsers,_ = _init_cmd_parser()
+        predict_parser = _create_predict_parser(subparsers)
+        predict_parser.model = model
+        predict_parser.data = data
+        predict_parser.prediction = prediction
+        predict_parser.logger_config = logger_config
+        return predict_parser
+
     def test01_compile_rbd_args_cli_correct(self):
-        mdh_filename = str(Path("resources","robot_parameters", "two_link_model.csv"))
+        mdh_filename = str(Path("aurt","tests", "resources", "twolink_model.csv"))
         out_filename = "out_rbd"
         gravity = [0.0, 0.0, -9.81]
         parser = self.set_compile_rbd_arguments(
@@ -94,7 +123,7 @@ class CLITests(unittest.TestCase):
         self.assertTrue(out_rbd != None)
 
     def test02_compile_rbd_args_cli_file_not_csv(self):
-        mdh_filename = str(Path("resources","robot_parameters", "two_link_model"))
+        mdh_filename = str(Path("aurt","tests", "resources", "twolink_model"))
         gravity = [0.0, 0.0, -9.81]
         out_filename = "out_rbd"
         parser = self.set_compile_rbd_arguments(
@@ -106,7 +135,7 @@ class CLITests(unittest.TestCase):
             compile_rbd(parser)
 
     def test03_compile_rbd_args_cli_file_not_found(self):
-        mdh_filename = str(Path("resources","robot_parameters", "wrong_name.csv"))
+        mdh_filename = str(Path("aurt","tests", "resources", "wrong_name.csv"))
         gravity = [0.0, 0.0, -9.81]
         out_filename = "out_rbd"
         parser = self.set_compile_rbd_arguments(
@@ -119,7 +148,7 @@ class CLITests(unittest.TestCase):
 
 
     def test04_compile_rbd_args_cli_gravity_not_floats(self):
-        mdh_filename = str(Path("resources","robot_parameters", "two_link_model.csv"))
+        mdh_filename = str(Path("aurt","tests", "resources", "twolink_model.csv"))
         gravity = ["a","b","c"]
         out_filename = "out_rbd"
         parser = self.set_compile_rbd_arguments(
@@ -131,7 +160,7 @@ class CLITests(unittest.TestCase):
             compile_rbd(parser)
 
     def test05_compile_rbd_args_cli_gravity_ints(self):
-        mdh_filename = str(Path("resources","robot_parameters", "two_link_model.csv"))
+        mdh_filename = str(Path("aurt","tests", "resources", "twolink_model.csv"))
         gravity = [0,1,0]
         out_filename = "out_rbd"
         compile_rbd_parser = self.set_compile_rbd_arguments(
@@ -145,19 +174,8 @@ class CLITests(unittest.TestCase):
             out_rbd = pickle.load(f)
         self.assertTrue(out_rbd != None)
 
-    def test06_compile_rbd_args_cli_out_invalid(self):
-        mdh_filename = str(Path("resources","robot_parameters", "two_link_model.csv"))
-        gravity = ["a","b","c"]
-        out_filename = "out_rbd"
-        parser = self.set_compile_rbd_arguments(
-            mdh_filename,
-            gravity,
-            out_filename
-        )
-        with self.assertRaises(TypeError):
-            compile_rbd(parser)
 
-    def test07_compile_rd_args_cli_correct(self):
+    def test06_compile_rd_args_cli_correct(self):
         self.init_rbd()
         model_rbd = "out_rbd"
         friction_load_model = "square"
@@ -176,17 +194,19 @@ class CLITests(unittest.TestCase):
             out_rd = pickle.load(f)
         self.assertTrue(out_rd != None)
 
-    def test08_calibrate_args_cli_correct(self):
+    def test07_calibrate_args_cli_correct(self):
         self.init_rd()
         model = "out_rd"
-        data = "aurt/tests/resources/twolink_data.csv"
+        data = str(Path("aurt","tests", "resources", "twolink_data.csv"))
         out_params = "calibrated_params.csv"
         out_calibration_model = "out_calibration"
+        plot = False
         parser = self.set_calibrate_arguments(
             model,
             data,
             out_params,
-            out_calibration_model
+            out_calibration_model,
+            plot
         )
         calibrate(parser)
 
@@ -194,6 +214,23 @@ class CLITests(unittest.TestCase):
         with open(out_filename, 'rb') as f:
             out_calibration = pickle.load(f)
         self.assertTrue(out_calibration != None)
+
+    def test08_predict_args_cli_correct(self):
+        self.init_calibrate()
+        model = "out_calibrate"
+        data = str(Path("aurt","tests", "resources", "twolink_data.csv")) # TODO: change to real prediction data
+        prediction = "out_predict.csv"
+        parser = self.set_predict_arguments(
+            model,
+            data,
+            prediction
+        )
+        predict(parser)
+
+        out_filename = from_cache(prediction)
+        out_prediction = load_csv(out_filename)
+        self.assertFalse(out_prediction.empty)
+
 
 
 

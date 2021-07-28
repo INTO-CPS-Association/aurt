@@ -63,46 +63,47 @@ def calibrate(args):
     l = setup_logger(args)
     l.info("Calibrating robot dynamics model.")
 
+    filename = from_cache(args.model + ".pickle")
+    if not os.path.isfile(filename):
+        raise Exception(f"The robot dynamics file {filename} could not be located. Please specify a valid filename.")
+
+    if not os.path.isfile(args.data):
+        raise Exception(f"The data file {args.data} could not be located. Please specify a valid filename.")
+
+    if os.path.isfile(args.out_params):
+        l.warning(f"The parameters filename {args.out_params} already exists, and its content will be overwritten.")
+
+    filename = from_cache(args.out_calibration_model + ".pickle")
+    if os.path.isfile(filename):
+        l.warning(f"The calibration model filename {args.out_calibration_model} already exists, and its content will be overwritten.")
+
     model_path = args.model
     data_path = args.data
     params_path = args.out_params
     calbration_model_path = args.out_calibration_model
-
-    filename = from_cache(model_path + ".pickle")
-    if not os.path.isfile(filename):
-        raise Exception(f"The robot dynamics file {filename} could not be located. Please specify a valid filename.")
-
-    if not os.path.isfile(data_path):
-        raise Exception(f"The data file {data_path} could not be located. Please specify a valid filename.")
-
-    if os.path.isfile(params_path):
-        l.warning(f"The parameters filename {params_path} already exists, and its content will be overwritten.")
-
-    filename = from_cache(calbration_model_path + ".pickle")
-    if os.path.isfile(filename):
-        l.warning(f"The calibration model filename {calbration_model_path} already exists, and its content will be overwritten.")
+    plotting = args.plot
     
-    api.calibrate(model_path, data_path, params_path, calbration_model_path)
+    api.calibrate(model_path, data_path, params_path, calbration_model_path, plotting)
 
 
 def predict(args):
     l = setup_logger(args)
     l.info("Predicting robot current.")
 
-    model_path = args.model
-    data_path = args.data
-    output_path = args.prediction
-
-    filename = from_cache(model_path + ".pickle")
+    filename = from_cache(args.model + ".pickle")
     if not os.path.isfile(filename):
         raise Exception(f"The robot calibration file {filename} could not be located. Please specify a valid filename.")
     
-    if not os.path.isfile(data_path):
-        raise Exception(f"The data file {data_path} could not be located. Please specify a valid filename.")
+    if not os.path.isfile(args.data):
+        raise Exception(f"The data file {args.data} could not be located. Please specify a valid filename.")
 
-    filename = from_cache(output_path)
+    filename = from_cache(args.prediction)
     if os.path.isfile(filename):
         l.warning(f"The output prediction file {filename} already exists, and its content will be overwritten.")
+
+    model_path = args.model
+    data_path = args.data
+    output_path = args.prediction
     
     api.predict(model_path, data_path, output_path)
 
@@ -197,6 +198,8 @@ def _create_calibrate_parser(subparsers):
 
     calibrate_parser.add_argument('--out-calibration-model',
                                     help="Path of the outputted robot calibration model (pickle).")
+
+    calibrate_parser.add_argument('--plot', action="store_true", default=False)
 
     calibrate_parser.set_defaults(command=calibrate)
     return calibrate_parser
