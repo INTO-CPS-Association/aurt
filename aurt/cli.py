@@ -19,18 +19,20 @@ def compile_rbd(args):
     l.info("Compiling rigid body dynamics model.")
     l.debug(f"Gravity vector: {args.gravity}")
 
+    if args.mdh[-4:] != ".csv":
+        raise Exception(f"The provided mdh file {args.mdh} is not a CSV file. AURT only supports CSV files. Please provide a CSV file.")
+    if not os.path.isfile(args.mdh):
+        raise OSError(f"The mdh file {args.mdh} could not be located. Please specify a valid filename (csv).")
+    gravity_vector_type = {True if isinstance(g,float) or isinstance(g,int) else False for g in args.gravity}
+    if False in gravity_vector_type:
+        raise TypeError(f"The given gravity vector is not a float, nor an integer. Please provide a valid gravity vector.")
+    filename = from_cache(args.out + ".pickle")
+    if os.path.isfile(filename):
+        l.warning(f"The rigid body dynamics file {filename} already exists, and its content will be overwritten.")
+    
     mdh_path = args.mdh
     gravity = np.array(args.gravity)
     output_path = args.out
-
-    if mdh_path[-4:] != ".csv":
-        raise Exception(f"The provided mdh file {mdh_path} is not a CSV file. AURT only supports CSV files. Please provide a CSV file.")
-    if not os.path.isfile(mdh_path):
-        raise Exception(f"The mdh file {mdh_path} could not be located. Please specify a valid filename (csv).")
-
-    filename = from_cache(output_path + ".pickle")
-    if os.path.isfile(filename):
-        l.warning(f"The rigid body dynamics file {filename} already exists, and its content will be overwritten.")
 
     api.compile_rbd(mdh_path, gravity, output_path)
 
@@ -40,22 +42,21 @@ def compile_rd(args):
     l.info("Compiling robot dynamics model.")
     l.debug(f"Viscous friction powers: {args.friction_viscous_powers}.")
 
-    model_rbd_path = args.model_rbd
-    friction_load_model = args.friction_load_model
-    friction_viscous_powers = args.friction_viscous_powers
-    #friction_hysteresis_model = args.friction_hysteresis_model # TODO: Do we need this?
-    friction_hysteresis_model = None # TODO when implemented, set to args from user
-    output_path = args.out
-
-    filename = from_cache(model_rbd_path + ".pickle")
+    filename = from_cache(args.model_rbd + ".pickle")
     if not os.path.isfile(filename):
         raise Exception(f"The rigid body dynamics file {filename} could not be located. Please specify a valid filename.")
 
-    filename = from_cache(output_path + ".pickle")
+    filename = from_cache(args.out + ".pickle")
     if os.path.isfile(filename):
-        l.warning(f"The robot dynamics filename {output_path} already exists, and its content will be overwritten.")
+        l.warning(f"The robot dynamics filename {args.out} already exists, and its content will be overwritten.")
 
-    api.compile_rd(model_rbd_path, friction_load_model, friction_viscous_powers, friction_hysteresis_model, output_path)
+    model_rbd_path = args.model_rbd
+    friction_load_model = args.friction_load_model
+    friction_viscous_powers = args.friction_viscous_powers
+    #friction_hysteresis_model = args.friction_hysteresis_model # saved for later implementation
+    output_path = args.out
+
+    api.compile_rd(model_rbd_path, friction_load_model, friction_viscous_powers, output_path)
 
 
 def calibrate(args):
@@ -106,9 +107,28 @@ def predict(args):
     api.predict(model_path, data_path, output_path)
 
 
-
-def main():
+def create_cmd_parser():
     # Command parser
+    subparsers, args_parser = _init_cmd_parser()
+
+    # sub commands
+    ## compile_rbd
+    _create_compile_rbd_parser(subparsers)
+    ## compile_rd
+    _create_compile_rd_parser(subparsers)
+    ## calibrate
+    _create_calibrate_parser(subparsers)
+    ## predict
+    _create_predict_parser(subparsers)
+
+    # Force help display when error occurrs. See https://stackoverflow.com/questions/3636967/python-argparse-how-can-i-display-help-automatically-on-error
+    args_parser.usage = args_parser.format_help().replace("usage: ", "")
+
+    args = args_parser.parse_args()
+
+    args.command(args)
+
+def _init_cmd_parser():
     args_parser = argparse.ArgumentParser(add_help=True)
 
     args_parser.add_argument('--logger-config', type=open,
@@ -118,10 +138,9 @@ def main():
 
     subparsers = args_parser.add_subparsers(
         help="Command to execute. Type 'aurt CMD --help' for more help about command CMD.")
+    return subparsers, args_parser
 
-    # sub commands
-
-    ## compile_rbd
+def _create_compile_rbd_parser(subparsers):
     compile_rbd_parser = subparsers.add_parser("compile-rbd")
 
     compile_rbd_parser.add_argument('--mdh', required=True,
@@ -137,8 +156,9 @@ def main():
                                     help="Path of outputted rigid body dynamics model (pickle).")
 
     compile_rbd_parser.set_defaults(command=compile_rbd)
+    return compile_rbd_parser
 
-    ## compile_rd
+def _create_compile_rd_parser(subparsers):
     compile_rd_parser = subparsers.add_parser("compile-rd")
 
     compile_rd_parser.add_argument('--model-rbd', required=True,
@@ -161,8 +181,9 @@ def main():
                                        help="Path of outputted robot dynamics model (pickle).")
 
     compile_rd_parser.set_defaults(command=compile_rd)
+    return compile_rd_parser
 
-    ## calibrate
+def _create_calibrate_parser(subparsers):
     calibrate_parser = subparsers.add_parser("calibrate")
 
     calibrate_parser.add_argument('--model', required=True,
@@ -178,9 +199,9 @@ def main():
                                     help="Path of the outputted robot calibration model (pickle).")
 
     calibrate_parser.set_defaults(command=calibrate)
+    return calibrate_parser
 
-    
-    ## predict
+def _create_predict_parser(subparsers):
     predict_parser = subparsers.add_parser("predict")
 
     predict_parser.add_argument('--model', required=True,
@@ -193,13 +214,11 @@ def main():
                                     help="Path of outputted prediction values (csv).")
 
     predict_parser.set_defaults(command=predict)
+    return predict_parser
 
-    # Force help display when error occurrs. See https://stackoverflow.com/questions/3636967/python-argparse-how-can-i-display-help-automatically-on-error
-    args_parser.usage = args_parser.format_help().replace("usage: ", "")
 
-    args = args_parser.parse_args()
-
-    args.command(args)
+def main():
+   create_cmd_parser()
 
 
 if __name__ == '__main__':
