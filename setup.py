@@ -20,9 +20,9 @@ setuptools.setup(
         "scikit-learn>=0.24",
         "matplotlib>=1"
     ],
-    # extras_require={
-    #     "dev": ["matplotlib"]
-    # },
+    extras_require={
+        "vis": ["roboticstoolbox-python"]
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",

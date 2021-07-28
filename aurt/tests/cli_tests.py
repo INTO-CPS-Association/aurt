@@ -29,10 +29,12 @@ class CLITests(unittest.TestCase):
         mdh_filename = str(Path("aurt","tests", "resources", "twolink_model.csv"))
         out_filename = "out_rbd"
         gravity = [0.0, -9.81, 0.0]
+        plotting = False
         parser = self.set_compile_rbd_arguments(
             mdh_filename,
             gravity,
-            out_filename
+            out_filename,
+            plotting
         )
         compile_rbd(parser)
 
@@ -67,12 +69,13 @@ class CLITests(unittest.TestCase):
         calibrate(parser)
 
     
-    def set_compile_rbd_arguments(self, mdh, gravity, out, logger_config=None):
+    def set_compile_rbd_arguments(self, mdh, gravity, out, plotting, logger_config=None):
         subparsers,_ = _init_cmd_parser()
         compile_rbd_parser = _create_compile_rbd_parser(subparsers)
         compile_rbd_parser.mdh = mdh
         compile_rbd_parser.gravity = gravity
         compile_rbd_parser.out = out
+        compile_rbd_parser.plot = plotting
         compile_rbd_parser.logger_config = logger_config
         return compile_rbd_parser
 
@@ -110,10 +113,12 @@ class CLITests(unittest.TestCase):
         mdh_filename = str(Path("aurt","tests", "resources", "twolink_model.csv"))
         out_filename = "out_rbd"
         gravity = [0.0, 0.0, -9.81]
+        plotting = False
         parser = self.set_compile_rbd_arguments(
             mdh_filename,
             gravity,
-            out_filename
+            out_filename,
+            plotting
         )
         compile_rbd(parser)
 
@@ -126,10 +131,12 @@ class CLITests(unittest.TestCase):
         mdh_filename = str(Path("aurt","tests", "resources", "twolink_model"))
         gravity = [0.0, 0.0, -9.81]
         out_filename = "out_rbd"
+        plotting = False
         parser = self.set_compile_rbd_arguments(
             mdh_filename,
             gravity,
-            out_filename
+            out_filename,
+            plotting
         )
         with self.assertRaises(Exception):
             compile_rbd(parser)
@@ -138,10 +145,12 @@ class CLITests(unittest.TestCase):
         mdh_filename = str(Path("aurt","tests", "resources", "wrong_name.csv"))
         gravity = [0.0, 0.0, -9.81]
         out_filename = "out_rbd"
+        plotting = False
         parser = self.set_compile_rbd_arguments(
             mdh_filename,
             gravity,
-            out_filename
+            out_filename,
+            plotting
         )
         with self.assertRaises(OSError):
             compile_rbd(parser)
@@ -151,10 +160,12 @@ class CLITests(unittest.TestCase):
         mdh_filename = str(Path("aurt","tests", "resources", "twolink_model.csv"))
         gravity = ["a","b","c"]
         out_filename = "out_rbd"
+        plotting = False
         parser = self.set_compile_rbd_arguments(
             mdh_filename,
             gravity,
-            out_filename
+            out_filename,
+            plotting
         )
         with self.assertRaises(TypeError):
             compile_rbd(parser)
@@ -163,10 +174,12 @@ class CLITests(unittest.TestCase):
         mdh_filename = str(Path("aurt","tests", "resources", "twolink_model.csv"))
         gravity = [0,1,0]
         out_filename = "out_rbd"
+        plotting = False
         compile_rbd_parser = self.set_compile_rbd_arguments(
             mdh_filename,
             gravity,
-            out_filename
+            out_filename,
+            plotting
         )
         compile_rbd(compile_rbd_parser)
         out_filename = from_cache(out_filename + ".pickle")

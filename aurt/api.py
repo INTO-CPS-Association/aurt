@@ -8,10 +8,13 @@ from aurt.data_processing import *
 from aurt.file_system import from_cache
 
 
-def compile_rbd(mdh_path, gravity, output_path):
+def compile_rbd(mdh_path, gravity, output_path, plotting, block=True):
     mdh = convert_file_to_mdh(mdh_path)
     rbd = RigidBodyDynamics(mdh, gravity)
     rbd.regressor()
+
+    if plotting:
+        rbd.plot_kinematics(block)
 
     # save class
     pathfile = from_cache(output_path + ".pickle")

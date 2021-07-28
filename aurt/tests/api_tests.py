@@ -1,4 +1,5 @@
 
+from aurt.cli import predict
 import unittest
 import pickle
 from pathlib import Path
@@ -24,15 +25,16 @@ class APITests(unittest.TestCase):
 
     def test01_compile_rbd(self):
         self.init_cache_dir()
-        mdh_path = "aurt/tests/resources/twolink_model.csv"
+        mdh_path = str(Path("aurt","tests", "resources", "twolink_model.csv"))
         gravity = [0.0, -9.81, 0.0]
         output_path = "rbd_twolink"
+        plotting = False
 
-        api.compile_rbd(mdh_path, gravity, output_path)
+        api.compile_rbd(mdh_path, gravity, output_path, plotting)
         filename = from_cache(output_path + ".pickle")
         with open(filename, 'rb') as f:
             rbd_twolink_estimate: RigidBodyDynamics = pickle.load(f)
-        with open("aurt/tests/resources/rbd_twolink.pickle", 'rb') as f:
+        with open(str(Path("aurt","tests", "resources", output_path)) + ".pickle", 'rb') as f:
             rbd_twolink_true: RigidBodyDynamics = pickle.load(f)
 
         self.assertEqual(rbd_twolink_estimate.mdh, rbd_twolink_true.mdh)
@@ -63,7 +65,7 @@ class APITests(unittest.TestCase):
         filename = from_cache(output_file + ".pickle")
         with open(filename, 'rb') as f:
             rd_twolink_estimate = pickle.load(f)    
-        with open("aurt/tests/resources/rd_twolink.pickle", 'rb') as f:
+        with open(str(Path("aurt","tests", "resources", output_file)) + ".pickle", 'rb') as f:
             rd_twolink_true = pickle.load(f)
 
         self.assertEqual(rd_twolink_estimate.n_joints,rd_twolink_true.n_joints)
@@ -73,7 +75,7 @@ class APITests(unittest.TestCase):
 
     def test04_calibrate(self):
         model_rd = "rd_twolink"
-        data_file = "aurt/tests/resources/twolink_data.csv"
+        data_file = str(Path("aurt","tests", "resources", "twolink_data.csv"))
         params_out = "twolink_params.csv"
         calibration_out = "rc_twolink"
         plotting = False
@@ -81,6 +83,22 @@ class APITests(unittest.TestCase):
         api.calibrate(model_rd, data_file, params_out, calibration_out, plotting)
         
         
+    def test05_predict(self):
+        model = "rc_twolink"
+        data = str(Path("aurt","tests", "resources", "twolink_data.csv"))
+        prediction = "out_predict.csv"
+
+        api.predict(model, data, prediction)
+
+
+    def test06_plot_kinematics(self):
+        mdh_path = str(Path("aurt","tests", "resources", "twolink_model.csv"))
+        gravity = [0.0, -9.81, 0.0]
+        output_path = "rbd_twolink"
+        plotting = True
+
+        api.compile_rbd(mdh_path, gravity, output_path, plotting, block=False)
+
 
 
 if __name__ == '__main__':

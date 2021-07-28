@@ -23,6 +23,8 @@ aurt compile-rbd --mdh mdh.csv --gravity 0.0 0.0 -9.81 --out rigid_body_dynamics
 Reads the Modified Denavit-Hartenberg (MDH) parameters in file `mdh.csv` and outputs rigid-body dynamics model to file `rigid_body_dynamics`.
 The gravity vector determines the orientation of the robot base for which the parameters will be calibrated.
 The generated model does not include the joint dynamics.
+To visualize the mdh model of the robot, make sure the `roboticstoolbox-python` is installed, and add the `--plot` argument to the `compile-rbd` command. 
+<img src="resources/robot_Plot.png" alt="MDH plot" width="400"/>
 
 ## Compile Robot Dynamics Model
 
@@ -75,7 +77,7 @@ The prediction fields are:
 
 To setup the development environment:
 1. Open terminal in the current folder.
-2. Install all packages for development: `pip install -e .`
+2. Install all packages for development: `pip install -e .`. You can also install the visualization packages, using `pip install .[vis]`
 3. Unpack the datasets (see [Dataset management](#dataset-management))
 4. To run `api` tests, open a command prompt or powershell in the repository root, and run `python --run-tests api`. If you are using Linux, use `python3` instead of `python`.
 <!--5. To run the full tests, use the command `python --run-tests full-offline`.-->

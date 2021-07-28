@@ -33,8 +33,9 @@ def compile_rbd(args):
     mdh_path = args.mdh
     gravity = np.array(args.gravity)
     output_path = args.out
+    plotting = args.plot
 
-    api.compile_rbd(mdh_path, gravity, output_path)
+    api.compile_rbd(mdh_path, gravity, output_path, plotting)
 
 
 def compile_rd(args):
@@ -155,6 +156,8 @@ def _create_compile_rbd_parser(subparsers):
 
     compile_rbd_parser.add_argument('--out', required=True,
                                     help="Path of outputted rigid body dynamics model (pickle).")
+
+    compile_rbd_parser.add_argument('--plot', action="store_true", default=False)
 
     compile_rbd_parser.set_defaults(command=compile_rbd)
     return compile_rbd_parser

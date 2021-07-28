@@ -482,3 +482,30 @@ class RigidBodyDynamics:
         return tau_list
 
 
+    def plot_kinematics(self, block=True):
+        try:
+            import roboticstoolbox as rtb
+            MDHRobot = self._create_kinematics_mdh(rtb)
+            robot_kinematics = MDHRobot(self.mdh)
+            robot_kinematics.plot(robot_kinematics.q, block=block)
+        except ImportError:
+            import warnings
+            warnings.warn("The roboticstoolbox is not installed, please install it for plotting the robot kinematics.")
+
+    
+    def _create_kinematics_mdh(self, rtb):
+        class MDHRobot(rtb.DHRobot):
+            def __init__(self, mdh: ModifiedDH):
+                links = []
+                n_links = []
+                for i in range(mdh.n_joints):
+                    d = mdh.d[i]
+                    a = mdh.a[i]
+                    alpha = mdh.alpha[i]
+                    setattr(self, f"link_{i}", rtb.RevoluteMDH(d=d, a=a, alpha=alpha))
+                    links.append(getattr(self, f"link_{i}"))
+                    n_links.append(i+1)
+                super().__init__(links, name="robot")
+        return MDHRobot
+
+
