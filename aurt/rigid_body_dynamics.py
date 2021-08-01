@@ -490,7 +490,7 @@ class RigidBodyDynamics:
             robot_kinematics.plot(robot_kinematics.q, block=block)
         except ImportError:
             import warnings
-            warnings.warn("The roboticstoolbox is not installed, please install it for plotting the robot kinematics.")
+            warnings.warn("The roboticstoolbox package is not installed, please install it for plotting the robot kinematics.")
 
     
     def _create_kinematics_mdh(self, rtb):

@@ -150,7 +150,14 @@ class RobotCalibration:
 
         return cache_csv(from_cache(filename_predicted_output), compute_prediction)
 
+
     def plot_calibration(self, parameters):
+        try:
+            import matplotlib.colors
+            import matplotlib.pyplot as plt
+        except ImportError:
+            import warnings
+            warnings.warn("The matplotlib package is not installed, please install it for plotting the calibration.")
 
         observation_matrix = self.__observation_matrix(self.robot_data_calibration)
         n_samples = observation_matrix.shape[0] // self.robot_dynamics.n_joints
@@ -161,8 +168,7 @@ class RobotCalibration:
         error = measured_output_reshaped - estimated_output_reshaped
         t = np.linspace(0, self.robot_data_calibration.dt_nominal * self.downsampling_factor * n_samples, n_samples)
 
-        import matplotlib.colors
-        import matplotlib.pyplot as plt
+        
         fig = plt.figure()
         gs = fig.add_gridspec(2, 1, hspace=0.03)
         axs = gs.subplots(sharex='col', sharey='all')

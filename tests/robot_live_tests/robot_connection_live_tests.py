@@ -3,7 +3,7 @@ import time
 import unittest
 import numpy as np
 from urinterface import RobotConnection
-from tests.utils.timed_test import TimedTest
+from tests.full_offline_tests.utils.timed_test import TimedTest
 
 
 class RobotLiveTests(TimedTest):

@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
     if args.run_tests == "full-offline":
         suite = unittest.TestSuite()
-        suite.addTest(unittest.TestLoader().discover("tests", pattern="*tests.py"))
+        suite.addTest(unittest.TestLoader().discover("tests/full_offline_tests", pattern="*tests.py"))
         runner = unittest.TextTestRunner()
         runner.run(suite)
     elif args.run_tests == "api":
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     elif args.run_tests == "live":
         try:
             loader = unittest.TestLoader()
-            start_dir = pathlib.Path('robot_live_tests')
+            start_dir = pathlib.Path('tests/robot_live_tests')
             suite = loader.discover(start_dir, pattern="*tests.py")
             runner = unittest.TextTestRunner()
             runner.run(suite)

@@ -17,11 +17,10 @@ setuptools.setup(
         "numpy>=1",
         "sympy>=1",
         "pandas>=1",
-        "scikit-learn>=0.24",
-        "matplotlib>=1"
+        "scikit-learn>=0.24"
     ],
     extras_require={
-        "vis": ["roboticstoolbox-python"]
+        "vis": ["roboticstoolbox-python", "matplotlib>=1"]
     },
     classifiers=[
         "Programming Language :: Python :: 3",
