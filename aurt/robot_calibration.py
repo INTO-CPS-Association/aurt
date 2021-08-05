@@ -151,6 +151,18 @@ class RobotCalibration:
         return cache_csv(from_cache(filename_predicted_output), compute_prediction)
 
 
+    def _get_plot_values_for(self, data, parameters):
+        observation_matrix = self.__observation_matrix(data)
+        n_samples = observation_matrix.shape[0] // self.robot_dynamics.n_joints
+        estimated_data = np.reshape(observation_matrix @ parameters,
+                                               (self.robot_dynamics.n_joints, n_samples))
+        measured_data = np.reshape(self.__measurement_vector(data),
+                                              (self.robot_dynamics.n_joints, n_samples))
+        #error = measured_data - estimated_data
+        t_data = np.linspace(0, data.dt_nominal * self.downsampling_factor * n_samples, n_samples)
+        return t_data, measured_data, estimated_data
+
+
     def plot_calibration(self, parameters):
         try:
             import matplotlib.colors
@@ -204,6 +216,7 @@ class RobotCalibration:
         plt.setp(axs[1], xlabel='Time [s]')
 
         plt.show()
+
 
     def plot_prediction(self, filename_predict):
 
@@ -367,7 +380,7 @@ class RobotCalibration:
         if idx_end == -1:
             qdd_end_idx = qd_tf.shape[1]
         else:
-            qdd_end_idx = idx_end+1
+            qdd_end_idx = idx_end-1
 
         qdd_tf = qdd_tf[:, idx_start - 1:qdd_end_idx]
 
