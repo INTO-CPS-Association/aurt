@@ -114,12 +114,12 @@ class RobotCalibration:
                     n_samples_est - np.array(self.robot_dynamics.number_of_parameters()))
 
         # if calibration_method.lower() == 'wls':
-        wls_sample_weights = np.repeat(1 / variance_residual, n_samples_est)
+        # wls_sample_weights = np.repeat(1 / variance_residual, n_samples_est)
         # if weighting == 'variance':
         #     wls_sample_weights = np.repeat(1 / variance_residual, n_samples_est)
         # elif weighting == 'standard deviation':
-        #     standard_deviation = np.sqrt(variance_residual)
-        #     wls_sample_weights = np.repeat(1 / standard_deviation, n_samples_est)
+        standard_deviation = np.sqrt(variance_residual)
+        wls_sample_weights = np.repeat(1 / standard_deviation, n_samples_est)
         # else:
         #     wls_sample_weights = np.ones(self.robot_dynamics.n_joints, n_samples_est)
 
