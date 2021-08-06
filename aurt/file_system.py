@@ -72,7 +72,7 @@ def load_numpy(file):
         return np.load(f)
 
 def load_csv(file):
-    return pd.read_csv(file)
+    return pd.read_csv(file, header=None)
 
 def cache_numpy(file, callable):
     """

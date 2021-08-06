@@ -144,12 +144,32 @@ class RobotCalibration:
             assert n_samples_ds * self.robot_dynamics.n_joints == observation_matrix.shape[0]
             output_predicted_reshaped = np.reshape(estimated_output, (self.robot_dynamics.n_joints, n_samples_ds))
 
-            return robot_data_predict.time[
-                   ::self.downsampling_factor], output_predicted_reshaped  # TODO: CORRECT ERROR; 'time' does not correspond in length to 'output_predicted_reshaped'
+            #return robot_data_predict.time[
+            #       ::self.downsampling_factor], output_predicted_reshaped  # TODO: CORRECT ERROR; 'time' does not correspond in length to 'output_predicted_reshaped'
+            return output_predicted_reshaped
 
         return cache_csv(from_cache(filename_predicted_output), compute_prediction)
 
+
+    def _get_plot_values_for(self, data, parameters):
+        observation_matrix = self.__observation_matrix(data)
+        n_samples = observation_matrix.shape[0] // self.robot_dynamics.n_joints
+        estimated_data = np.reshape(observation_matrix @ parameters,
+                                               (self.robot_dynamics.n_joints, n_samples))
+        measured_data = np.reshape(self.__measurement_vector(data),
+                                              (self.robot_dynamics.n_joints, n_samples))
+        #error = measured_data - estimated_data
+        t_data = np.linspace(0, data.dt_nominal * self.downsampling_factor * n_samples, n_samples)
+        return t_data, measured_data, estimated_data
+
+
     def plot_calibration(self, parameters):
+        try:
+            import matplotlib.colors
+            import matplotlib.pyplot as plt
+        except ImportError:
+            import warnings
+            warnings.warn("The matplotlib package is not installed, please install it for plotting the calibration.")
 
         observation_matrix = self.__observation_matrix(self.robot_data_calibration)
         n_samples = observation_matrix.shape[0] // self.robot_dynamics.n_joints
@@ -160,8 +180,7 @@ class RobotCalibration:
         error = measured_output_reshaped - estimated_output_reshaped
         t = np.linspace(0, self.robot_data_calibration.dt_nominal * self.downsampling_factor * n_samples, n_samples)
 
-        import matplotlib.colors
-        import matplotlib.pyplot as plt
+        
         fig = plt.figure()
         gs = fig.add_gridspec(2, 1, hspace=0.03)
         axs = gs.subplots(sharex='col', sharey='all')
@@ -197,6 +216,7 @@ class RobotCalibration:
         plt.setp(axs[1], xlabel='Time [s]')
 
         plt.show()
+
 
     def plot_prediction(self, filename_predict):
 
@@ -352,11 +372,17 @@ class RobotCalibration:
         # Using the gradient function a second time to obtain the second-order time derivative would result in
         # additional unwanted smoothing, see https://stackoverflow.com/questions/23419193/second-order-gradient-in-numpy
         qdd_tf = (q_tf[:, 2:] - 2 * q_tf[:, 1:-1] + q_tf[:, :-2]) / (dt ** 2)  # two fewer indices than q and qd
-
+        
         # Truncate data
         q_tf = q_tf[:, idx_start:idx_end]
         qd_tf = qd_tf[:, idx_start:idx_end]
-        qdd_tf = qdd_tf[:, idx_start - 1:qd_tf.shape[1]]
+
+        if idx_end == -1:
+            qdd_end_idx = qd_tf.shape[1]
+        else:
+            qdd_end_idx = idx_end-1
+
+        qdd_tf = qdd_tf[:, idx_start - 1:qdd_end_idx]
 
         assert q_tf.shape == qd_tf.shape == qdd_tf.shape, f"q_tf.shape == {q_tf.shape}, qd_tf.shape == {qd_tf.shape}, qdd_tf.shape == {qdd_tf.shape}"
 

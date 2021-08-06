@@ -22,7 +22,7 @@ from aurt.robot_calibration import RobotCalibration
 from aurt.data_processing import convert_file_to_mdh
 from aurt.joint_dynamics import JointDynamics
 from tests import NONINTERACTIVE
-from tests.utils.timed_test import TimedTest
+from tests.full_offline_tests.utils.timed_test import TimedTest
 
 """
 # ************************************************** NOT IN USE ATM ****************************************************

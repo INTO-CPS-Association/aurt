@@ -1,3 +1,4 @@
+![Install and run api tests](https://github.com/INTO-CPS-Association/aurt/actions/workflows/run_tests.yml/badge.svg)
 # Aarhus University Robotics Toolbox (AURT) Overview
 
 # Installation
@@ -22,6 +23,8 @@ aurt compile-rbd --mdh mdh.csv --gravity 0.0 0.0 -9.81 --out rigid_body_dynamics
 Reads the Modified Denavit-Hartenberg (MDH) parameters in file `mdh.csv` and outputs rigid-body dynamics model to file `rigid_body_dynamics`.
 The gravity vector determines the orientation of the robot base for which the parameters will be calibrated.
 The generated model does not include the joint dynamics.
+To visualize the mdh model of the robot, make sure the `roboticstoolbox-python` is installed, and add the `--plot` argument to the `compile-rbd` command. 
+<img src="resources/robot_Plot.png" alt="MDH plot" width="400"/>
 
 ## Compile Robot Dynamics Model
 
@@ -42,10 +45,11 @@ The friction configuration options are:
 ## Calibrate
 
 ```
-aurt calibrate --model robot_dynamics --data measured_data.csv --out-params calibrated_parameters.csv --out-calibration-model robot_calibration
+aurt calibrate --model robot_dynamics --data measured_data.csv --out-params calibrated_parameters.csv --out-calibration-model robot_calibration --plot
 ```
 
 Reads the model produced by the `compile-rd` command, the measured data in `measured_data.csv`, writes the calibrated base parameter values to `calibrated_parameters.csv`, and writes the calibrated model parameters to `robot_calibration`.
+For showing the calibration plot, use the argument `--plot`.
 
 The measured data should contain the following fields:
 - `timestamp` of type float, representing the number of seconds passed from a given reference point.
@@ -73,14 +77,18 @@ The prediction fields are:
 
 To setup the development environment:
 1. Open terminal in the current folder.
-2. Optional: create a virtual environment: `python -m venv venv`
+2. Install all packages for development: `pip install -e .`. You can also install the visualization packages, using `pip install .[vis]`
+3. Unpack the datasets (see [Dataset management](#dataset-management))
+4. To run `api` tests, open a command prompt or powershell in the repository root, and run `python --run-tests api`. If you are using Linux, use `python3` instead of `python`.
+<!--5. To run the full tests, use the command `python --run-tests full-offline`.-->
+<!--2. Optional: create a virtual environment: `python -m venv venv`
 3. Optional: activate the virtual environment: 
    1. Windows (Powershell):`.\venv\Scripts\Activate.ps1`
    2. Linux: `source venv/bin/activate`
 4. Install all packages for development: `pip install -e .[dev]`
 5. Unpack the datasets (see [Dataset management](#dataset-management))
-6. To run all tests, open a powershell in the dynamic folder, and run the `.\build_script.ps1 --run-tests offline` script.
-7. Optional: open Pycharm in the current folder.
+6. To run all tests, open a powershell in the repository root, and run the `.\build_script.ps1 --run-tests offline` script. 
+7. Optional: open Pycharm in the current folder.-->
 
 
 ## Dataset management

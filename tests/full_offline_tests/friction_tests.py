@@ -10,7 +10,7 @@ import numpy as np
 from scipy import stats
 
 import aurt.calibration_aux as cal_aux
-from tests.utils.timed_test import TimedTest
+from tests.full_offline_tests.utils.timed_test import TimedTest
 
 
 def select_data_subset(data, idx_start, idx_end):

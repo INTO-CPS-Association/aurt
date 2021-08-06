@@ -8,19 +8,21 @@ from aurt.data_processing import *
 from aurt.file_system import from_cache
 
 
-def compile_rbd(mdh_path, gravity, output_path):
+def compile_rbd(mdh_path, gravity, output_path, plotting, block=True):
     mdh = convert_file_to_mdh(mdh_path)
-    print(f"mdh: {mdh}")
     rbd = RigidBodyDynamics(mdh, gravity)
     rbd.regressor()
+
+    if plotting:
+        rbd.plot_kinematics(block)
 
     # save class
     pathfile = from_cache(output_path + ".pickle")
     with open(pathfile, 'wb') as f:
         pickle.dump(rbd, f)
 
-def compile_rd(rbd_filename, friction_load_model, friction_viscous_powers, friction_hysteresis_model, output_path):
-    rd = RobotDynamics(rbd_filename, viscous_friction_powers=friction_viscous_powers, friction_load_model=friction_load_model, hysteresis_model=friction_hysteresis_model)
+def compile_rd(rbd_filename, friction_load_model, friction_viscous_powers, output_path):
+    rd = RobotDynamics(rbd_filename, viscous_friction_powers=friction_viscous_powers, friction_load_model=friction_load_model)
     rd.regressor()
 
     # save class
@@ -29,11 +31,12 @@ def compile_rd(rbd_filename, friction_load_model, friction_viscous_powers, frict
         pickle.dump(rd, f)
 
 
-def calibrate(model_path, data_path, output_params, output_calibration):
+def calibrate(model_path, data_path, output_params, output_calibration, plotting):
     rc_data = RobotData(data_path,delimiter=' ', interpolate_missing_samples=True) # TODO should we always interpolate missing samples?
     rc = RobotCalibration(model_path, rc_data)
     params = rc.calibrate(output_params)
-    rc.plot_calibration(params)
+    if plotting:
+        rc.plot_calibration(params)
 
     # save class
     pathfile = from_cache(output_calibration + ".pickle")
