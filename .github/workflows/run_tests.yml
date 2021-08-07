@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: "3.8"
       - name: Install python packages
-        run: pip install .
+        run: pip install .[vis]
       - name: Test API
         run: python build.py --run-tests api
 
@@ -31,7 +31,7 @@ jobs:
         with:
           python-version: "3.8"
       - name: Install python packages
-        run: pip3 install .
+        run: pip3 install .[vis]
       - name: Test API
         run: python3 build.py --run-tests api
 
@@ -46,6 +46,6 @@ jobs:
         with:
           python-version: "3.8"
       - name: Install python packages
-        run: pip3 install .
+        run: pip3 install .[vis]
       - name: Test API
         run: python3 build.py --run-tests api
