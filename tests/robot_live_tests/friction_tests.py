@@ -1,4 +1,5 @@
 import math
+import time
 import unittest
 
 import numpy as np
@@ -10,11 +11,12 @@ from aurt.robot_data import RobotData
 class FrictionTests(unittest.TestCase):
 
     def test_calibration_motion(self):
-        filename = "calibration_motion.csv"
+        filename = "friction_test_j1.csv"
         ur5e_ip = "192.168.2.40"
         sampling_rate = 500
         ur5e = urinterface.RobotConnection(ur5e_ip)
         ur5e.start_recording(filename=filename, overwrite=True, frequency=sampling_rate)
+        time.sleep(0.5)
         ur5e.play_program()
         ur5e.stop_program()
         ur5e.stop_recording()

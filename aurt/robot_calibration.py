@@ -93,6 +93,9 @@ class RobotCalibration:
         measurement_vector = self.__measurement_vector(self.robot_data_calibration,
                                                        start_index=self.robot_data_calibration.non_static_start_index,
                                                        end_index=self.robot_data_calibration.non_static_end_index)
+        # Evaluate dynamics excitation
+        cond = RobotCalibration._evaluate_dynamics_excitation_as_cost(observation_matrix, metric="cond")
+        print(f"The condition number of the observation matrix is {cond}.")
 
         # sklearn fit
         OLS = LinearRegression(fit_intercept=False)
@@ -150,7 +153,6 @@ class RobotCalibration:
 
         return cache_csv(from_cache(filename_predicted_output), compute_prediction)
 
-
     def _get_plot_values_for(self, data, parameters):
         observation_matrix = self.__observation_matrix(data)
         n_samples = observation_matrix.shape[0] // self.robot_dynamics.n_joints
@@ -161,7 +163,6 @@ class RobotCalibration:
         #error = measured_data - estimated_data
         t_data = np.linspace(0, data.dt_nominal * self.downsampling_factor * n_samples, n_samples)
         return t_data, measured_data, estimated_data
-
 
     def plot_calibration(self, parameters):
         try:
@@ -332,6 +333,20 @@ class RobotCalibration:
             plt.show()
         # **************************************************************************************************************
         return 1
+
+    @staticmethod
+    def _evaluate_dynamics_excitation_as_cost(observation_matrix, metric="cond"):
+        assert metric in {"cond", "determinant", "log_determinant"}
+
+        if metric == "cond":
+            cost = np.linalg.cond(observation_matrix)
+        elif metric == "determinant":
+            cost = np.linalg.det(observation_matrix.T @ observation_matrix)
+        elif metric == "log_determinant":
+            cost = np.log(np.linalg.det(observation_matrix.T @ observation_matrix))
+        else:
+            cost = 0
+        return cost
 
     @staticmethod
     def __downsample(y, downsampling_factor):
