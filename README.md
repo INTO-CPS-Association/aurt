@@ -79,7 +79,7 @@ To setup the development environment:
 1. Open terminal in the current folder.
 2. Install all packages for development: `pip install -e .`. You can also install the visualization packages, using `pip install .[vis]`
 3. Unpack the datasets (see [Dataset management](#dataset-management))
-4. To run `api` tests, open a command prompt or powershell in the repository root, and run `python --run-tests api`. If you are using Linux, use `python3` instead of `python`.
+4. To run `api` tests, open a command prompt or powershell in the repository root, and run `python build.py --run-tests api`. If you are using Linux, use `python3` instead of `python`.
 <!--5. To run the full tests, use the command `python --run-tests full-offline`.-->
 <!--2. Optional: create a virtual environment: `python -m venv venv`
 3. Optional: activate the virtual environment: 
