@@ -4,13 +4,14 @@ from scipy import signal
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 import pickle
+import copy
 
 from aurt.file_system import cache_numpy, cache_csv, load_numpy, from_cache, cache_object, load_object
-from aurt.robot_data import plot_colors
+from aurt.robot_data import RobotData, plot_colors
 
 
 class RobotCalibration:
-    def __init__(self, rd_filename, robot_data, relative_separation_of_calibration_and_prediction=None,
+    def __init__(self, rd_filename, robot_data_path, relative_separation_of_calibration_and_prediction=None,
                  robot_data_predict=None):
 
         # Load saved RobotDynamics model
@@ -18,23 +19,24 @@ class RobotCalibration:
         with open(filename, 'rb') as f:
             self.robot_dynamics: RobotDynamics = pickle.load(f)
 
+
         if relative_separation_of_calibration_and_prediction is None and robot_data_predict is None:
-            self.robot_data_calibration = robot_data
-            self.robot_data_prediction = None
+            self.robot_data_calibration = RobotData(robot_data_path, delimiter=' ', interpolate_missing_samples=True)
+            self.robot_data_validation = None
         elif relative_separation_of_calibration_and_prediction is not None and robot_data_predict is None:
             assert 0 < relative_separation_of_calibration_and_prediction < 1, "The specified relative separation of " \
                                                                               "data used for calibration and " \
                                                                               "prediction must be in the range from 0 " \
                                                                               "to 1."
-
-            t_sep = robot_data.time[-1] * relative_separation_of_calibration_and_prediction
-            self.robot_data_calibration = robot_data
-            self.robot_data_prediction = robot_data
-            self.robot_data_calibration.__trim_data(desired_timeframe=(0, t_sep))
-            self.robot_data_prediction.__trim_data(desired_timeframe=(t_sep, np.inf))
+            dummy_data = RobotData(robot_data_path, delimiter=' ')
+            t_sep = dummy_data.time[-1] * relative_separation_of_calibration_and_prediction
+            self.robot_data_calibration = RobotData(robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(0, t_sep))
+            self.robot_data_validation = RobotData(robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(t_sep, np.inf))
+            # self.robot_data_calibration._trim_data(desired_timeframe=(0, t_sep))
+            # self.robot_data_validation._trim_data(desired_timeframe=(t_sep, np.inf))
         elif relative_separation_of_calibration_and_prediction is None and robot_data_predict is not None:
-            self.robot_data_calibration = robot_data
-            self.robot_data_prediction = robot_data_predict
+            self.robot_data_calibration = RobotData(robot_data_path, delimiter=' ', interpolate_missing_samples=True)
+            self.robot_data_validation = robot_data_predict
         else:
             print("A wrong combination of arguments was provided.")
 
@@ -172,16 +174,9 @@ class RobotCalibration:
             import warnings
             warnings.warn("The matplotlib package is not installed, please install it for plotting the calibration.")
 
-        observation_matrix = self.__observation_matrix(self.robot_data_calibration)
-        n_samples = observation_matrix.shape[0] // self.robot_dynamics.n_joints
-        estimated_output_reshaped = np.reshape(observation_matrix @ parameters,
-                                               (self.robot_dynamics.n_joints, n_samples))
-        measured_output_reshaped = np.reshape(self.__measurement_vector(self.robot_data_calibration),
-                                              (self.robot_dynamics.n_joints, n_samples))
+        t, measured_output_reshaped, estimated_output_reshaped = self._get_plot_values_for(self.robot_data_calibration, parameters)
         error = measured_output_reshaped - estimated_output_reshaped
-        t = np.linspace(0, self.robot_data_calibration.dt_nominal * self.downsampling_factor * n_samples, n_samples)
 
-        
         fig = plt.figure()
         gs = fig.add_gridspec(2, 1, hspace=0.03)
         axs = gs.subplots(sharex='col', sharey='all')
@@ -270,48 +265,69 @@ class RobotCalibration:
 
         plt.show()
 
-    def plot_estimation_and_prediction(self, filename_predict):
-        t_prediction, output_predicted_reshaped = load_numpy(filename_predict + '.npy')
-        t_calibration = self.robot_data_calibration.time
+    
+    def plot_calibrate_and_validate(self, parameters):
+        try:
+            import matplotlib.pyplot as plt
+            from matplotlib.ticker import MultipleLocator
+            from matplotlib.colors import hsv_to_rgb, ColorConverter, rgb_to_hsv
+        except ImportError:
+            import warnings
+            warnings.warn("The matplotlib package is not installed, please install it for plotting the calibration.")
 
-        import matplotlib.pyplot as plt
+        ## Calibration and Validation estimation and data
+        t_calibration, measured_output_reshaped, estimated_output_reshaped = self._get_plot_values_for(self.robot_data_calibration, parameters)
+        t_validation, measured_validation_output_reshaped, validation_output_reshaped = self._get_plot_values_for(self.robot_data_validation, parameters)
+        t_validation += t_calibration[-1]
+
+        def darken_color(plot_color, darken_amount=0.35):
+            """Computes rgb values to a darkened color"""
+            line_color_rgb = ColorConverter.to_rgb(plot_color)
+            line_color_hsv = rgb_to_hsv(line_color_rgb)
+            darkened_line_color_hsv = line_color_hsv - np.array([0, 0, darken_amount])
+            darkened_line_color_rgb = hsv_to_rgb(darkened_line_color_hsv)
+            return darkened_line_color_rgb
+
+
         fig = plt.figure()
         gs = fig.add_gridspec(2, 2, hspace=0.03, wspace=0,
-                              width_ratios=[np.max(t_calibration) - np.min(t_calibration),
-                                            np.max(t_prediction) - np.min(t_prediction)])
+                                width_ratios=[np.max(t_calibration) - np.min(t_calibration),
+                                            np.max(t_validation) - np.min(t_validation)])
         axs = gs.subplots(sharex='col', sharey='all')
 
-        fig.supxlabel('Time [s]')
-        fig.supylabel('Current [A]')
+
+        linewidth_meas = 1.3
+        linewidth_est = 1
+        linetype_meas = '-'
+        linetype_est = '--'
 
         # Estimation data - current
         for j in range(self.robot_dynamics.n_joints):
-            axs[0, 0].plot(self.robot_data.time, y_est_reshape[j, :].T, '-', color=plot_colors[j], linewidth=1.3,
-                           label=f'joint {j}, meas.')
-            axs[0, 0].plot(t_est, y_wls_est_reshape[j, :].T, color='k', linewidth=0.6, label=f'joint {j}, pred.')
-        axs[0, 0].set_xlim([t_est[0], t_est[-1]])
-        axs[0, 0].set_title('Estimation')
+            axs[0, 0].plot(t_calibration, measured_output_reshaped[j, :].T, linetype_meas, color=plot_colors[j], linewidth=linewidth_meas,
+                            label=f'joint {j+1}, meas.')
+            axs[0, 0].plot(t_calibration, estimated_output_reshaped[j, :].T, linetype_est, color=darken_color(plot_colors[j]), linewidth=linewidth_est, label=f'joint {j+1}, est.')
+        axs[0, 0].set_xlim([t_calibration[0], t_calibration[-1]])
+        axs[0, 0].set_title('Calibration')
 
         # Validation data - current
+        mse = self.get_mse(measured_validation_output_reshaped, validation_output_reshaped)
         for j in range(self.robot_dynamics.n_joints):
-            axs[0, 1].plot(t_val, y_val_reshape[j, :].T, '-', color=plot_colors[j], linewidth=1.3,
-                           label=f'joint {j}, meas.')
-            axs[0, 1].plot(t_val, y_wls_val_reshape[j, :].T, color='k', linewidth=0.6,
-                           label=f'joint {j}, pred. (mse: {mse[j]:.3f})')
-        axs[0, 1].set_xlim([t_val[0], t_val[-1]])
+            axs[0, 1].plot(t_validation, measured_validation_output_reshaped[j, :].T, linetype_meas, color=plot_colors[j], linewidth=linewidth_meas)
+            axs[0, 1].plot(t_validation, validation_output_reshaped[j, :].T, linetype_est, color=darken_color(plot_colors[j]), linewidth=linewidth_est)
+        axs[0, 1].set_xlim([t_validation[0], t_validation[-1]])
         axs[0, 1].set_title('Validation')
 
         # Estimation data - error
-        error_est = (y_est_reshape - y_wls_est_reshape)
+        error_est = (measured_output_reshaped - estimated_output_reshaped)
         for j in range(self.robot_dynamics.n_joints):
-            axs[1, 0].plot(t_est, error_est[j].T, '-', color=plot_colors[j], linewidth=1.3, label=f'joint {j + 1}')
-        axs[1, 0].set_xlim([t_est[0], t_est[-1]])
+            axs[1, 0].plot(t_calibration, error_est[j].T, linetype_meas, color=plot_colors[j], linewidth=linewidth_meas, label=f'joint {j + 1}')
+        axs[1, 0].set_xlim([t_calibration[0], t_calibration[-1]])
 
         # Validation data - error
-        error_val = (y_val_reshape - y_wls_val_reshape)
+        error_val = (measured_validation_output_reshaped - validation_output_reshaped)
         for j in range(self.robot_dynamics.n_joints):
-            axs[1, 1].plot(t_val, error_val[j].T, '-', color=plot_colors[j], linewidth=1.3, label=f'joint {j + 1}')
-        axs[1, 1].set_xlim([t_val[0], t_val[-1]])
+            axs[1, 1].plot(t_validation, error_val[j].T, linetype_meas, color=plot_colors[j], linewidth=linewidth_meas, label=f'joint {j + 1}')
+        axs[1, 1].set_xlim([t_validation[0], t_validation[-1]])
 
         # equate xtick spacing of right plots to those of left plots
         xticks_diff = axs[1, 0].get_xticks()[1] - axs[1, 0].get_xticks()[0]
@@ -320,20 +336,17 @@ class RobotCalibration:
 
         for ax in axs.flat:
             ax.label_outer()
-        plt.setp(axs[0, 0], ylabel='Signal')
-        plt.setp(axs[1, 0], ylabel='Error')
+        plt.setp(axs[0, 0], ylabel='Current [A]')
+        plt.setp(axs[1, 0], ylabel='Error [A]')
+        
+        pos_label = ((len(t_validation) / len(t_calibration)) + 1) / 2
+        axs[1,0].set_xlabel("Time [s]", fontsize='large', ha="center", position=(pos_label,pos_label))
 
         # Legend position
-        l_val = (np.max(t_val) - np.min(t_val))
-        l_tot = (np.max(t_val) - np.min(t_est))
-        l_val_rel = l_val / l_tot
-        legend_x_position = 1 - 0.5 / l_val_rel  # global center of legend as seen relative to the validation dataset
-        if not NONINTERACTIVE:
-            axs[0, 1].legend(loc='lower center', bbox_to_anchor=(legend_x_position, -0.022), ncol=Njoints)
-            plt.show()
-        # **************************************************************************************************************
-        return 1
-
+        axs[0, 0].legend(loc='lower left', ncol=self.robot_dynamics.n_joints)
+        axs[1,0].legend(loc="upper left", ncol=self.robot_dynamics.n_joints)
+        plt.show()
+    
     @staticmethod
     def _evaluate_dynamics_excitation_as_cost(observation_matrix, metric="cond"):
         assert metric in {"cond", "determinant", "log_determinant"}
@@ -375,6 +388,7 @@ class RobotCalibration:
     def __trajectory_filtering_and_central_difference(q_m, dt, f_dyn, idx_start=1, idx_end=-1):
 
         assert idx_start != 0, "idx_start must not be 0"
+        assert idx_end < q_m.shape[1], "the end idx is greater than the dataset size"
 
         trajectory_filter_order = 4
         cutoff_freq_trajectory = 5 * f_dyn  # Cut-off frequency should be around 5*f_dyn = 50 Hz(?)
@@ -387,7 +401,7 @@ class RobotCalibration:
         # Using the gradient function a second time to obtain the second-order time derivative would result in
         # additional unwanted smoothing, see https://stackoverflow.com/questions/23419193/second-order-gradient-in-numpy
         qdd_tf = (q_tf[:, 2:] - 2 * q_tf[:, 1:-1] + q_tf[:, :-2]) / (dt ** 2)  # two fewer indices than q and qd
-        
+
         # Truncate data
         q_tf = q_tf[:, idx_start:idx_end]
         qd_tf = qd_tf[:, idx_start:idx_end]

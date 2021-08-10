@@ -109,6 +109,43 @@ def predict(args):
     api.predict(model_path, data_path, output_path)
 
 
+def calibrate_validate(args):
+    l = setup_logger(args)
+    l.info("Calibrating and validating robot dynamics model.")
+
+    filename = from_cache(args.model + ".pickle")
+    if not os.path.isfile(filename):
+        raise Exception(f"The robot dynamics file {filename} could not be located. Please specify a valid filename.")
+    
+    if not os.path.isfile(args.data):
+        raise Exception(f"The data file {args.data} could not be located. Please specify a valid filename.")
+
+    if os.path.isfile(args.out_params):
+        l.warning(f"The parameters filename {args.out_params} already exists, and its content will be overwritten.")
+
+    filename = from_cache(args.output_prediction)
+    if os.path.isfile(filename):
+        l.warning(f"The output prediction file {filename} already exists, and its content will be overwritten.")
+
+    filename = from_cache(args.out_calibration_model + ".pickle")
+    if os.path.isfile(filename):
+        l.warning(f"The calibration model filename {args.out_calibration_model} already exists, and its content will be overwritten.")
+
+
+    if not (0.1 < args.calibration_data_rel < 0.9):
+        raise Exception(f"The calibration data rel value is not within the limits of 0.1 and 0.9, it is {args.calibration_data_rel}. Please provide a valid value.")
+
+    model_path = args.model
+    data_path = args.data
+    calbration_model_path = args.out_calibration_model
+    calibration_data_rel = args.calibration_data_rel # TODO: make sure to check that it is between 0 and 1
+    plotting = args.plot
+    params_path = args.out_params
+    output_prediction_path = args.output_prediction
+    
+    api.calibrate_validate(model_path, data_path, calibration_data_rel, params_path, calbration_model_path, output_prediction_path, plotting)
+
+
 def create_cmd_parser():
     # Command parser
     subparsers, args_parser = _init_cmd_parser()
@@ -122,6 +159,8 @@ def create_cmd_parser():
     _create_calibrate_parser(subparsers)
     ## predict
     _create_predict_parser(subparsers)
+    ## validate
+    _create_calibrate_validate_parser(subparsers)
 
     # Force help display when error occurrs. See https://stackoverflow.com/questions/3636967/python-argparse-how-can-i-display-help-automatically-on-error
     args_parser.usage = args_parser.format_help().replace("usage: ", "")
@@ -222,6 +261,31 @@ def _create_predict_parser(subparsers):
     predict_parser.set_defaults(command=predict)
     return predict_parser
 
+def _create_calibrate_validate_parser(subparsers):
+    calibrate_validate_parser = subparsers.add_parser("calibrate-validate")
+
+    calibrate_validate_parser.add_argument('--model',  required=True,
+                                    help="The robot dynamics model created with the compile-rd command.")
+
+    calibrate_validate_parser.add_argument('--data', required=True,
+                                    help="The measured data (csv).")
+
+    calibrate_validate_parser.add_argument('--calibration-data-rel', required=True,
+                                  type=float, help="The unit interval ]0;1[ of the dataset to be used for calibration.")
+
+    calibrate_validate_parser.add_argument('--out-params',
+                                    help="The resulting parameter values (csv).")
+
+    calibrate_validate_parser.add_argument('--out-calibration-model',
+                                    help="Path of the outputted robot calibration model (pickle).")
+
+    calibrate_validate_parser.add_argument('--output-prediction', required=True,
+                                    help="Path of outputted prediction values (csv).")
+
+    calibrate_validate_parser.add_argument('--plot', action="store_true", default=False)
+
+    calibrate_validate_parser.set_defaults(command=calibrate_validate)
+    return calibrate_validate_parser
 
 def main():
    create_cmd_parser()

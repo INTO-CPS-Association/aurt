@@ -49,7 +49,7 @@ class RobotData:
 
         # Trim data to the desired timeframe
         if desired_timeframe is not None:
-            self.__trim_data(desired_timeframe)
+            self._trim_data(desired_timeframe)
             self.__ensure_data_consistent()
 
         self.__process_missing_samples(interpolate_missing_samples)
@@ -170,7 +170,7 @@ class RobotData:
                     else:
                         self.data[f] = np.append(self.data[f], float(row[f]))
 
-    def __trim_data(self, desired_timeframe):
+    def _trim_data(self, desired_timeframe):
         start_idx = 0
         while self.time[start_idx] < desired_timeframe[0]:
             start_idx += 1
@@ -185,7 +185,7 @@ class RobotData:
 
         for f in self.data.keys():  # crop all fields in data
             self.data[f] = self.data[f][start_idx:end_idx + 1]
-
+        
     def __ensure_data_consistent(self):
         for f in self.data.keys():
             assert len(self.data[f]) == len(self.time), f"Field {f} in data is inconsistent. Expected {len(self.time)} samples. Got {len(self.data[f])} instead."
