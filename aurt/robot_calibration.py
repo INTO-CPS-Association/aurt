@@ -129,6 +129,12 @@ class RobotCalibration:
         # Weighted Least Squares solution
         wls_calibration = LinearRegression(fit_intercept=False)
         wls_calibration.fit(observation_matrix, measurement_vector, sample_weight=wls_sample_weights)
+        y_pred = wls_calibration.predict(observation_matrix)
+        y_pred_reshaped = np.reshape(y_pred, (self.robot_dynamics.n_joints, y_pred.shape[0] // self.robot_dynamics.n_joints))
+        measurement_vector_reshaped = np.reshape(measurement_vector, (self.robot_dynamics.n_joints, y_pred.shape[0] // self.robot_dynamics.n_joints))
+        assert y_pred_reshaped.shape == measurement_vector_reshaped.shape
+        mse = RobotCalibration.get_mse(measurement_vector_reshaped, y_pred_reshaped)
+        print(f"MSE: {mse}")
 
         self.parameters = wls_calibration.coef_
 
@@ -336,7 +342,7 @@ class RobotCalibration:
 
     @staticmethod
     def _evaluate_dynamics_excitation_as_cost(observation_matrix, metric="cond"):
-        assert metric in {"cond", "determinant", "log_determinant"}
+        assert metric in {"cond", "determinant", "log_determinant", "minimum_singular_value"}
 
         if metric == "cond":
             cost = np.linalg.cond(observation_matrix)
@@ -344,6 +350,8 @@ class RobotCalibration:
             cost = np.linalg.det(observation_matrix.T @ observation_matrix)
         elif metric == "log_determinant":
             cost = np.log(np.linalg.det(observation_matrix.T @ observation_matrix))
+        elif metric == "minimum_singular_value":
+            cost = np.linalg.svd(observation_matrix.T @ observation_matrix)  # validate this
         else:
             cost = 0
         return cost
