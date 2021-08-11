@@ -23,8 +23,10 @@ aurt compile-rbd --mdh mdh.csv --gravity 0.0 0.0 -9.81 --out rigid_body_dynamics
 Reads the Modified Denavit-Hartenberg (MDH) parameters in file `mdh.csv` and outputs rigid-body dynamics model to file `rigid_body_dynamics`.
 The gravity vector determines the orientation of the robot base for which the parameters will be calibrated.
 The generated model does not include the joint dynamics.
-To visualize the mdh model of the robot, make sure the `roboticstoolbox-python` is installed, and add the `--plot` argument to the `compile-rbd` command. 
-<img src="resources/robot_Plot.png" alt="MDH plot" width="400"/>
+To visualize the mdh model of the robot, make sure the `roboticstoolbox-python` is installed, and add the `--plot` argument to the `compile-rbd` command.
+<p align="center">
+  <img src="resources/robot_Plot.png" alt="MDH plot" width="400"/>
+</p>
 
 ## Compile Robot Dynamics Model
 
