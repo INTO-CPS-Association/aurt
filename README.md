@@ -38,7 +38,7 @@ Reads the rigid-body dynamics model created with the `compile-rbd` command, and 
 taking into account the joint dynamics configuration.
 
 The friction configuration options are:
-- `--friction-load-model TYPE` where `TYPE in {none, square, absolute}` are depicted in the figure below for, respectively, part (a), (b), and (c).
+- `--friction-load-model TYPE` where `TYPE in {none, square, absolute}` are depicted in the figure below for, respectively, parts (a), (b), and (c).
 <p align="center">
   <img src="resources/friction_load_models.png" alt="The different possibilities for load-dependent friction models" width="400"/>
 </p>
