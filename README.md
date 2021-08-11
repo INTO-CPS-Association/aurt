@@ -43,13 +43,13 @@ The friction configuration options are:
 
 - `--friction-viscous-powers POWERS` where `POWERS` has the format `P1 P2 ... PN`, and `PN` is a positive integer representing the `N`-th power of the odd polynomial
 
-<img src="https://render.githubusercontent.com/render/math?math=\mathrm{f}_v(\dot{q}) = \sum_{n=1}^{M}F_{v,\!n}\,b_n">
+  <img src="https://render.githubusercontent.com/render/math?math=\mathrm{f}_v(\dot{q}) = \sum_{n=1}^{M}F_{v,\!n}\,b_n">
 
-with <img src="https://render.githubusercontent.com/render/math?math=F_{v,\!n}">,
-<img src="https://render.githubusercontent.com/render/math?math=n = 1, \dots, M"> the viscous coefficients of friction, 
-<img src="https://render.githubusercontent.com/render/math?math=b_n=|\dot{q}|\,\dot{q}^{n-1}">
-if <img src="https://render.githubusercontent.com/render/math?math=n"> is even
-and <img src="https://render.githubusercontent.com/render/math?math=b_n = \dot{q}^n"> otherwise.
+  with <img src="https://render.githubusercontent.com/render/math?math=F_{v,\!n}">,
+  <img src="https://render.githubusercontent.com/render/math?math=n = 1, \dots, M"> the viscous coefficients of friction, 
+  <img src="https://render.githubusercontent.com/render/math?math=b_n=|\dot{q}|\,\dot{q}^{n-1}">
+  if <img src="https://render.githubusercontent.com/render/math?math=n"> is even
+  and <img src="https://render.githubusercontent.com/render/math?math=b_n = \dot{q}^n"> otherwise.
 
 ## Calibrate
 
