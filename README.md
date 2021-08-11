@@ -23,8 +23,10 @@ aurt compile-rbd --mdh mdh.csv --gravity 0.0 0.0 -9.81 --out rigid_body_dynamics
 Reads the Modified Denavit-Hartenberg (MDH) parameters in file `mdh.csv` and outputs rigid-body dynamics model to file `rigid_body_dynamics`.
 The gravity vector determines the orientation of the robot base for which the parameters will be calibrated.
 The generated model does not include the joint dynamics.
-To visualize the mdh model of the robot, make sure the `roboticstoolbox-python` is installed, and add the `--plot` argument to the `compile-rbd` command. 
-<img src="resources/robot_Plot.png" alt="MDH plot" width="400"/>
+To visualize the mdh model of the robot, make sure the `roboticstoolbox-python` is installed, and add the `--plot` argument to the `compile-rbd` command.
+<p align="center">
+  <img src="resources/robot_Plot.png" alt="MDH plot" width="400"/>
+</p>
 
 ## Compile Robot Dynamics Model
 
@@ -36,12 +38,22 @@ Reads the rigid-body dynamics model created with the `compile-rbd` command, and 
 taking into account the joint dynamics configuration.
 
 The friction configuration options are:
-- `--friction-load-model TYPE` where `TYPE in {none, square, absolute}` and:
-  - `TYPE=none` means TODO
-  - `TYPE=square` means TODO
-  - `TYPE=absolute` means TODO
-- `--friction-viscous-powers POWERS` where `POWERS` has the format `P1 P2 ... PN`, and `PN` is a positive real number representing the `N`-th power of the polynomial.
-<img src="resources/friction_load_models.png" alt="The different possibilities for load-dependent friction models" width="400"/>
+- `--friction-load-model TYPE` where `TYPE in {none, square, absolute}` are depicted in the figure below for, respectively, parts (a), (b), and (c).
+<p align="center">
+  <img src="resources/friction_load_models.png" alt="The different possibilities for load-dependent friction models" width="400"/>
+</p>
+
+- `--friction-viscous-powers POWERS` where `POWERS` has the format `P1 P2 ... PN`, and `PN` is a positive integer representing the `N`-th power of the odd polynomial
+<img src="https://render.githubusercontent.com/render/math?math=\mathrm{f}_v"> in the angular velocity
+<img src="https://render.githubusercontent.com/render/math?math=\dot{q}"> of any joint
+
+  <img src="https://render.githubusercontent.com/render/math?math=\mathrm{f}_v(\dot{q}) = \sum_{n=1}^{M}F_{v,\!n}\,b_n">
+
+  with <img src="https://render.githubusercontent.com/render/math?math=F_{v,\!n}">,
+  <img src="https://render.githubusercontent.com/render/math?math=n = 1, \dots, M"> the viscous coefficients of friction, 
+  <img src="https://render.githubusercontent.com/render/math?math=b_n=|\dot{q}|\,\dot{q}^{n-1}">
+  if <img src="https://render.githubusercontent.com/render/math?math=n"> is even
+  and <img src="https://render.githubusercontent.com/render/math?math=b_n = \dot{q}^n"> otherwise.
 
 ## Calibrate
 
@@ -76,7 +88,7 @@ The prediction fields are:
 ```
 aurt calibrate-validate --model robot_dynamics --data measured_data.csv --calibration_data_relative FRACTION --out-params calibrated_parameters.csv --out-calibration-model robot_calibration --prediction predicted_output.csv --plot
 ```
-Simultaneously calibrates and cross-validates the robot dynamics model using the dataset `measured_data.csv`. The command implements the functionalities of the commands `calibrate` and `predict`. The data of `measured_data.csv` is separated into two consecutive parts 1) calibration data and 2) validation data. The calibration data has a duration of 0.1 < `FRACTION` < 0.9 times the duration of `measured_data.csv` while the remaining part of the data is used for cross-validation.
+Simultaneously calibrates and validates the robot dynamics model using the dataset `measured_data.csv`. The command implements the functionalities of the commands `calibrate` and `predict`. The data of `measured_data.csv` is separated into two consecutive parts 1) calibration data and 2) validation data. The calibration data has a duration of 0.1 < `FRACTION` < 0.9 times the duration of `measured_data.csv` while the remaining part of the data is used for validation.
 
 # Contributing
 
