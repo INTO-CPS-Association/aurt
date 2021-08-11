@@ -226,6 +226,6 @@ class RobotData:
 
 
         for j in range(self.n_joints):
-            plt.plot(self.data["timestamp"], self.data[f"target_q_{j+1}"])
+            plt.plot(self.data["timestamp"], self.data[f"target_q_{j+1}"], color=plot_colors[j])
 
         plt.show()

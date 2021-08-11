@@ -264,23 +264,21 @@ def _create_predict_parser(subparsers):
 def _create_calibrate_validate_parser(subparsers):
     calibrate_validate_parser = subparsers.add_parser("calibrate-validate")
 
-    calibrate_validate_parser.add_argument('--model',  required=True,
-                                    help="The robot dynamics model created with the compile-rd command.")
+    calibrate_validate_parser.add_argument('--model', required=True,
+                                           help="The robot dynamics model created with the compile-rd command.")
 
-    calibrate_validate_parser.add_argument('--data', required=True,
-                                    help="The measured data (csv).")
+    calibrate_validate_parser.add_argument('--data', required=True, help="The measured data (csv).")
 
-    calibrate_validate_parser.add_argument('--calibration-data-rel', required=True,
-                                  type=float, help="The unit interval ]0;1[ of the dataset to be used for calibration.")
+    calibrate_validate_parser.add_argument('--calibration-data-rel', required=True, type=float,
+                                           help="The relative fraction of the dataset to be used for calibration. The value should be in the range [0.1; 0.9].")
 
-    calibrate_validate_parser.add_argument('--out-params',
-                                    help="The resulting parameter values (csv).")
+    calibrate_validate_parser.add_argument('--out-params', help="The resulting parameter values (csv).")
 
     calibrate_validate_parser.add_argument('--out-calibration-model',
-                                    help="Path of the outputted robot calibration model (pickle).")
+                                           help="Path of the outputted robot calibration model (pickle).")
 
     calibrate_validate_parser.add_argument('--output-prediction', required=True,
-                                    help="Path of outputted prediction values (csv).")
+                                           help="Path of outputted prediction values (csv).")
 
     calibrate_validate_parser.add_argument('--plot', action="store_true", default=False)
 
