@@ -41,7 +41,8 @@ The friction configuration options are:
   - `TYPE=square` means TODO
   - `TYPE=absolute` means TODO
 - `--friction-viscous-powers POWERS` where `POWERS` has the format `P1 P2 ... PN`, and `PN` is a positive real number representing the `N`-th power of the polynomial.
-  
+<img src="resources/friction_load_models.png" alt="The different possibilities for load-dependent friction models" width="400"/>
+
 ## Calibrate
 
 ```
@@ -70,6 +71,12 @@ and writes the predicted output to `predicted_output.csv`.
 The prediction fields are:
 - `timestamp` of type float, referring to the time of the measured data, as in [Calibrate](#predict).
 - `predicted_current_N` of type float, representing the `N`th joint current, as predicted by the robot model, where `N` is an integer in `{0, 1, ...}`.
+
+## Calibrate and Validate
+```
+aurt calibrate-validate --model robot_dynamics --data measured_data.csv --calibration_data_relative FRACTION --out-params calibrated_parameters.csv --out-calibration-model robot_calibration --prediction predicted_output.csv --plot
+```
+Simultaneously calibrates and cross-validates the robot dynamics model using the dataset `measured_data.csv`. The command implements the functionalities of the commands `calibrate` and `predict`. The data of `measured_data.csv` is separated into two consecutive parts 1) calibration data and 2) validation data. The calibration data has a duration of 0.1 < `FRACTION` < 0.9 times the duration of `measured_data.csv` while the remaining part of the data is used for cross-validation.
 
 # Contributing
 
