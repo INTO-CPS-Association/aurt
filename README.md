@@ -39,7 +39,15 @@ The friction configuration options are:
 - `--friction-load-model TYPE` where `TYPE in {none, square, absolute}` are depicted in the figure below for, respectively, part (a), (b), and (c).
 - `--friction-viscous-powers POWERS` where `POWERS` has the format `P1 P2 ... PN`, and `PN` is a positive real number representing the `N`-th power of the polynomial.
 <img src="resources/friction_load_models.png" alt="The different possibilities for load-dependent friction models" width="400"/>
-<img src="https://render.githubusercontent.com/render/math?math=e^{i \pi} = -1">
+<img src="https://render.githubusercontent.com/render/math?math=\begin{aligned}
+		\mathrm{f}_v(\dot{q}) &= \sum_{n=1}^{M}F_{v,n}\,b_n,\quad b_n = 
+		\begin{cases}
+			|\dot{q}|\,\dot{q}^{n-1},	& \text{if } n \text{ is even}\\
+			\dot{q}^n,					& \text{otherwise}
+		\end{cases}
+		\\
+		&= F_{v,1}\,\dot{q} + F_{v,2}\,\left|\dot{q}\right|\dot{q} + F_{v,3}\,\dot{q}^3 + F_{v,4}\,\left|\dot{q}\right|\dot{q}^3 + \dots
+	\end{aligned}">
 
 ## Calibrate
 
