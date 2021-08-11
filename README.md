@@ -37,8 +37,11 @@ taking into account the joint dynamics configuration.
 
 The friction configuration options are:
 - `--friction-load-model TYPE` where `TYPE in {none, square, absolute}` are depicted in the figure below for, respectively, part (a), (b), and (c).
-<img src="resources/friction_load_models.png" alt="The different possibilities for load-dependent friction models" width="400"/>
-- `--friction-viscous-powers POWERS` where `POWERS` has the format `P1 P2 ... PN`, and `PN` is a positive real number representing the `N`-th power of the odd polynomial
+<p align="center">
+  <img src="resources/friction_load_models.png" alt="The different possibilities for load-dependent friction models" width="400"/>
+</p>
+
+- `--friction-viscous-powers POWERS` where `POWERS` has the format `P1 P2 ... PN`, and `PN` is a positive integer representing the `N`-th power of the odd polynomial
 
 <img src="https://render.githubusercontent.com/render/math?math=\mathrm{f}_v(\dot{q}) = \sum_{n=1}^{M}F_{v,\!n}\,b_n">
 
