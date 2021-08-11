@@ -41,7 +41,8 @@ The friction configuration options are:
   - `TYPE=square` means TODO
   - `TYPE=absolute` means TODO
 - `--friction-viscous-powers POWERS` where `POWERS` has the format `P1 P2 ... PN`, and `PN` is a positive real number representing the `N`-th power of the polynomial.
-  
+<img src="resources/friction_load_models.png" alt="The different possibilities for load-dependent friction models" width="400"/>
+
 ## Calibrate
 
 ```
