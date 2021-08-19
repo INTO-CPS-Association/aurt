@@ -38,6 +38,10 @@ def convert_file_to_mdh(filename):
     alpha = []
     for alpha_i in df.alpha:
         alpha.append(input_with_pi_to_float(alpha_i))
+    # insert the extra joint at index 0
+    d.insert(0,float(0))
+    a.insert(0,float(0))
+    alpha.insert(0,float(0))
     mdh = ModifiedDH(d,a,alpha,None) # TODO: add q to the listing, and remove njoints, remove sp.integer(0)
     q = [sp.Integer(0)] + [sp.symbols(f"q{j}") for j in range(1, mdh.n_joints + 1)]
     mdh.q = q
