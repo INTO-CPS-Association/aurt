@@ -8,3 +8,4 @@ venv
 *.egg-info
 /resources/Dataset/*/*.csv
 *.log
+docs/build
