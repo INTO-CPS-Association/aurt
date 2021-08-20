@@ -27,14 +27,14 @@ class RobotData:
             f"actual_q_{JOINT_N}",
             f"actual_qd_{JOINT_N}",
         ]
-        self.__load_data(file_path,
+        self._load_data(file_path,
                          desired_timeframe=desired_timeframe,
                          interpolate_missing_samples=interpolate_missing_samples,
                          delimiter=delimiter)
         qd_target = np.array([self.data[f"target_qd_{j}"] for j in range(1, self.n_joints + 1)])
         self.non_static_start_index, self.non_static_end_index = find_nonstatic_start_and_end_indices(qd_target)
 
-    def __load_data(self,
+    def _load_data(self,
                     file_path,
                     desired_timeframe=None,
                     interpolate_missing_samples=False,
@@ -43,19 +43,19 @@ class RobotData:
         Loads the robot data.
         """
 
-        self.__load_raw_csv_data(file_path=file_path, delimiter=delimiter)
+        self._load_raw_csv_data(file_path=file_path, delimiter=delimiter)
         self.time -= self.time[0]  # Normalizing time range
-        self.__ensure_data_consistent()
+        self._ensure_data_consistent()
 
         # Trim data to the desired timeframe
         if desired_timeframe is not None:
             self._trim_data(desired_timeframe)
-            self.__ensure_data_consistent()
+            self._ensure_data_consistent()
 
-        self.__process_missing_samples(interpolate_missing_samples)
-        self.__ensure_data_consistent()
+        self._process_missing_samples(interpolate_missing_samples)
+        self._ensure_data_consistent()
 
-    def __process_missing_samples(self, interpolate_missing_samples):
+    def _process_missing_samples(self, interpolate_missing_samples):
         """
         Corrects lost samples by interpolating data at lost samples
         """
@@ -107,7 +107,7 @@ class RobotData:
 
             # The following two assertions ensure that the right number of samples were added.
             assert len(self.time) == len_data_before_interpolation + n_samples_to_add
-            self.__ensure_data_consistent()
+            self._ensure_data_consistent()
 
             def nan_helper(y):
                 """Helper to handle indices and logical indices of NaNs.
@@ -139,7 +139,7 @@ class RobotData:
 
             interpolate_nans(self.time)
 
-    def __load_raw_csv_data(self, file_path, delimiter):
+    def _load_raw_csv_data(self, file_path, delimiter):
         with safe_open(file_path, mode='r') as csvFile:
             csv_reader = csv.DictReader(csvFile, delimiter=delimiter)
 
@@ -186,7 +186,7 @@ class RobotData:
         for f in self.data.keys():  # crop all fields in data
             self.data[f] = self.data[f][start_idx:end_idx + 1]
         
-    def __ensure_data_consistent(self):
+    def _ensure_data_consistent(self):
         for f in self.data.keys():
             assert len(self.data[f]) == len(self.time), f"Field {f} in data is inconsistent. Expected {len(self.time)} samples. Got {len(self.data[f])} instead."
 
@@ -196,12 +196,21 @@ class RobotData:
         plt.show()
 
     def plot_target_trajectory(self):
-        q_m = self.data[f"actual_q_"]
+        q_m = np.array([self.data[f"actual_q_{j}"] for j in range(1, self.n_joints + 1)])
         qd_m = np.gradient(q_m, self.dt_nominal, edge_order=2, axis=1)
         qdd_m = (q_m[:, 2:] - 2 * q_m[:, 1:-1] + q_m[:, :-2]) / (self.dt_nominal ** 2)  # two fewer indices than q and qd
 
+        # q,qd,qdd = central_finite_difference_and_crop(order=2, idx_start, idx_end)
+
         t = self.data["timestamp"]
         qd_m = qd_m[:, 1:-2]
+
+        if idx_end == -1:
+            qdd_end_idx = qd_tf.shape[1]
+        else:
+            qdd_end_idx = idx_end-1
+
+        qdd_tf = qdd_tf[:, idx_start - 1:qdd_end_idx]
         qdd_m = qdd_m[:, -1:-1], np.append(qdd_m, None, axis=1)
 
         import matplotlib.pyplot as plt

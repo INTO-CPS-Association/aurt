@@ -1,10 +1,10 @@
 from aurt.robot_dynamics import RobotDynamics
+from aurt.signal_processing import central_finite_difference
 import numpy as np
 from scipy import signal
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 import pickle
-import copy
 
 from aurt.file_system import cache_numpy, cache_csv, load_numpy, from_cache, cache_object, load_object
 from aurt.robot_data import RobotData, plot_colors
@@ -46,27 +46,26 @@ class RobotCalibration:
         self.estimated_output = None
         self.number_of_samples_in_downsampled_data = None
 
-    def __measurement_vector(self, robot_data, start_index=1, end_index=-1):
+    def _measurement_vector(self, robot_data, start_index=1, end_index=-1):
         def compute_measurement_vector():
             i = np.array([robot_data.data[f"actual_current_{j}"] for j in range(1, self.robot_dynamics.n_joints + 1)]).T
-            i_pf = RobotCalibration.__parallel_filter(i, robot_data.dt_nominal, self.f_dyn)[start_index:end_index, :]
-            i_pf_ds = RobotCalibration.__downsample(i_pf, self.downsampling_factor)
+            i_pf = RobotCalibration._parallel_filter(i, robot_data.dt_nominal, self.f_dyn)[start_index:end_index, :]
+            i_pf_ds = RobotCalibration._downsample(i_pf, self.downsampling_factor)
             return i_pf_ds.flatten(order='F')  # y = [y1, ..., yi, ..., yN],  yi = [yi_{1}, ..., yi_{n_samples}]
 
         return compute_measurement_vector()
 
-    def __observation_matrix(self, robot_data, start_index=1, end_index=-1):
-        q_m = np.array([robot_data.data[f"actual_q_{j}"] for j in range(1,
-                                                                        self.robot_dynamics.n_joints + 1)])  # (6 x n_samples) numpy array of measured angular positions
+    def _observation_matrix(self, robot_data, start_index=1, end_index=-1):
+        q_m = np.array([robot_data.data[f"actual_q_{j}"] for j in range(1, self.robot_dynamics.n_joints + 1)])
 
         # Low-pass filter (smoothen) measured angular position and obtain 1st and 2nd order time-derivatives
-        q_tf, qd_tf, qdd_tf = RobotCalibration.__trajectory_filtering_and_central_difference(q_m,
+        q_tf, qd_tf, qdd_tf = RobotCalibration._trajectory_filtering_and_central_difference(q_m,
                                                                                              robot_data.dt_nominal,
                                                                                              self.f_dyn,
                                                                                              start_index,
                                                                                              end_index)
 
-        n_samples_ds = self.__measurement_vector(robot_data, start_index=start_index, end_index=end_index).shape[
+        n_samples_ds = self._measurement_vector(robot_data, start_index=start_index, end_index=end_index).shape[
                            0] // self.robot_dynamics.n_joints  # No. of samples in downsampled data
         observation_matrix = np.zeros((self.robot_dynamics.n_joints * n_samples_ds,
                                        sum(self.robot_dynamics.number_of_parameters())))  # Initialization
@@ -75,8 +74,8 @@ class RobotCalibration:
             obs_mat_j = self.robot_dynamics.observation_matrix_joint(j, q_tf, qd_tf, qdd_tf)
 
             # Parallel filter and decimate/downsample the rows of the observation matrix related to joint j.
-            obs_mat_j_ds = RobotCalibration.__downsample(
-                RobotCalibration.__parallel_filter(obs_mat_j, robot_data.dt_nominal, self.f_dyn),
+            obs_mat_j_ds = RobotCalibration._downsample(
+                RobotCalibration._parallel_filter(obs_mat_j, robot_data.dt_nominal, self.f_dyn),
                 self.downsampling_factor)
             observation_matrix[j * n_samples_ds:(j + 1) * n_samples_ds, :] = obs_mat_j_ds
         return observation_matrix
@@ -89,15 +88,12 @@ class RobotCalibration:
         #  is corrected...
         #  EDIT: Maybe the elimination of zero-velocity data plays a role(?)
 
-        observation_matrix = self.__observation_matrix(self.robot_data_calibration,
+        observation_matrix = self._observation_matrix(self.robot_data_calibration,
                                                        start_index=self.robot_data_calibration.non_static_start_index,
                                                        end_index=self.robot_data_calibration.non_static_end_index)
-        measurement_vector = self.__measurement_vector(self.robot_data_calibration,
+        measurement_vector = self._measurement_vector(self.robot_data_calibration,
                                                        start_index=self.robot_data_calibration.non_static_start_index,
                                                        end_index=self.robot_data_calibration.non_static_end_index)
-        # Evaluate dynamics excitation
-        cond = RobotCalibration._evaluate_dynamics_excitation_as_cost(observation_matrix, metric="cond")
-        print(f"The condition number of the observation matrix is {cond}.")
 
         # sklearn fit
         OLS = LinearRegression(fit_intercept=False)
@@ -116,29 +112,32 @@ class RobotCalibration:
         residuals = measurement_vector_reshape - measurement_vector_ols_estimation_reshape
         residual_sum_of_squares = np.sum(np.square(residuals), axis=1)
         variance_residual = residual_sum_of_squares / (
-                    n_samples_est - np.array(self.robot_dynamics.number_of_parameters()))
+                    n_samples_est - np.sum(self.robot_dynamics.number_of_parameters()))
 
-        # if calibration_method.lower() == 'wls':
-        # wls_sample_weights = np.repeat(1 / variance_residual, n_samples_est)
-        # if weighting == 'variance':
-        #     wls_sample_weights = np.repeat(1 / variance_residual, n_samples_est)
-        # elif weighting == 'standard deviation':
         standard_deviation = np.sqrt(variance_residual)
         wls_sample_weights = np.repeat(1 / standard_deviation, n_samples_est)
-        # else:
-        #     wls_sample_weights = np.ones(self.robot_dynamics.n_joints, n_samples_est)
 
         # Weighted Least Squares solution
         wls_calibration = LinearRegression(fit_intercept=False)
         wls_calibration.fit(observation_matrix, measurement_vector, sample_weight=wls_sample_weights)
         y_pred = wls_calibration.predict(observation_matrix)
+
         y_pred_reshaped = np.reshape(y_pred, (self.robot_dynamics.n_joints, y_pred.shape[0] // self.robot_dynamics.n_joints))
         measurement_vector_reshaped = np.reshape(measurement_vector, (self.robot_dynamics.n_joints, y_pred.shape[0] // self.robot_dynamics.n_joints))
         assert y_pred_reshaped.shape == measurement_vector_reshaped.shape
         mse = RobotCalibration.get_mse(measurement_vector_reshaped, y_pred_reshaped)
         print(f"MSE: {mse}")
+        weighted_observation_matrix = (wls_sample_weights*observation_matrix.T).T
+        std_dev_parameter_estimate = np.sqrt(np.diagonal(np.linalg.inv(weighted_observation_matrix.T @ weighted_observation_matrix)))  # calculates the standard deviation of the parameter estimates from the diagonal elements (variance) of the covariance matrix
+        cond = RobotCalibration._evaluate_dynamics_excitation_as_cost((wls_sample_weights*observation_matrix.T).T, metric="cond")
+        print(f"Condition no. of weighted observation matrix: {cond}.")
 
         self.parameters = wls_calibration.coef_
+        print(f"std_dev_parameter_estimate.shape: {std_dev_parameter_estimate.shape}")
+        print(f"self.parameters.shape: {self.parameters.shape}")
+        rel_std_dev_parameter_estimate = 100 * (std_dev_parameter_estimate / self.parameters)
+        print(f"parameters: {self.robot_dynamics.parameters()}")
+        print(f"rel_std_dev_parameter_estimate: {rel_std_dev_parameter_estimate}")
 
         # cache_numpy(from_cache(filename_parameters), lambda: parameters)
         cache_csv(from_cache(filename_parameters), lambda: self.parameters)
@@ -148,7 +147,7 @@ class RobotCalibration:
     def predict(self, robot_data_predict, parameters, filename_predicted_output):
 
         def compute_prediction():
-            observation_matrix = self.__observation_matrix(robot_data_predict)
+            observation_matrix = self._observation_matrix(robot_data_predict)
             estimated_output = observation_matrix @ parameters
 
             n_samples_ds = round(observation_matrix.shape[0] / self.robot_dynamics.n_joints)
@@ -162,11 +161,10 @@ class RobotCalibration:
         return cache_csv(from_cache(filename_predicted_output), compute_prediction)
 
     def _get_plot_values_for(self, data, parameters):
-        observation_matrix = self.__observation_matrix(data)
+        observation_matrix = self._observation_matrix(data)
         n_samples = observation_matrix.shape[0] // self.robot_dynamics.n_joints
-        estimated_data = np.reshape(observation_matrix @ parameters,
-                                               (self.robot_dynamics.n_joints, n_samples))
-        measured_data = np.reshape(self.__measurement_vector(data),
+        estimated_data = np.reshape(observation_matrix @ parameters, (self.robot_dynamics.n_joints, n_samples))
+        measured_data = np.reshape(self._measurement_vector(data),
                                               (self.robot_dynamics.n_joints, n_samples))
         #error = measured_data - estimated_data
         t_data = np.linspace(0, data.dt_nominal * self.downsampling_factor * n_samples, n_samples)
@@ -197,9 +195,9 @@ class RobotCalibration:
 
         # Current
         for j in range(self.robot_dynamics.n_joints):
-            axs[0].plot(t, measured_output_reshaped[j, :], '-', color=plot_colors[j], linewidth=1.5,
+            axs[0].plot(t, measured_output_reshaped[j, :], '-', color=plot_colors[j], linewidth=2.5,
                         label=f'joint {j + 1}, meas.')
-            axs[0].plot(t, estimated_output_reshaped[j, :], color=darken_color(plot_colors[j]), linewidth=1,
+            axs[0].plot(t, estimated_output_reshaped[j, :], color=darken_color(plot_colors[j]), linewidth=2.5,
                         label=f'joint {j + 1}, pred.')
             axs[0].legend(loc="best")
         axs[0].set_xlim([t[0], t[-1]])
@@ -219,18 +217,17 @@ class RobotCalibration:
 
         plt.show()
 
-
     def plot_prediction(self, filename_predict):
 
         t, y = load_object(from_cache(filename_predict + '.pickle'))
         # n_samples = self.robot_data_prediction.
         # t = np.linspace(0, self.robot_data_calibration.dt_nominal * n_samples, n_samples)
 
-        observation_matrix = self.__observation_matrix(self.robot_data_calibration)
+        observation_matrix = self._observation_matrix(self.robot_data_calibration)
         n_samples = observation_matrix.shape[0] // self.robot_dynamics.n_joints
         estimated_output_reshaped = np.reshape(observation_matrix @ parameters,
                                                (self.robot_dynamics.n_joints, n_samples))
-        measured_output_reshaped = np.reshape(self.__measurement_vector(self.robot_data_calibration),
+        measured_output_reshaped = np.reshape(self._measurement_vector(self.robot_data_calibration),
                                               (self.robot_dynamics.n_joints, n_samples))
         error = measured_output_reshaped - estimated_output_reshaped
         t = np.linspace(0, self.robot_data_calibration.dt_nominal * self.downsampling_factor * n_samples, n_samples)
@@ -271,7 +268,6 @@ class RobotCalibration:
 
         plt.show()
 
-    
     def plot_calibrate_and_validate(self, parameters):
         try:
             import matplotlib.pyplot as plt
@@ -286,7 +282,7 @@ class RobotCalibration:
         t_validation, measured_validation_output_reshaped, validation_output_reshaped = self._get_plot_values_for(self.robot_data_validation, parameters)
         t_validation += t_calibration[-1]
 
-        def darken_color(plot_color, darken_amount=0.35):
+        def darken_color(plot_color, darken_amount=0.45):
             """Computes rgb values to a darkened color"""
             line_color_rgb = ColorConverter.to_rgb(plot_color)
             line_color_hsv = rgb_to_hsv(line_color_rgb)
@@ -302,8 +298,8 @@ class RobotCalibration:
         axs = gs.subplots(sharex='col', sharey='all')
 
 
-        linewidth_meas = 1.3
-        linewidth_est = 1
+        linewidth_meas = 2.5
+        linewidth_est = 2.0
         linetype_meas = '-'
         linetype_est = '--'
 
@@ -350,7 +346,7 @@ class RobotCalibration:
 
         # Legend position
         axs[0, 0].legend(loc='lower left', ncol=self.robot_dynamics.n_joints)
-        axs[1,0].legend(loc="upper left", ncol=self.robot_dynamics.n_joints)
+        axs[1, 0].legend(loc="upper left", ncol=self.robot_dynamics.n_joints)
         plt.show()
     
     @staticmethod
@@ -370,7 +366,7 @@ class RobotCalibration:
         return cost
 
     @staticmethod
-    def __downsample(y, downsampling_factor):
+    def _downsample(y, downsampling_factor):
         """The decimate procedure down-samples the signal such that the matrix system (that is later to be inverted) is not
         larger than strictly required. The signal.decimate() function can also low-pass filter the signal before
         down-sampling, but for IIR filters unfortunately only the Chebyshev filter is available which has (unwanted) ripple
@@ -381,7 +377,7 @@ class RobotCalibration:
         return y_ds
 
     @staticmethod
-    def __parallel_filter(y, dt, f_dyn):
+    def _parallel_filter(y, dt, f_dyn):
         """Applies a 4th order Butterworth (IIR) filter for each row in y having a cutoff frequency of 2*f_dyn."""
         # Link to cut-off freq. eq.: https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6151858
         parallel_filter_order = 4
@@ -393,10 +389,8 @@ class RobotCalibration:
         return y_pf
 
     @staticmethod
-    def __trajectory_filtering_and_central_difference(q_m, dt, f_dyn, idx_start=1, idx_end=-1):
-
-        assert idx_start != 0, "idx_start must not be 0"
-        assert idx_end < q_m.shape[1], "the end idx is greater than the dataset size"
+    def _trajectory_filtering_and_central_difference(q_m, dt, f_dyn, idx_start=None, idx_end=None):
+        assert idx_end < q_m.shape[1], "'idx_end' must not be greater than the dataset size."
 
         trajectory_filter_order = 4
         cutoff_freq_trajectory = 5 * f_dyn  # Cut-off frequency should be around 5*f_dyn = 50 Hz(?)
@@ -404,22 +398,14 @@ class RobotCalibration:
                                           fs=1 / dt)
         q_tf = signal.sosfiltfilt(trajectory_filter, q_m, axis=1)
 
-        # Obtain first and seond order time-derivatives of measured and filtered trajectory
-        qd_tf = np.gradient(q_tf, dt, edge_order=2, axis=1)
-        # Using the gradient function a second time to obtain the second-order time derivative would result in
-        # additional unwanted smoothing, see https://stackoverflow.com/questions/23419193/second-order-gradient-in-numpy
-        qdd_tf = (q_tf[:, 2:] - 2 * q_tf[:, 1:-1] + q_tf[:, :-2]) / (dt ** 2)  # two fewer indices than q and qd
+        # Obtain first and second order time-derivatives of measured and filtered trajectory
+        q_tf, qd_tf, qdd_tf = central_finite_difference(q_tf, dt, order=2)
 
-        # Truncate data
+        # Truncate/crop data
+        # assert q_tf.shape[1] > idx_end + 1, f"'idx_end' must be smaller than or equal to the length of the signal along axis 1"
         q_tf = q_tf[:, idx_start:idx_end]
         qd_tf = qd_tf[:, idx_start:idx_end]
-
-        if idx_end == -1:
-            qdd_end_idx = qd_tf.shape[1]
-        else:
-            qdd_end_idx = idx_end-1
-
-        qdd_tf = qdd_tf[:, idx_start - 1:qdd_end_idx]
+        qdd_tf = qdd_tf[:, idx_start:idx_end]
 
         assert q_tf.shape == qd_tf.shape == qdd_tf.shape, f"q_tf.shape == {q_tf.shape}, qd_tf.shape == {qd_tf.shape}, qdd_tf.shape == {qdd_tf.shape}"
 
