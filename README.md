@@ -110,6 +110,16 @@ To setup the development environment:
 7. Optional: open Pycharm in the current folder.-->
 
 
+## Publishing this package on pypi
+
+1. Delete folders `dist` `build` if they exist.
+2. Activate virtual environment.
+3. Install twine and wheel: `pip install twine wheel`
+4. Create a source distribution: `python setup.py sdist`
+5. Create the binary distribution: `python setup.py bdist_wheel`
+6. Upload distribution to PyPI: `python -m twine upload dist/*`
+7. When asked for username and password, use the token and password created with your PyPI account.
+
 ## Dataset management
 
 ### Small dataset (< 100MB compressed)

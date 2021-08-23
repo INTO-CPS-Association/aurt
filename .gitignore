@@ -9,3 +9,5 @@ venv
 /resources/Dataset/*/*.csv
 *.log
 docs/build
+/build/
+/dist/
