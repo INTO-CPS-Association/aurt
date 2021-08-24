@@ -99,16 +99,6 @@ To setup the development environment:
 2. Install all packages for development: `pip install -e .`. You can also install the visualization packages, using `pip install .[vis]`
 3. Unpack the datasets (see [Dataset management](#dataset-management))
 4. To run `api` tests, open a command prompt or powershell in the repository root, and run `python build.py --run-tests api`. If you are using Linux, use `python3` instead of `python`.
-<!--5. To run the full tests, use the command `python --run-tests full-offline`.-->
-<!--2. Optional: create a virtual environment: `python -m venv venv`
-3. Optional: activate the virtual environment: 
-   1. Windows (Powershell):`.\venv\Scripts\Activate.ps1`
-   2. Linux: `source venv/bin/activate`
-4. Install all packages for development: `pip install -e .[dev]`
-5. Unpack the datasets (see [Dataset management](#dataset-management))
-6. To run all tests, open a powershell in the repository root, and run the `.\build_script.ps1 --run-tests offline` script. 
-7. Optional: open Pycharm in the current folder.-->
-
 
 ## Publishing this package on pypi
 
