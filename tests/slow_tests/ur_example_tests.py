@@ -26,7 +26,7 @@ class URExampleTests(unittest.TestCase):
         # Compile RBD
         pickle_rbd = from_cache(out_rbd + ".pickle")
         self.assertFalse(os.path.isfile(pickle_rbd))
-        api.compile_rbd(mdh_path, gravity, out_rbd, plotting=True, block=False)
+        api.compile_rbd(mdh_path, gravity, out_rbd, plotting=False)
         self.assertTrue(os.path.isfile(pickle_rbd))
         with open(pickle_rbd, 'rb') as f:
             newrbd: RigidBodyDynamics = pickle.load(f)
