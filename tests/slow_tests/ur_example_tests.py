@@ -18,16 +18,15 @@ class URExampleTests(unittest.TestCase):
         out_rd = "rd_twolink"
         friction_load_model = "square"
         friction_viscous_powers = [2, 1, 4]
-        data_file = str(from_project_root("/resources/Dataset/ur5e_45degX_aurt_demo_1.csv"))
+        data_file = str(from_project_root("/resources/Dataset/ur5e_45degX_aurt_demo_1/ur5e_45degX_aurt_demo_1.csv"))
         params_out = "ur5e_params.csv"
         calibration_out = "rc_ur5e"
         prediction = "out_predict.csv"
-        plotting = True
 
         # Compile RBD
         pickle_rbd = from_cache(out_rbd + ".pickle")
         self.assertFalse(os.path.isfile(pickle_rbd))
-        api.compile_rbd(mdh_path, gravity, out_rbd, plotting)
+        api.compile_rbd(mdh_path, gravity, out_rbd, plotting=True, block=False)
         self.assertTrue(os.path.isfile(pickle_rbd))
         with open(pickle_rbd, 'rb') as f:
             newrbd: RigidBodyDynamics = pickle.load(f)
@@ -45,7 +44,7 @@ class URExampleTests(unittest.TestCase):
         params_path = from_cache(params_out)
         self.assertFalse(os.path.isfile(pickle_calibration))
         self.assertFalse(os.path.isfile(params_path))
-        api.calibrate(out_rd, data_file, params_out, calibration_out, plotting)
+        api.calibrate(out_rd, data_file, params_out, calibration_out, plotting=False)
         self.assertTrue(os.path.isfile(pickle_calibration))
         self.assertTrue(os.path.isfile(params_path))
 
