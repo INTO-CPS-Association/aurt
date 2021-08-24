@@ -46,7 +46,7 @@ class RobotCalibration:
         self.estimated_output = None
         self.number_of_samples_in_downsampled_data = None
 
-    def _measurement_vector(self, robot_data, start_index=1, end_index=-1):
+    def _measurement_vector(self, robot_data, start_index=None, end_index=None):
         def compute_measurement_vector():
             i = np.array([robot_data.data[f"actual_current_{j}"] for j in range(1, self.robot_dynamics.n_joints + 1)]).T
             i_pf = RobotCalibration._parallel_filter(i, robot_data.dt_nominal, self.f_dyn)[start_index:end_index, :]
@@ -55,10 +55,10 @@ class RobotCalibration:
 
         return compute_measurement_vector()
 
-    def _observation_matrix(self, robot_data, start_index=1, end_index=-1):
+    def _observation_matrix(self, robot_data, start_index=None, end_index=None):
         q_m = np.array([robot_data.data[f"actual_q_{j}"] for j in range(1, self.robot_dynamics.n_joints + 1)])
 
-        # Low-pass filter (smoothen) measured angular position and obtain 1st and 2nd order time-derivatives
+        # Low-pass filter (smoothen) measured angular position(s) and obtain 1st and 2nd order time-derivatives
         q_tf, qd_tf, qdd_tf = RobotCalibration._trajectory_filtering_and_central_difference(q_m,
                                                                                              robot_data.dt_nominal,
                                                                                              self.f_dyn,
@@ -72,11 +72,16 @@ class RobotCalibration:
         for j in range(self.robot_dynamics.n_joints):
             # Obtain the rows of the observation matrix related to joint j
             obs_mat_j = self.robot_dynamics.observation_matrix_joint(j, q_tf, qd_tf, qdd_tf)
+            print(f"q_tf.shape[1]: {q_tf.shape[1]}")
+            print(f"obs_mat_j.shape[0]: {obs_mat_j.shape[0]}")
+            print(f"n_samples_ds: {n_samples_ds}")
+            print(f"n_samples_ds*n_joints: {n_samples_ds*self.robot_dynamics.n_joints}")
 
             # Parallel filter and decimate/downsample the rows of the observation matrix related to joint j.
             obs_mat_j_ds = RobotCalibration._downsample(
                 RobotCalibration._parallel_filter(obs_mat_j, robot_data.dt_nominal, self.f_dyn),
                 self.downsampling_factor)
+            assert obs_mat_j_ds.shape[]
             observation_matrix[j * n_samples_ds:(j + 1) * n_samples_ds, :] = obs_mat_j_ds
         return observation_matrix
 

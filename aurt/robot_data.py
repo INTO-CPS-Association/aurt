@@ -196,36 +196,16 @@ class RobotData:
         plt.show()
 
     def plot_target_trajectory(self):
-        q_m = np.array([self.data[f"actual_q_{j}"] for j in range(1, self.n_joints + 1)])
-        qd_m = np.gradient(q_m, self.dt_nominal, edge_order=2, axis=1)
-        qdd_m = (q_m[:, 2:] - 2 * q_m[:, 1:-1] + q_m[:, :-2]) / (self.dt_nominal ** 2)  # two fewer indices than q and qd
-
-        # q,qd,qdd = central_finite_difference_and_crop(order=2, idx_start, idx_end)
-
         t = self.data["timestamp"]
-        qd_m = qd_m[:, 1:-2]
-
-        if idx_end == -1:
-            qdd_end_idx = qd_tf.shape[1]
-        else:
-            qdd_end_idx = idx_end-1
-
-        qdd_tf = qdd_tf[:, idx_start - 1:qdd_end_idx]
-        qdd_m = qdd_m[:, -1:-1], np.append(qdd_m, None, axis=1)
 
         import matplotlib.pyplot as plt
 
         _, axs = plt.subplots(3, 1, sharex='all')
         axs[0].set(ylabel='Position [rad]')
         axs[1].set(ylabel='Velocity [rad/s]')
-        axs[2].set(ylabel='Acceleration [rad/s^2]')
+        axs[2].set(ylabel='Acceleration [rad/s$^2$]')
 
         for j in range(self.n_joints):
-            # Actual
-            axs[0].plot(t, q_m[j, :], ':', color=plot_colors[j], label=f"actual_{j}")
-            axs[1].plot(t, qd_m[j, :], ':', color=plot_colors[j], label=f"actual_{j}")
-            axs[2].plot(t, qdd_m[j, :], ':', color=plot_colors[j], label=f"actual_{j}")
-            # Target
             axs[0].plot(t, self.data[f"target_q_{j+1}"], color=plot_colors[j], label=f"target_{j}")
             axs[1].plot(t, self.data[f"target_qd_{j+1}"], color=plot_colors[j], label=f"target_{j}")
             axs[2].plot(t, self.data[f"target_qdd_{j+1}"], color=plot_colors[j], label=f"target_{j}")
@@ -233,8 +213,19 @@ class RobotData:
         for ax in axs:
             ax.legend()
 
+        plt.show()
+
+    def plot_target_position(self):
+
+        import matplotlib.pyplot as plt
 
         for j in range(self.n_joints):
-            plt.plot(self.data["timestamp"], self.data[f"target_q_{j+1}"], color=plot_colors[j])
+            plt.plot(self.time, self.data[f"target_q_{j}"], color=plot_colors[j+1], label=f"joint {j+1}")
+
+        plt.xlim([self.time[0], self.time[-1]])
+        plt.xlabel('Time [s]')
+        plt.ylabel('Position [rad]')
+        plt.legend(loc='lower center', ncol=self.n_joints)
+        # plt.legend(bbox_to_anchor=(0.5, 1.18), loc='upper center', ncol=self.n_joints)
 
         plt.show()

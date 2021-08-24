@@ -4,7 +4,7 @@ import pandas as pd
 import sympy as sp
 
 
-plot_colors = ['red', 'green', 'blue', 'chocolate', 'crimson', 'fuchsia', 'indigo', 'orange']
+plot_colors = ['red', 'green', 'blue', 'chocolate', 'crimson', 'fuchsia', 'indigo', 'orange', 'olive']
 
 JOINT_N = "#"
 
