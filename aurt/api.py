@@ -6,21 +6,37 @@ from aurt.robot_calibration import RobotCalibration
 from aurt.robot_data import RobotData
 from aurt.data_processing import *
 from aurt.file_system import from_cache
+import logging
 
 
 def compile_rbd(mdh_path, gravity, output_path, plotting, block=True):
     # remove cached files that were used as intermediate results for faster computation
-    try:
-        regressor_joint_name = "rigid_body_dynamics_regressor_joint_"
-        all_files = next(os.walk(from_cache(".")), (None, None, []))[2]
-        all_files = [f for f in all_files if regressor_joint_name in f]
-        for f in all_files:
+    logging.basicConfig(level=logging.INFO)
+    l = logging.getLogger("aurt")
+    
+    regressor_joint_name = "rigid_body_dynamics_regressor_joint_"
+    all_files = next(os.walk(from_cache(".")), (None, None, []))[2]
+    all_files = [f for f in all_files if regressor_joint_name in f]
+    for f in all_files:
+        try:
             os.remove(from_cache(f))
-        os.remove(from_cache("rigid_body_dynamics.pickle"))
-        os.remove(from_cache("rigid_body_dynamics_regressor.pickle"))
-    except:
-        pass
-
+        except:
+            l.warning(f"The file: {f} could not be deleted. Please delete it manually.")
+            pass
+    rbd_filename = from_cache("rigid_body_dynamics.pickle")
+    rbd_regressor_filename = from_cache("rigid_body_dynamics_regressor.pickle")
+    if os.path.isfile(rbd_filename):
+        try:
+            os.remove(rbd_filename)
+        except:
+            l.warning(f"The file: {rbd_filename} could not be deleted. Please delete it manually.")
+            pass
+    if os.path.isfile(rbd_regressor_filename):
+        try:
+            os.remove(rbd_regressor_filename)
+        except:
+            l.warning(f"The file: {rbd_regressor_filename} could not be deleted. Please delete it manually.")
+            pass
 
     mdh = convert_file_to_mdh(mdh_path)
     rbd = RigidBodyDynamics(mdh, gravity)
