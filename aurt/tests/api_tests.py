@@ -98,6 +98,7 @@ class APITests(unittest.TestCase):
         plotting = True
 
         api.compile_rbd(mdh_path, gravity, output_path, plotting, block=False)
+    
 
 
 
