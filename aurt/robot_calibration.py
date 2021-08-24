@@ -81,7 +81,7 @@ class RobotCalibration:
             obs_mat_j_ds = RobotCalibration._downsample(
                 RobotCalibration._parallel_filter(obs_mat_j, robot_data.dt_nominal, self.f_dyn),
                 self.downsampling_factor)
-            assert obs_mat_j_ds.shape[]
+            
             observation_matrix[j * n_samples_ds:(j + 1) * n_samples_ds, :] = obs_mat_j_ds
         return observation_matrix
 
@@ -395,7 +395,8 @@ class RobotCalibration:
 
     @staticmethod
     def _trajectory_filtering_and_central_difference(q_m, dt, f_dyn, idx_start=None, idx_end=None):
-        assert idx_end < q_m.shape[1], "'idx_end' must not be greater than the dataset size."
+        if idx_end is not None:
+            assert idx_end < q_m.shape[1], "'idx_end' must not be greater than the dataset size."
 
         trajectory_filter_order = 4
         cutoff_freq_trajectory = 5 * f_dyn  # Cut-off frequency should be around 5*f_dyn = 50 Hz(?)
