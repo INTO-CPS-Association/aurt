@@ -1,6 +1,0 @@
-XXR5 = XX5 - YY5 + YY6 + d6**2*m6 + 2*d6*mZ6
-XXR5 = XX5 - YY5 + YY6 
-
-(XX5 - YY5)*C
-
-YY6(A + B) = YY6(C)

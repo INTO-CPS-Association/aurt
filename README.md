@@ -7,6 +7,10 @@ To install the tool, type:
 ```
 pip install aurt
 ```
+or, if plotting and visualization features are needed,
+```
+pip install aurt[vis]
+```
 
 # Command Line Interface
 
@@ -88,7 +92,10 @@ The prediction fields are:
 ```
 aurt calibrate-validate --model robot_dynamics --data measured_data.csv --calibration_data_relative FRACTION --out-params calibrated_parameters.csv --out-calibration-model robot_calibration --prediction predicted_output.csv --plot
 ```
-Simultaneously calibrates and validates the robot dynamics model using the dataset `measured_data.csv`. The command implements the functionalities of the commands `calibrate` and `predict`. The data of `measured_data.csv` is separated into two consecutive parts 1) calibration data and 2) validation data. The calibration data has a duration of 0.1 < `FRACTION` < 0.9 times the duration of `measured_data.csv` while the remaining part of the data is used for validation.
+Simultaneously calibrates and validates the robot dynamics model using the dataset `measured_data.csv`. 
+The command implements the functionalities of the commands `calibrate` and `predict`. 
+The data of `measured_data.csv` is separated into two consecutive parts 1) calibration data and 2) validation data. 
+The calibration data has a duration of 0.1 < `FRACTION` < 0.9 times the duration of `measured_data.csv` while the remaining part of the data is used for validation.
 
 # Contributing
 
@@ -96,19 +103,12 @@ Simultaneously calibrates and validates the robot dynamics model using the datas
 
 To setup the development environment:
 1. Open terminal in the current folder.
-2. Install all packages for development: `pip install -e .`. You can also install the visualization packages, using `pip install .[vis]`
+2. Install all packages for development: `pip install -e .[vis]`.
 3. Unpack the datasets (see [Dataset management](#dataset-management))
-4. To run `api` tests, open a command prompt or powershell in the repository root, and run `python build.py --run-tests api`. If you are using Linux, use `python3` instead of `python`.
-<!--5. To run the full tests, use the command `python --run-tests full-offline`.-->
-<!--2. Optional: create a virtual environment: `python -m venv venv`
-3. Optional: activate the virtual environment: 
-   1. Windows (Powershell):`.\venv\Scripts\Activate.ps1`
-   2. Linux: `source venv/bin/activate`
-4. Install all packages for development: `pip install -e .[dev]`
-5. Unpack the datasets (see [Dataset management](#dataset-management))
-6. To run all tests, open a powershell in the repository root, and run the `.\build_script.ps1 --run-tests offline` script. 
-7. Optional: open Pycharm in the current folder.-->
+4. To run `api` tests, open a command prompt or powershell in the repository root, and run `python build.py --run-tests api`. 
+   If you are using Linux, use `python3` instead of `python`.
 
+_NOTE: Run tests before commits. If they don't pass, fix them before committing._
 
 ## Publishing this package on pypi
 

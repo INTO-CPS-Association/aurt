@@ -1,6 +1,0 @@
-XX5*qd1**2*sin(q2)**2*sin(q3)**2*sin(q4)**2*sin(q5)*cos(q5)
- - 2*XX5*qd1**2*sin(q2)**2*sin(q3)*sin(q4)*sin(q5)*cos(q3)*cos(q4)*cos(q5)
- + XX5*qd1**2*sin(q2)**2*sin(q5)*cos(q3)**2*cos(q4)**2*cos(q5)
- - YY5*qd1**2*sin(q2)**2*sin(q3)**2*sin(q4)**2*sin(q5)*cos(q5)
- + 2*YY5*qd1**2*sin(q2)**2*sin(q3)*sin(q4)*sin(q5)*cos(q3)*cos(q4)*cos(q5)
- - YY5*qd1**2*sin(q2)**2*sin(q5)*cos(q3)**2*cos(q4)**2*cos(q5)

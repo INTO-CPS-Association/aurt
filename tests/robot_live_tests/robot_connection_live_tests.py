@@ -3,10 +3,9 @@ import time
 import unittest
 import numpy as np
 from urinterface import RobotConnection
-from tests.full_offline_tests.utils.timed_test import TimedTest
 
 
-class RobotLiveTests(TimedTest):
+class RobotLiveTests(unittest.TestCase):
 
     def test_start_stop_recording_ur5e(self):
         ur5e = RobotConnection("192.168.12.245")  # UR5e Robot @ DeepTech

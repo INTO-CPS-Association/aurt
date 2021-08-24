@@ -11,3 +11,4 @@ venv
 docs/build
 /build/
 /dist/
+/cache
