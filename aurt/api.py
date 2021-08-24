@@ -66,7 +66,6 @@ def predict(model_path, data_path, output_path):
     rc_predict_data = RobotData(data_path, delimiter=' ', interpolate_missing_samples=True) # TODO should we always interpolate missing samples?
     rc.predict(rc_predict_data, rc.parameters, output_path)
 
-
 def calibrate_validate(model_path, data_path, calibration_data_relative, output_params, output_calibration, output_predict, plotting):
     rc = RobotCalibration(model_path, data_path, calibration_data_relative)
     params = rc.calibrate(output_params)
