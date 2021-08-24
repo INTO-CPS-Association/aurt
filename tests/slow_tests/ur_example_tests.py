@@ -18,7 +18,7 @@ class URExampleTests(unittest.TestCase):
         out_rd = "rd_twolink"
         friction_load_model = "square"
         friction_viscous_powers = [2, 1, 4]
-        data_file = str(from_project_root("/resources/Dataset/ur5e_45degX_aurt_demo_1/ur5e_45degX_aurt_demo_1.csv"))
+        data_file = str(from_project_root("resources/Dataset/ur5e_45degX_aurt_demo_1/ur5e_45degX_aurt_demo_1.csv"))
         params_out = "ur5e_params.csv"
         calibration_out = "rc_ur5e"
         prediction = "out_predict.csv"
