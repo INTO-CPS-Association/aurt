@@ -12,26 +12,26 @@ if __name__ == '__main__':
     parser.add_argument(
         "--run-tests",
         dest="run_tests",
-        choices=["api","cli","full-offline","live"],
-        help="when set, the dynamic calibration tests will be run, depending on the choice: 'api','cli','full-offline','live'. Live tests can be performed on a UR robot."
+        choices=["api","cli","slow_tests","live"],
+        help="when set, the dynamic calibration tests will be run, depending on the choice: 'api','cli','slow_tests','live'. Live tests can be performed on a UR robot."
     )
     args = parser.parse_args()
 
-    if args.run_tests == "full-offline":
+    if args.run_tests == "slow_tests":
         suite = unittest.TestSuite()
-        suite.addTest(unittest.TestLoader().discover("tests/full_offline_tests", pattern="*tests.py"))
+        suite.addTest(unittest.TestLoader().discover("tests/slow_tests", pattern="*tests.py"))
         runner = unittest.TextTestRunner()
-        runner.run(suite)
+        res = runner.run(suite)
     elif args.run_tests == "api":
         suite = unittest.TestSuite()
         suite.addTest(unittest.TestLoader().discover("aurt/tests", pattern="api_tests.py"))
         runner = unittest.TextTestRunner()
-        runner.run(suite)
+        res = runner.run(suite)
     elif args.run_tests ==  "cli":
         suite = unittest.TestSuite()
         suite.addTest(unittest.TestLoader().discover("aurt/tests", pattern="cli_tests.py"))
         runner = unittest.TextTestRunner()
-        runner.run(suite)
+        res = runner.run(suite)
     elif args.run_tests == "live":
         try:
             loader = unittest.TestLoader()
@@ -41,3 +41,8 @@ if __name__ == '__main__':
             runner.run(suite)
         except:
             pass
+    
+    if res.wasSuccessful():
+        exit(0)
+    else:
+        exit(1)
