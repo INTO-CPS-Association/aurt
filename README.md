@@ -90,7 +90,7 @@ The prediction fields are:
 
 ## Calibrate and Validate
 ```
-aurt calibrate-validate --model robot_dynamics --data measured_data.csv --calibration_data_relative FRACTION --out-params calibrated_parameters.csv --out-calibration-model robot_calibration --prediction predicted_output.csv --plot
+aurt calibrate-validate --model robot_dynamics --data measured_data.csv --calibration-data-rel FRACTION --out-params calibrated_parameters.csv --out-calibration-model robot_calibration --prediction predicted_output.csv --plot
 ```
 Simultaneously calibrates and validates the robot dynamics model using the dataset `measured_data.csv`. 
 The command implements the functionalities of the commands `calibrate` and `predict`. 
@@ -112,13 +112,14 @@ _NOTE: Run tests before commits. If they don't pass, fix them before committing.
 
 ## Publishing this package on pypi
 
-1. Delete folders `dist` `build` if they exist.
-2. Activate virtual environment.
-3. Install twine and wheel: `pip install twine wheel`
-4. Create a source distribution: `python setup.py sdist`
-5. Create the binary distribution: `python setup.py bdist_wheel`
-6. Upload distribution to PyPI: `python -m twine upload dist/*`
-7. When asked for username and password, use the token and password created with your PyPI account.
+1. Make sure all tests, except the live ones, are passing.
+2. Delete folders `dist` `build` if they exist.
+3. Activate virtual environment.
+4. Install twine and wheel: `pip install twine wheel`
+5. Create a source distribution: `python setup.py sdist`
+6. Create the binary distribution: `python setup.py bdist_wheel`
+7. Upload distribution to PyPI: `python -m twine upload dist/*`
+8. When asked for username and password, use the token and password created with your PyPI account.
 
 ## Dataset management
 
