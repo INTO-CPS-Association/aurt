@@ -70,9 +70,9 @@ For showing the calibration plot, use the argument `--plot`.
 
 The measured data should contain the following fields:
 - `timestamp` of type float, representing the number of seconds passed from a given reference point.
-- `target_qd_N` of type float, representing the `N`th joint target angular velocity, as computed by the robot controller, where `N` is an integer in `{0, 1, ...}`.
-- `actual_q_N` of type float, representing the `N`th joint angle, as measured by the robot controller, where `N` is an integer in `{0, 1, ...}`.
-- `actual_current_N` of type float, representing the `N`th joint current, as measured by the robot controller, where `N` is an integer in `{0, 1, ...}`.
+- `target_qd_j` of type float, representing the `j`th joint target angular velocity, as computed by the robot controller, where `j` is an integer in `{0, 1, ..., N}`.
+- `actual_q_j` of type float, representing the `j`th joint angle, as measured by the robot controller, where `j` is an integer in `{0, 1, ..., N}`.
+- `actual_current_j` of type float, representing the `j`th joint current, as measured by the robot controller, where `j` is an integer in `{0, 1, ..., N}`.
 
 ## Predict
 
@@ -86,7 +86,7 @@ and writes the predicted output to `predicted_output.csv`.
 
 The prediction fields are:
 - `timestamp` of type float, referring to the time of the measured data, as in [Calibrate](#predict).
-- `predicted_current_N` of type float, representing the `N`th joint current, as predicted by the robot model, where `N` is an integer in `{0, 1, ...}`.
+- `predicted_current_j` of type float, representing the `j`th joint current, as predicted by the robot model, where `j` is an integer in `{0, 1, ..., N}`.
 
 ## Calibrate and Validate
 ```
