@@ -10,7 +10,7 @@ def project_root() -> Path:
     return Path(__file__).parent.parent
 
 
-def from_project_root(filepath):
+def from_project_root(filepath) -> Path:
     return project_root().joinpath(filepath)
 
 

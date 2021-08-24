@@ -11,10 +11,9 @@ from aurt.num_sym_layers import npzeros_array, npvector
 from aurt.torques import compute_torques_numeric_5e
 from tests import NONINTERACTIVE
 from tests.full_offline_tests.utils.plotting import draw_robot
-from tests.full_offline_tests.utils.timed_test import TimedTest
 
 
-class TorqueTests(TimedTest):
+class TorqueTests(unittest.TestCase):
 
     def test_numeric_torques_q_single_sample(self):
         ur5e = RobotConnection("192.168.56.101")
