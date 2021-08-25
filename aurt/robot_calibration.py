@@ -72,10 +72,6 @@ class RobotCalibration:
         for j in range(self.robot_dynamics.n_joints):
             # Obtain the rows of the observation matrix related to joint j
             obs_mat_j = self.robot_dynamics.observation_matrix_joint(j, q_tf, qd_tf, qdd_tf)
-            print(f"q_tf.shape[1]: {q_tf.shape[1]}")
-            print(f"obs_mat_j.shape[0]: {obs_mat_j.shape[0]}")
-            print(f"n_samples_ds: {n_samples_ds}")
-            print(f"n_samples_ds*n_joints: {n_samples_ds*self.robot_dynamics.n_joints}")
 
             # Parallel filter and decimate/downsample the rows of the observation matrix related to joint j.
             obs_mat_j_ds = RobotCalibration._downsample(
