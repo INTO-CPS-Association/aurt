@@ -97,7 +97,7 @@ class CLITests(unittest.TestCase):
         predict_parser = _create_predict_parser(subparsers)
         predict_parser.model = model
         predict_parser.data = data
-        predict_parser.prediction = prediction
+        predict_parser.out = prediction
         predict_parser.logger_config = logger_config
         return predict_parser
 
@@ -222,15 +222,15 @@ class CLITests(unittest.TestCase):
         self.init_calibrate()
         model = "out_calibrate"
         data = str(from_project_root("aurt/tests/resources/twolink_data.csv"))  # TODO: change to real prediction data
-        prediction = "out_predict.csv"
+        out = "out_predict.csv"
         parser = self.set_predict_arguments(
             model,
             data,
-            prediction
+            out
         )
         predict(parser)
 
-        out_filename = from_cache(prediction)
+        out_filename = from_cache(out)
         out_prediction = load_csv(out_filename)
         self.assertFalse(out_prediction.empty)
 
