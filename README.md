@@ -47,17 +47,18 @@ The friction configuration options are:
   <img src="resources/friction_load_models.png" alt="The different possibilities for load-dependent friction models" width="400"/>
 </p>
 
-- `--friction-viscous-powers POWERS` where `POWERS` has the format `P1 P2 ... PN`, and `PN` is a positive integer representing the `N`-th power of the odd polynomial
+- `--friction-viscous-powers POWERS` where `POWERS` is a set <img src="https://render.githubusercontent.com/render/math?math=S"> of integers having the format `P1 P2 ...` used to define the odd polynomial function
 <img src="https://render.githubusercontent.com/render/math?math=\mathrm{f}_v"> in the angular velocity
-<img src="https://render.githubusercontent.com/render/math?math=\dot{q}"> of any joint
+<img src="https://render.githubusercontent.com/render/math?math=\dot{q}"> of any joint as
 
-  <img src="https://render.githubusercontent.com/render/math?math=\mathrm{f}_v(\dot{q}) = \sum_{n=1}^{M}F_{v,\!n}\,b_n">
+  <img src="https://render.githubusercontent.com/render/math?math=\mathrm{f}_v(\dot{q}) = \sum_{i\in S}F_{v,\!i}\,b_i">
 
-  with <img src="https://render.githubusercontent.com/render/math?math=F_{v,\!n}">,
-  <img src="https://render.githubusercontent.com/render/math?math=n = 1, \dots, M"> the viscous coefficients of friction, 
-  <img src="https://render.githubusercontent.com/render/math?math=b_n=|\dot{q}|\,\dot{q}^{n-1}">
-  if <img src="https://render.githubusercontent.com/render/math?math=n"> is even
-  and <img src="https://render.githubusercontent.com/render/math?math=b_n = \dot{q}^n"> otherwise.
+  with <img src="https://render.githubusercontent.com/render/math?math=F_{v,\!i}"> the viscous coefficient of friction corresponding to the integer element 
+  <img src="https://render.githubusercontent.com/render/math?math=i"> of
+  <img src="https://render.githubusercontent.com/render/math?math=S">, 
+  <img src="https://render.githubusercontent.com/render/math?math=b_i=|\dot{q}|\,\dot{q}^{i-1}"> if 
+  <img src="https://render.githubusercontent.com/render/math?math=i"> is even
+  and <img src="https://render.githubusercontent.com/render/math?math=b_i = \dot{q}^i"> otherwise.
 
 ## Calibrate
 
