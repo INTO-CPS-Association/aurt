@@ -98,13 +98,13 @@ def predict(args):
     if not os.path.isfile(args.data):
         raise Exception(f"The data file {args.data} could not be located. Please specify a valid filename.")
 
-    filename = from_cache(args.prediction)
+    filename = from_cache(args.out)
     if os.path.isfile(filename):
         l.warning(f"The output prediction file {filename} already exists, and its content will be overwritten.")
 
     model_path = args.model
     data_path = args.data
-    output_path = args.prediction
+    output_path = args.out
     
     api.predict(model_path, data_path, output_path)
 
@@ -123,7 +123,7 @@ def calibrate_validate(args):
     if os.path.isfile(args.out_params):
         l.warning(f"The parameters filename {args.out_params} already exists, and its content will be overwritten.")
 
-    filename = from_cache(args.output_prediction)
+    filename = from_cache(args.out_prediction)
     if os.path.isfile(filename):
         l.warning(f"The output prediction file {filename} already exists, and its content will be overwritten.")
 
@@ -141,7 +141,7 @@ def calibrate_validate(args):
     calibration_data_rel = args.calibration_data_rel # TODO: make sure to check that it is between 0 and 1
     plotting = args.plot
     params_path = args.out_params
-    output_prediction_path = args.output_prediction
+    output_prediction_path = args.out_prediction
     
     api.calibrate_validate(model_path, data_path, calibration_data_rel, params_path, calbration_model_path, output_prediction_path, plotting)
 
@@ -255,7 +255,7 @@ def _create_predict_parser(subparsers):
     predict_parser.add_argument('--data', required=True,
                                     help="The measured data (csv).")
 
-    predict_parser.add_argument('--prediction', required=True,
+    predict_parser.add_argument('--out', required=True,
                                     help="Path of outputted prediction values (csv).")
 
     predict_parser.set_defaults(command=predict)
@@ -277,7 +277,7 @@ def _create_calibrate_validate_parser(subparsers):
     calibrate_validate_parser.add_argument('--out-calibration-model',
                                            help="Path of the outputted robot calibration model (pickle).")
 
-    calibrate_validate_parser.add_argument('--output-prediction', required=True,
+    calibrate_validate_parser.add_argument('--out-prediction', required=True,
                                            help="Path of outputted prediction values (csv).")
 
     calibrate_validate_parser.add_argument('--plot', action="store_true", default=False)
