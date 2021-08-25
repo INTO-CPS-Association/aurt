@@ -90,7 +90,7 @@ The prediction fields are:
 
 ## Calibrate and Validate
 ```
-aurt calibrate-validate --model robot_dynamics --data measured_data.csv --calibration-data-rel FRACTION --out-params calibrated_parameters.csv --out-calibration-model robot_calibration --prediction predicted_output.csv --plot
+aurt calibrate-validate --model robot_dynamics --data measured_data.csv --calibration-data-rel FRACTION --out-params calibrated_parameters.csv --out-calibration-model robot_calibration --output-prediction predicted_output.csv --plot
 ```
 Simultaneously calibrates and validates the robot dynamics model using the dataset `measured_data.csv`. 
 The command implements the functionalities of the commands `calibrate` and `predict`. 
