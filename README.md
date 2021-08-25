@@ -62,10 +62,10 @@ The friction configuration options are:
 ## Calibrate
 
 ```
-aurt calibrate --model robot_dynamics --data measured_data.csv --out-params calibrated_parameters.csv --out-calibration-model robot_calibration --plot
+aurt calibrate --model robot_dynamics --data measured_data.csv --out-params calibrated_parameters.csv --out-calibrated-model rd_calibrated --plot
 ```
 
-Reads the model produced by the `compile-rd` command, the measured data in `measured_data.csv`, writes the calibrated base parameter values to `calibrated_parameters.csv`, and writes the calibrated model parameters to `robot_calibration`.
+Reads the model produced by the `compile-rd` command, the measured data in `measured_data.csv`, writes the values of the calibrated base parameters to `calibrated_parameters.csv`, and writes the calibrated robot dynamics model to `rd_calibrated`.
 For showing the calibration plot, use the argument `--plot`.
 
 The measured data should contain the following fields:
@@ -77,7 +77,7 @@ The measured data should contain the following fields:
 ## Predict
 
 ```
-aurt predict --model robot_calibration --data measured_data.csv --prediction predicted_output.csv
+aurt predict --model rd_calibrated --data measured_data.csv --out predicted_output.csv
 ```
 
 Reads the model produced by the `calibrate` command, 
@@ -90,7 +90,7 @@ The prediction fields are:
 
 ## Calibrate and Validate
 ```
-aurt calibrate-validate --model robot_dynamics --data measured_data.csv --calibration-data-rel FRACTION --out-params calibrated_parameters.csv --out-calibration-model robot_calibration --output-prediction predicted_output.csv --plot
+aurt calibrate-validate --model robot_dynamics --data measured_data.csv --calibration-data-rel FRACTION --out-params calibrated_parameters.csv --out-calibrated-model rd_calibrated --out-prediction predicted_output.csv --plot
 ```
 Simultaneously calibrates and validates the robot dynamics model using the dataset `measured_data.csv`. 
 The command implements the functionalities of the commands `calibrate` and `predict`. 
