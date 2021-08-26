@@ -185,13 +185,13 @@ def _create_compile_rbd_parser(subparsers):
     compile_rbd_parser = subparsers.add_parser("compile-rbd")
 
     compile_rbd_parser.add_argument('--mdh', required=True,
-                                    help="Modified Denavit Hartenberg (MDH) parameters file (csv)")
+                                    help="Modified Denavit-Hartenberg (MDH) parameters file (csv)")
 
     compile_rbd_parser.add_argument('--gravity', required=True,
                                     nargs=3,
                                     type=float,
                                     metavar='R',
-                                    help="Gravity vector. Ex: 0 0 -9.81")
+                                    help="Gravity vector, e.g.: 0 0 -9.81")
 
     compile_rbd_parser.add_argument('--out', required=True,
                                     help="Path of outputted rigid body dynamics model (pickle).")
@@ -238,8 +238,8 @@ def _create_calibrate_parser(subparsers):
     calibrate_parser.add_argument('--out-params',
                                     help="The resulting parameter values (csv).")
 
-    calibrate_parser.add_argument('--out-calibration-model',
-                                    help="Path of the outputted robot calibration model (pickle).")
+    calibrate_parser.add_argument('--out-calibrated-model',
+                                    help="Path of the outputted calibrated robot dynamics model (pickle).")
 
     calibrate_parser.add_argument('--plot', action="store_true", default=False)
 
@@ -250,7 +250,7 @@ def _create_predict_parser(subparsers):
     predict_parser = subparsers.add_parser("predict")
 
     predict_parser.add_argument('--model', required=True,
-                                    help="The calibration model created with the calibrate command.")
+                                    help="The calibrated robot dynamics model created with the calibrate command.")
 
     predict_parser.add_argument('--data', required=True,
                                     help="The measured data (csv).")
@@ -274,8 +274,8 @@ def _create_calibrate_validate_parser(subparsers):
 
     calibrate_validate_parser.add_argument('--out-params', help="The resulting parameter values (csv).")
 
-    calibrate_validate_parser.add_argument('--out-calibration-model',
-                                           help="Path of the outputted robot calibration model (pickle).")
+    calibrate_validate_parser.add_argument('--out-calibrated-model',
+                                           help="Path of the outputted calibrated robot dynamics model (pickle).")
 
     calibrate_validate_parser.add_argument('--out-prediction', required=True,
                                            help="Path of outputted prediction values (csv).")

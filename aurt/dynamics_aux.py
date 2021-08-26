@@ -24,7 +24,7 @@ def replace_first_moments(args):
     if j == 0:
         print(f"Ignore joint {j}...")
         return tau_sym_j
-
+    
     n_cartesian = len(m_pc[0])
     for jj in range(j, n_joints + 1):  # The joint j torque equation is affected by dynamic coefficients only for links jj >= j
         for i in range(n_cartesian):  # Cartesian coordinates loop
@@ -32,6 +32,8 @@ def replace_first_moments(args):
             total = (n_joints + 1 - j) * n_cartesian
             progress = (jj - j) * n_cartesian + i + 1
             print(f"Task {j}: {progress}/{total} (tau[{j}]: {m[jj]}*{pc[jj][i]} -> {m_pc[jj][i]})")
+
+            # According to tests on a 6 DoF robot, having 'expand()' inside the nested for-loops is not slower than having 'expand()' outside the nested for-loops
             tau_sym_j = tau_sym_j.expand().subs(m[jj] * pc[jj][i], m_pc[jj][i])  # expand() is - for unknown reasons - needed for subs() to consistently detect the "m*PC" products
 
     return tau_sym_j
@@ -68,6 +70,10 @@ def compute_regressor_row(args):
             column_idx = sum(n_par[:jj]) + i
             print(
                 f"Computing regressor(row={j}/{n_joints + 1}, column={column_idx + 1}/{sum(n_par)}) by analyzing dependency of tau[{j}] on joint {jj}'s parameter {i}: {p_linear[jj][i]}")
-            reg_row_j[0, column_idx] = sp.diff(tau_sym_linearizable_j, p_linear[jj][i])
-
+            # reg_row_j[0, column_idx] = sp.diff(tau_sym_linearizable_j, p_linear[jj][i])  # Tests using instead 'sp.collect(expr, x).coeff(x)' yielded significant worse performance
+            reg_row_j[0, column_idx] = tau_sym_linearizable_j.coeff(p_linear[jj][i])
+            # x = [x1,x2]
+            # res = sp.collect(expr, x)
+            # for ...
+            #    res.coeff(x[i])
     return reg_row_j

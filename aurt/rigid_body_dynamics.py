@@ -11,10 +11,10 @@ from aurt.data_processing import ModifiedDH
 
 
 class RigidBodyDynamics:
-    __qr_numerical_threshold = 1e-12  # Numerical threshold used in identifying the base inertial parameters
-    __max_number_of_rank_evaluations = 100  # Max. no. of rank evaluations in computing the base inertial parameters
-    __n_regressor_evals_per_rank_calculation = 2  # No. of regressor evaluations per rank calculation
-    __min_rank_evals = 4
+    _qr_numerical_threshold = 1e-12  # Numerical threshold used in identifying the base inertial parameters
+    _max_number_of_rank_evaluations = 100  # Max. no. of rank evaluations in computing the base inertial parameters
+    _n_regressor_evals_per_rank_calculation = 2  # No. of regressor evaluations per rank calculation
+    _min_rank_evals = 4
 
     def __init__(self, modified_dh: ModifiedDH, gravity=None, tcp_force_torque=None):
         self.mdh = modified_dh
@@ -24,31 +24,30 @@ class RigidBodyDynamics:
         self.qd = [sp.Integer(0)] + [sp.symbols(f"qd{j}") for j in range(1, self.n_joints + 1)]
         self.qdd = [sp.Integer(0)] + [sp.symbols(f"qdd{j}") for j in range(1, self.n_joints + 1)]
 
-        self.__m = sp.symbols([f"m{j}" for j in range(self.n_joints + 1)])
-        self.__mX = sp.symbols([f"mX{j}" for j in range(self.n_joints + 1)])
-        self.__mY = sp.symbols([f"mY{j}" for j in range(self.n_joints + 1)])
-        self.__mZ = sp.symbols([f"mZ{j}" for j in range(self.n_joints + 1)])
+        self._m = sp.symbols([f"m{j}" for j in range(self.n_joints + 1)])
+        self._mX = sp.symbols([f"mX{j}" for j in range(self.n_joints + 1)])
+        self._mY = sp.symbols([f"mY{j}" for j in range(self.n_joints + 1)])
+        self._mZ = sp.symbols([f"mZ{j}" for j in range(self.n_joints + 1)])
 
-        # TODO: clean code
         PC = [spvector([0.0, 0.0, 0.0])] * (self.n_joints + 1)
         for j in range(1, self.n_joints + 1):
             PC[j] = spvector([sp.symbols(f"PCx{j}"), sp.symbols(f"PCy{j}"), sp.symbols(f"PCz{j}")])
-        self.__pc = PC
+        self._pc = PC
 
-        self.__m_pc = [[self.__mX[j], self.__mY[j], self.__mZ[j]] for j in range(self.n_joints + 1)]
+        self._m_pc = [[self._mX[j], self._mY[j], self._mZ[j]] for j in range(self.n_joints + 1)]
 
-        self.__XX = sp.symbols([f"XX{j}" for j in range(self.n_joints + 1)])
-        self.__XY = sp.symbols([f"XY{j}" for j in range(self.n_joints + 1)])
-        self.__XZ = sp.symbols([f"XZ{j}" for j in range(self.n_joints + 1)])
-        self.__YY = sp.symbols([f"YY{j}" for j in range(self.n_joints + 1)])
-        self.__YZ = sp.symbols([f"YZ{j}" for j in range(self.n_joints + 1)])
-        self.__ZZ = sp.symbols([f"ZZ{j}" for j in range(self.n_joints + 1)])
-        self.__i_cor = [sp.zeros(3, 3) for _ in range(self.n_joints + 1)]
+        self._XX = sp.symbols([f"XX{j}" for j in range(self.n_joints + 1)])
+        self._XY = sp.symbols([f"XY{j}" for j in range(self.n_joints + 1)])
+        self._XZ = sp.symbols([f"XZ{j}" for j in range(self.n_joints + 1)])
+        self._YY = sp.symbols([f"YY{j}" for j in range(self.n_joints + 1)])
+        self._YZ = sp.symbols([f"YZ{j}" for j in range(self.n_joints + 1)])
+        self._ZZ = sp.symbols([f"ZZ{j}" for j in range(self.n_joints + 1)])
+        self._i_cor = [sp.zeros(3, 3) for _ in range(self.n_joints + 1)]
         for j in range(self.n_joints + 1):
-            self.__i_cor[j] = sp.Matrix([
-                [self.__XX[j], self.__XY[j], self.__XZ[j]],
-                [self.__XY[j], self.__YY[j], self.__YZ[j]],
-                [self.__XZ[j], self.__YZ[j], self.__ZZ[j]]
+            self._i_cor[j] = sp.Matrix([
+                [self._XX[j], self._XY[j], self._XZ[j]],
+                [self._XY[j], self._YY[j], self._YZ[j]],
+                [self._XZ[j], self._YZ[j], self._ZZ[j]]
             ])
 
         if gravity is None:
@@ -56,22 +55,18 @@ class RigidBodyDynamics:
             gravity = [0, 0, -9.81]
         self.gravity = gravity
         gx, gy, gz = sp.symbols(f"gx gy gz")
-        self.__g = sp.Matrix([gx, gy, gz])
+        self._g = sp.Matrix([gx, gy, gz])
 
         fx, fy, fz, nx, ny, nz = sp.symbols(f"fx fy fz nx ny nz")
-        self.__f_tcp = sp.Matrix([fx, fy, fz])  # Force at the TCP
-        self.__n_tcp = sp.Matrix([nx, ny, nz])  # Moment at the TCP
+        self._f_tcp = sp.Matrix([fx, fy, fz])  # Force at the TCP
+        self._n_tcp = sp.Matrix([nx, ny, nz])  # Moment at the TCP
 
         if tcp_force_torque is None:
             f_tcp_num = np.array([0, 0, 0])
             n_tcp_num = np.array([0, 0, 0])
             tcp_force_torque = [f_tcp_num, n_tcp_num]
-        self.__f_tcp_num = tcp_force_torque[0]
-        self.__n_tcp_num = tcp_force_torque[1]
-
-        # Filepaths
-        #self.filepath_dynamics = from_cache('rigid_body_dynamics')
-        #self.__filepath_regressor_joint = from_cache('rigid_body_dynamics_regressor_joint_')
+        self._f_tcp_num = tcp_force_torque[0]
+        self._n_tcp_num = tcp_force_torque[1]
 
         self.n_params = None
         self.params = None
@@ -106,24 +101,24 @@ class RigidBodyDynamics:
         Returns a list of 'n_joints + 1' elements with each element comprising a list of all rigid body parameters
         related to that corresponding link.
         """
-        base_params_information = self.__base_parameters_information()
+        base_params_information = self._base_parameters_information()
         self.params = base_params_information[2][1:]
         self.n_params = base_params_information[1][1:]
         return self.params
 
     def number_of_parameters(self):
-        self.n_params = self.__base_parameters_information()[1][1:]
+        self.n_params = self._base_parameters_information()[1][1:]
         return self.n_params
 
-    def __parameters_linear(self):
+    def _parameters_linear(self):
         """
         Returns a list of 'n_joints + 1' elements with each element comprising a list of all parameters related to that
         corresponding rigid body.
         """
-        return [[self.__XX[j], self.__XY[j], self.__XZ[j], self.__YY[j], self.__YZ[j], self.__ZZ[j],
-                 self.__mX[j], self.__mY[j], self.__mZ[j], self.__m[j]] for j in range(self.n_joints + 1)]
+        return [[self._XX[j], self._XY[j], self._XZ[j], self._YY[j], self._YZ[j], self._ZZ[j],
+                 self._mX[j], self._mY[j], self._mZ[j], self._m[j]] for j in range(self.n_joints + 1)]
 
-    def __regressor_linear(self):
+    def _regressor_linear(self):
         if self.regressor_linear is not None:
             return self.regressor_linear
 
@@ -131,8 +126,8 @@ class RigidBodyDynamics:
 
         js = list(range(self.n_joints + 1))
         tau_per_task = [dynamics_linearizable[j] for j in js]  # Allows one to control how many tasks by controlling how many js
-        data_per_task = list(product(zip(tau_per_task, js), [self.n_joints], [self.__parameters_linear()]))
-
+        data_per_task = list(product(zip(tau_per_task, js), [self.n_joints], [self._parameters_linear()]))
+        
         with Pool() as p:
             reg = p.map(compute_regressor_row, data_per_task)
 
@@ -140,25 +135,25 @@ class RigidBodyDynamics:
         self.regressor_linear = res
         return res
 
-    def __regressor_linear_exist(self):
+    def _regressor_linear_exist(self):
         # In the eq. for joint j, the dynamic parameters of proximal links (joints < j, i.e. closer to the base) will never
         # exist, i.e. the dynamic parameter of joint j will not be part of the equations for joints > j.
-        regressor = self.__regressor_linear()
-        idx_linear_exist = self.__parameters_linear_exist(regressor)[0]
+        regressor = self._regressor_linear()
+        idx_linear_exist = self._parameters_linear_exist(regressor)[0]
 
         # Removes zero columns of regressor corresponding to parameters with no influence on dynamics
         idx_linear_exist_global = np.where(list(chain.from_iterable(idx_linear_exist)))[0].tolist()
 
         return regressor[:, idx_linear_exist_global]
 
-    def __parameters_linear_exist(self, regressor):
+    def _parameters_linear_exist(self, regressor):
         # In the regressor, identify the zero columns corresponding to parameters which does not matter to the system.
-        number_of_parameters_linear_model = [len(self.__parameters_linear()[j]) for j in range(len(self.__parameters_linear()))]
+        number_of_parameters_linear_model = [len(self._parameters_linear()[j]) for j in range(len(self._parameters_linear()))]
 
         # Initialization
-        idx_linear_exist = [[True for _ in range(number_of_parameters_linear_model[j])] for j in range(len(self.__parameters_linear()))]
+        idx_linear_exist = [[True for _ in range(number_of_parameters_linear_model[j])] for j in range(len(self._parameters_linear()))]
         n_par_linear_exist = number_of_parameters_linear_model.copy()
-        p_linear_exist = self.__parameters_linear().copy()
+        p_linear_exist = self._parameters_linear().copy()
 
         # Computing parameter existence
         for j in range(self.n_joints + 1):
@@ -171,17 +166,17 @@ class RigidBodyDynamics:
 
         return idx_linear_exist, n_par_linear_exist, p_linear_exist
 
-    def __base_parameters_information(self):
+    def _base_parameters_information(self):
         """Identifies the base parameters of the robot dynamics."""
         def compute_base_parameters_information():
             args_sym = self.q[1:] + self.qd[1:] + self.qdd[1:]
             sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
             regressor_with_instantiated_parameters_func = sp.lambdify(args_sym, cache_object(
                 from_cache('rigid_body_dynamics_regressor_with_instantiated_parameters'),
-                lambda: self.__regressor_linear_with_instantiated_parameters()))
-            idx_base_global = self.__indices_base_exist(regressor_with_instantiated_parameters_func)
+                lambda: self._regressor_linear_with_instantiated_parameters()))
+            idx_base_global = self._indices_base_exist(regressor_with_instantiated_parameters_func)
 
-            idx_linear_exist, n_par_linear_exist, p_linear_exist = self.__parameters_linear_exist(self.__regressor_linear())
+            idx_linear_exist, n_par_linear_exist, p_linear_exist = self._parameters_linear_exist(self._regressor_linear())
             p_linear_exist_vector = sp.Matrix(list(chain.from_iterable(p_linear_exist)))  # flatten 2D list to 1D list and convert 1D list to sympy.Matrix object
 
             p_base_vector = cache_object(from_cache('rigid_body_dynamics_base_parameters_vector'), lambda: p_linear_exist_vector[idx_base_global, :])
@@ -208,7 +203,7 @@ class RigidBodyDynamics:
 
         return idx_is_base, n_par_base, p_base
 
-    def __numerical_alpha_to_symbolical_pi(self):
+    def _numerical_alpha_to_symbolical_pi(self):
         alpha_sym = []
         for i in range(len(self.mdh.alpha)):
             pi_factor = self.mdh.alpha[i] / (np.pi / 2)
@@ -218,27 +213,27 @@ class RigidBodyDynamics:
                 alpha_sym.append(sp.symbols(f"alpha{i}"))
         return alpha_sym
 
-    def __mdh_num_to_sym(self):
+    def _mdh_num_to_sym(self):
         d = [sp.symbols(f"d{i}") if d != 0 else sp.Integer(0) for i, d in enumerate(self.mdh.d)]
         a = [sp.symbols(f"a{i}") if a != 0 else sp.Integer(0) for i, a in enumerate(self.mdh.a)]
-        alpha = self.__numerical_alpha_to_symbolical_pi()
+        alpha = self._numerical_alpha_to_symbolical_pi()
         m = [0] * (self.n_joints + 1)
         for j in range(1, self.n_joints + 1):
             m[j] = sp.symbols(f"m{j}")
         return m, d, a, alpha
 
-    def __regressor_linear_with_instantiated_parameters(self):
-        _, d, a, _ = self.__mdh_num_to_sym()
+    def _regressor_linear_with_instantiated_parameters(self):
+        _, d, a, _ = self._mdh_num_to_sym()
 
         def load_regressor_and_subs():
-            regressor_reduced = self.__regressor_linear_exist()
+            regressor_reduced = self._regressor_linear_exist()
             return regressor_reduced.subs(
-                sym_mat_to_subs([a, d, self.__g, self.__f_tcp, self.__n_tcp],
-                                [self.mdh.a, self.mdh.d, self.gravity, self.__f_tcp_num, self.__n_tcp_num]))
+                sym_mat_to_subs([a, d, self._g, self._f_tcp, self._n_tcp],
+                                [self.mdh.a, self.mdh.d, self.gravity, self._f_tcp_num, self._n_tcp_num]))
 
         return load_regressor_and_subs()
 
-    def __indices_base_exist(self, regressor_with_instantiated_parameters):
+    def _indices_base_exist(self, regressor_with_instantiated_parameters):
         """This function computes the indices for the base parameters. The number of base parameters is obtained as the
         maximum obtainable rank of the observation matrix using a set of randomly generated dummy observations for the robot
         trajectory. The specific indices for the base parameters are obtained by conducting a QR decomposition of the
@@ -267,13 +262,13 @@ class RigidBodyDynamics:
         W = regressor_with_instantiated_parameters(*dummy_args_init)
 
         # Continue the computations while the rank of the observation matrix 'W' keeps improving
-        while n_rank_evals < RigidBodyDynamics.__min_rank_evals or rank_W[-1] > rank_W[-3]:  # While the rank of the observation matrix keeps increasing
+        while n_rank_evals < RigidBodyDynamics._min_rank_evals or rank_W[-1] > rank_W[-3]:  # While the rank of the observation matrix keeps increasing
             # Generate random indices for the dummy observations
             random_idx = [[[np.random.randint(self.n_joints + 1) for _ in range(self.n_joints)]
-                           for _ in range(RigidBodyDynamics.__n_regressor_evals_per_rank_calculation)] for _ in range(3)]
+                           for _ in range(RigidBodyDynamics._n_regressor_evals_per_rank_calculation)] for _ in range(3)]
 
             # Evaluate the regressor in a number of dummy observations and vertically stack the regressor matrices
-            for i in range(RigidBodyDynamics.__n_regressor_evals_per_rank_calculation):
+            for i in range(RigidBodyDynamics._n_regressor_evals_per_rank_calculation):
                 dummy_args = np.concatenate(
                     (dummy_pos[random_idx[0][i][:]], dummy_vel[random_idx[1][i][:]], dummy_acc[random_idx[2][i][:]]))
 
@@ -286,11 +281,11 @@ class RigidBodyDynamics:
             print(f"Rank of observation matrix: {rank_W[-1]}")
 
             n_rank_evals += 1
-            if n_rank_evals > RigidBodyDynamics.__max_number_of_rank_evaluations:
-                raise Exception(f"Numerical estimation of the number of base inertial parameters did not converge within {n_rank_evals * RigidBodyDynamics.__n_regressor_evals_per_rank_calculation} regressor evaluations.")
+            if n_rank_evals > RigidBodyDynamics._max_number_of_rank_evaluations:
+                raise Exception(f"Numerical estimation of the number of base inertial parameters did not converge within {n_rank_evals * RigidBodyDynamics._n_regressor_evals_per_rank_calculation} regressor evaluations.")
 
         r = np.linalg.qr(W, mode='r')
-        idx_is_base = abs(np.diag(r)) > RigidBodyDynamics.__qr_numerical_threshold
+        idx_is_base = abs(np.diag(r)) > RigidBodyDynamics._qr_numerical_threshold
         idx_base = np.where(idx_is_base)[0].tolist()
         assert len(idx_base) == rank_W[-1]
 
@@ -347,13 +342,13 @@ class RigidBodyDynamics:
         filepath_regressor = from_cache(output_filename)
 
         def compute_regressor():
-            regressor_linear_exist = self.__regressor_linear_with_instantiated_parameters()
+            regressor_linear_exist = self._regressor_linear_with_instantiated_parameters()
 
             args_sym = self.q[1:] + self.qd[1:] + self.qdd[1:]  # list concatenation
             sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
             regressor_linear_exist_func = sp.lambdify(args_sym, regressor_linear_exist, 'numpy')
 
-            parameter_indices_base = self.__indices_base_exist(regressor_linear_exist_func)
+            parameter_indices_base = self._indices_base_exist(regressor_linear_exist_func)
 
             for j in range(self.n_joints):
                 cache_object(self.filepath_regressor_joint(j+1), lambda: regressor_linear_exist[j+1, parameter_indices_base])
@@ -364,10 +359,10 @@ class RigidBodyDynamics:
 
     def dynamics(self):
         def compute_dynamics_and_replace_first_moments():
-            rbd = self.__rigid_body_dynamics()
+            rbd = self._rigid_body_dynamics()
             js = list(range(self.n_joints + 1))
             dynamics_per_task = [rbd[j] for j in js]  # Allows one to control how many tasks by controlling how many js.
-            data_per_task = list(product(zip(dynamics_per_task, js), [self.__m], [self.__pc], [self.__m_pc], [self.n_joints]))
+            data_per_task = list(product(zip(dynamics_per_task, js), [self._m], [self._pc], [self._m_pc], [self.n_joints]))
 
             with Pool() as p:
                 rbd_lin = p.map(replace_first_moments, data_per_task)
@@ -375,7 +370,7 @@ class RigidBodyDynamics:
 
         return cache_object(from_cache('rigid_body_dynamics'), compute_dynamics_and_replace_first_moments)
 
-    def __get_P(self, a, d, alpha):
+    def _get_P(self, a, d, alpha):
         """
         P[i] means the position of frame i wrt to i-1
         P[2] = [d, -0.2]^T
@@ -388,7 +383,7 @@ class RigidBodyDynamics:
 
         return P
 
-    def __get_forward_kinematics(self, alpha):
+    def _get_forward_kinematics(self, alpha):
         c = lambda i: sp.cos(self.q[i])
         s = lambda i: sp.sin(self.q[i])
 
@@ -410,16 +405,16 @@ class RigidBodyDynamics:
 
         return R_i_im1, R_im1_i
 
-    def __rigid_body_dynamics(self):
+    def _rigid_body_dynamics(self):
         """
         Follows algorithm described in:
         Craig, John J. 2009. "Introduction to Robotics: Mechanics and Control", 3/E. Pearson Education India.
         """
 
         identity_3 = sp.eye(3)
-        (m, d, a, alpha) = self.__mdh_num_to_sym()
-        P = self.__get_P(a, d, alpha)  # position vectors
-        PC = self.__pc  # center-of-mass locations
+        (m, d, a, alpha) = self._mdh_num_to_sym()
+        P = self._get_P(a, d, alpha)  # position vectors
+        PC = self._pc  # center-of-mass locations
 
         I_CoM = [sp.zeros(3, 3) for _ in range(self.n_joints + 1)]
         for j in range(1, self.n_joints + 1):
@@ -428,7 +423,7 @@ class RigidBodyDynamics:
             assert PC_dot_left.shape == (1, 1)
             assert PC_dot_right.shape == (3, 3)
             PC_dot_scalar = PC_dot_left[0, 0]
-            I_CoM[j] = self.__i_cor[j] - m[j] * (PC_dot_scalar * identity_3 - PC_dot_right)
+            I_CoM[j] = self._i_cor[j] - m[j] * (PC_dot_scalar * identity_3 - PC_dot_right)
 
         # State
         w = [spvector([0, 0, 0]) for _ in range(self.n_joints + 1)]  # Angular velocity
@@ -436,20 +431,20 @@ class RigidBodyDynamics:
         vd = [spvector([0, 0, 0]) for _ in range(self.n_joints + 1)]  # Translational acceleration
 
         # Gravity
-        vd[0] = -self.__g
+        vd[0] = -self._g
 
         vcd = [spvector([0, 0, 0]) for _ in range(self.n_joints + 1)]
         F = [spvector([0, 0, 0]) for _ in range(self.n_joints + 1)]
         N = [spvector([0, 0, 0]) for _ in range(self.n_joints + 1)]
 
         f = [spvector([0, 0, 0]) for _ in range(self.n_joints + 1)]
-        f.append(self.__f_tcp)
+        f.append(self._f_tcp)
 
         n = [spvector([0, 0, 0]) for _ in range(self.n_joints + 1)]
-        n.append(self.__n_tcp)
+        n.append(self._n_tcp)
 
         Z = spvector([0, 0, 1])
-        (R_i_im1, R_im1_i) = self.__get_forward_kinematics(alpha)
+        (R_i_im1, R_im1_i) = self._get_forward_kinematics(alpha)
 
         # Outputs
         tau = [sp.zeros(1, 1) for _ in range(self.n_joints + 1)]

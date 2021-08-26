@@ -11,6 +11,8 @@ from aurt.robot_data import RobotData, plot_colors
 
 
 class RobotCalibration:
+    f_dyn = 10  # Approximate cut-off frequency [Hz] of robot dynamics
+
     def __init__(self, rd_filename, robot_data_path, relative_separation_of_calibration_and_prediction=None,
                  robot_data_predict=None):
 
@@ -32,16 +34,13 @@ class RobotCalibration:
             t_sep = dummy_data.time[-1] * relative_separation_of_calibration_and_prediction
             self.robot_data_calibration = RobotData(robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(0, t_sep))
             self.robot_data_validation = RobotData(robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(t_sep, np.inf))
-            # self.robot_data_calibration._trim_data(desired_timeframe=(0, t_sep))
-            # self.robot_data_validation._trim_data(desired_timeframe=(t_sep, np.inf))
         elif relative_separation_of_calibration_and_prediction is None and robot_data_predict is not None:
             self.robot_data_calibration = RobotData(robot_data_path, delimiter=' ', interpolate_missing_samples=True)
             self.robot_data_validation = robot_data_predict
         else:
             print("A wrong combination of arguments was provided.")
 
-        self.f_dyn = 10  # Approx. cut-off frequency [Hz] of robot dynamics to be estimated
-        self.downsampling_factor = round(0.8 / (4 * self.f_dyn * self.robot_data_calibration.dt_nominal))
+        self.downsampling_factor = round(0.8 / (4 * RobotCalibration.f_dyn * self.robot_data_calibration.dt_nominal))
         self.parameters = None
         self.estimated_output = None
         self.number_of_samples_in_downsampled_data = None
@@ -49,7 +48,7 @@ class RobotCalibration:
     def _measurement_vector(self, robot_data, start_index=None, end_index=None):
         def compute_measurement_vector():
             i = np.array([robot_data.data[f"actual_current_{j}"] for j in range(1, self.robot_dynamics.n_joints + 1)]).T
-            i_pf = RobotCalibration._parallel_filter(i, robot_data.dt_nominal, self.f_dyn)[start_index:end_index, :]
+            i_pf = RobotCalibration._parallel_filter(i, robot_data.dt_nominal, RobotCalibration.f_dyn)[start_index:end_index, :]
             i_pf_ds = RobotCalibration._downsample(i_pf, self.downsampling_factor)
             return i_pf_ds.flatten(order='F')  # y = [y1, ..., yi, ..., yN],  yi = [yi_{1}, ..., yi_{n_samples}]
 
@@ -59,11 +58,11 @@ class RobotCalibration:
         q_m = np.array([robot_data.data[f"actual_q_{j}"] for j in range(1, self.robot_dynamics.n_joints + 1)])
 
         # Low-pass filter (smoothen) measured angular position(s) and obtain 1st and 2nd order time-derivatives
-        q_tf, qd_tf, qdd_tf = RobotCalibration._trajectory_filtering_and_central_difference(q_m,
-                                                                                             robot_data.dt_nominal,
-                                                                                             self.f_dyn,
-                                                                                             start_index,
-                                                                                             end_index)
+        q_tf, qd_tf, qdd_tf = RobotCalibration._trajectory_filtering_and_central_difference(q_m, 
+                                                                                            robot_data.dt_nominal,
+                                                                                            RobotCalibration.f_dyn,
+                                                                                            start_index,
+                                                                                            end_index)
 
         n_samples_ds = self._measurement_vector(robot_data, start_index=start_index, end_index=end_index).shape[
                            0] // self.robot_dynamics.n_joints  # No. of samples in downsampled data
@@ -75,7 +74,7 @@ class RobotCalibration:
 
             # Parallel filter and decimate/downsample the rows of the observation matrix related to joint j.
             obs_mat_j_ds = RobotCalibration._downsample(
-                RobotCalibration._parallel_filter(obs_mat_j, robot_data.dt_nominal, self.f_dyn),
+                RobotCalibration._parallel_filter(obs_mat_j, robot_data.dt_nominal, RobotCalibration.f_dyn),
                 self.downsampling_factor)
             
             observation_matrix[j * n_samples_ds:(j + 1) * n_samples_ds, :] = obs_mat_j_ds
@@ -127,7 +126,7 @@ class RobotCalibration:
         measurement_vector_reshaped = np.reshape(measurement_vector, (self.robot_dynamics.n_joints, y_pred.shape[0] // self.robot_dynamics.n_joints))
         assert y_pred_reshaped.shape == measurement_vector_reshaped.shape
         mse = RobotCalibration.get_mse(measurement_vector_reshaped, y_pred_reshaped)
-        print(f"MSE: {mse}")
+        print(f"MSE (calibration data): {mse}")
         weighted_observation_matrix = (wls_sample_weights*observation_matrix.T).T
         std_dev_parameter_estimate = np.sqrt(np.diagonal(np.linalg.inv(weighted_observation_matrix.T @ weighted_observation_matrix)))  # calculates the standard deviation of the parameter estimates from the diagonal elements (variance) of the covariance matrix
         cond = RobotCalibration._evaluate_dynamics_excitation_as_cost((wls_sample_weights*observation_matrix.T).T, metric="cond")
@@ -135,7 +134,6 @@ class RobotCalibration:
 
         self.parameters = wls_calibration.coef_
         print(f"std_dev_parameter_estimate.shape: {std_dev_parameter_estimate.shape}")
-        print(f"self.parameters.shape: {self.parameters.shape}")
         rel_std_dev_parameter_estimate = 100 * (std_dev_parameter_estimate / self.parameters)
         print(f"parameters: {self.robot_dynamics.parameters()}")
         print(f"rel_std_dev_parameter_estimate: {rel_std_dev_parameter_estimate}")
@@ -221,8 +219,6 @@ class RobotCalibration:
     def plot_prediction(self, filename_predict):
 
         t, y = load_object(from_cache(filename_predict + '.pickle'))
-        # n_samples = self.robot_data_prediction.
-        # t = np.linspace(0, self.robot_data_calibration.dt_nominal * n_samples, n_samples)
 
         observation_matrix = self._observation_matrix(self.robot_data_calibration)
         n_samples = observation_matrix.shape[0] // self.robot_dynamics.n_joints
