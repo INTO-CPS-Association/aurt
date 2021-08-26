@@ -1,3 +1,4 @@
+from aurt.signal_processing import ramer_douglas_peucker
 import numpy as np
 import csv
 from itertools import compress
@@ -218,14 +219,20 @@ class RobotData:
     def plot_target_position(self):
 
         import matplotlib.pyplot as plt
+        from matplotlib.pyplot import figure
 
+        figure(figsize=(7.67, 2.5))
+    
         for j in range(self.n_joints):
-            plt.plot(self.time, self.data[f"target_q_{j}"], color=plot_colors[j+1], label=f"joint {j+1}")
-
+            # eps = 0.05
+            # t_rdp, y_rdp = ramer_douglas_peucker([self.time, self.data[f"target_q_{j+1}"]], epsilon=eps)  # downsample the data using the Ramer-Douglas-Peucker algorithm
+            plt.plot(self.time, self.data[f"target_q_{j+1}"], color=plot_colors[j], label=f"joint {j+1}")
+        
         plt.xlim([self.time[0], self.time[-1]])
         plt.xlabel('Time [s]')
+        # plt.suptitle
         plt.ylabel('Position [rad]')
-        plt.legend(loc='lower center', ncol=self.n_joints)
-        # plt.legend(bbox_to_anchor=(0.5, 1.18), loc='upper center', ncol=self.n_joints)
-
+        # plt.legend(loc='lower center')
+        plt.legend(bbox_to_anchor=(0.5, 1.22), loc='upper center', ncol=self.n_joints)
+        plt.tight_layout()
         plt.show()
