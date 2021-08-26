@@ -1,8 +1,9 @@
+import math
 import numpy as np
 
 
 def central_finite_difference(x, dt, order):
-    """Computes the first and (optionally) second-order time-derivatives alon axis 1. The dimension of the output is
+    """Computes the first and (optionally) second-order time-derivatives along axis 1. The dimension of the output is
     equal to the dimension of the input minus 2."""
     assert order in {1, 2}
 
@@ -18,12 +19,29 @@ def central_finite_difference(x, dt, order):
     return x[:, 1:-1], xd[:, 1:-1]
 
 
-def crop(x, idx_start=None, idx_end=None):
-    assert x.shape[1] > idx_end, f"'idx_end' must be smaller than the length of the signal along axis 1"
+def ramer_douglas_peucker(points, epsilon):
+    def point_line_distance(point, start, end):
+        if (start == end):
+            def distance(a, b):
+                return  math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
+            
+            return distance(point, start)
+        else:
+            n = abs((end[0] - start[0]) * (start[1] - point[1]) - (start[0] - point[0]) * (end[1] - start[1]))
+            d = math.sqrt((end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2)
+            return n / d
+    
+    dmax = 0.0
+    index = 0
+    for i in range(1, len(points) - 1):
+        d = point_line_distance(points[i], points[0], points[-1])
+        if d > dmax:
+            index = i
+            dmax = d
 
-    if idx_end is not None:
-        x = x[:, :idx_end]
-    if idx_start is not None:
-        x = x[:, idx_start:]
+    if dmax >= epsilon:
+        results = ramer_douglas_peucker(points[:index+1], epsilon)[:-1] + ramer_douglas_peucker(points[index:], epsilon)
+    else:
+        results = [points[0], points[-1]]
 
-    return x
+    return results
