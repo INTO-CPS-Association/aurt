@@ -51,6 +51,9 @@ def compile_rd(args):
     if os.path.isfile(filename):
         l.warning(f"The robot dynamics filename {args.out} already exists, and its content will be overwritten.")
 
+    if len(set(args.friction_viscous_powers)) != len(list(args.friction_viscous_powers)):
+        raise Exception(f"The viscous friction powers must be a set of unique integers.")
+
     model_rbd_path = args.model_rbd
     friction_load_model = args.friction_load_model
     friction_viscous_powers = args.friction_viscous_powers
@@ -212,7 +215,7 @@ def _create_compile_rd_parser(subparsers):
                                        help="The friction load model.")
 
     compile_rd_parser.add_argument('--friction-viscous-powers', required=True, nargs="+",
-                                       type=float,
+                                       type=int,
                                        metavar='R',
                                        help="The viscous friction polynomial powers.")
 
