@@ -130,9 +130,9 @@ def calibrate_validate(args):
     if os.path.isfile(filename):
         l.warning(f"The output prediction file {filename} already exists, and its content will be overwritten.")
 
-    filename = from_cache(args.out_calibration_model + ".pickle")
+    filename = from_cache(args.out_calibrated_model + ".pickle")
     if os.path.isfile(filename):
-        l.warning(f"The calibration model filename {args.out_calibration_model} already exists, and its content will be overwritten.")
+        l.warning(f"The calibration model filename {args.out_calibrated_model} already exists, and its content will be overwritten.")
 
 
     if not (0.1 < args.calibration_data_rel < 0.9):
@@ -140,7 +140,7 @@ def calibrate_validate(args):
 
     model_path = args.model
     data_path = args.data
-    calbration_model_path = args.out_calibration_model
+    calbration_model_path = args.out_calibrated_model
     calibration_data_rel = args.calibration_data_rel # TODO: make sure to check that it is between 0 and 1
     plotting = args.plot
     params_path = args.out_params
