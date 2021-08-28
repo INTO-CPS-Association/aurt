@@ -1,4 +1,4 @@
-from aurt.signal_processing import ramer_douglas_peucker
+from aurt.signal_processing import ramer_douglas_peucker, central_finite_difference
 import numpy as np
 import csv
 from itertools import compress
@@ -32,8 +32,6 @@ class RobotData:
                          desired_timeframe=desired_timeframe,
                          interpolate_missing_samples=interpolate_missing_samples,
                          delimiter=delimiter)
-        qd_target = np.array([self.data[f"target_qd_{j}"] for j in range(1, self.n_joints + 1)])
-        self.non_static_start_index, self.non_static_end_index = find_nonstatic_start_and_end_indices(qd_target)
 
     def _load_data(self,
                     file_path,

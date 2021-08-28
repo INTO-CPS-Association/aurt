@@ -9,25 +9,25 @@ def find_first(x):
     return idx if x[idx] else -1
 
 
-def find_nonstatic_start_and_end_indices(qd_target, qd_threshold=0.0001):
+def find_nonstatic_start_and_end_indices(qd, qd_threshold=0.01):
     """
-    qd_target: (Njoints x n_samples) numpy array
+    qd: (Njoints x n_samples) numpy array
     Finds start and end indices for useful (non-zero angular velocity) subset of data.
     Procedure:
-    1.  Find first non-zero qd_target (starting from beginning and searching forward)
-    2.  Find first non-zero qd_target (starting from end and searching backwards)
+    1.  Find first non-zero qd (starting from beginning and searching forward)
+    2.  Find first non-zero qd (starting from end and searching backwards)
     Below is shown the angular velocity profile and the start and end indices.
-                                       __
-                      ^       ,___    /  \____
-    qd_target [rad/s] |      /    \__/        \
-                      |     /                  \
-                      |____/____________________\____> sample no. [-]
-                           ^idx_start           ^idx_end
+                                __
+               ^       ,___    /  \____
+    qd [rad/s] |      /    \__/        \
+               |     /                  \
+               |____/____________________\____> sample no. [-]
+                    ^idx_start           ^idx_end
     """
 
-    idx_start = find_first(np.any(-qd_threshold > qd_target, axis=0) | np.any(qd_target > qd_threshold, axis=0))
+    idx_start = find_first(np.any(-qd_threshold > qd, axis=0) | np.any(qd > qd_threshold, axis=0))
     idx_start = max(1, idx_start)  # idx start has minimum value of 1 for estimation of double derivatives to work
-    idx_end = len(qd_target[0, :]) - 1 - find_first(np.any(-qd_threshold > qd_target[:, ::-1], axis=0) | np.any(qd_target[:, ::-1] > qd_threshold, axis=0))
+    idx_end = len(qd[0, :]) - 1 - find_first(np.any(-qd_threshold > qd[:, ::-1], axis=0) | np.any(qd[:, ::-1] > qd_threshold, axis=0))
     assert 0 < idx_start < idx_end
 
     return idx_start, idx_end

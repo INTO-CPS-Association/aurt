@@ -1,17 +1,20 @@
+from aurt import robot_dynamics
 from aurt.robot_dynamics import RobotDynamics
-from aurt.signal_processing import central_finite_difference
 import numpy as np
 from scipy import signal
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 import pickle
 
+from aurt.signal_processing import central_finite_difference
+from aurt.calibration_aux import find_nonstatic_start_and_end_indices
 from aurt.file_system import cache_numpy, cache_csv, load_numpy, from_cache, cache_object, load_object
 from aurt.robot_data import RobotData, plot_colors
 
 
 class RobotCalibration:
     f_dyn = 10  # Approximate cut-off frequency [Hz] of robot dynamics
+    qd_tf_noise_threshold = 0.03  # Threshold to dermine non-stationary (any(abs(qd) > 0)) data
 
     def __init__(self, rd_filename, robot_data_path, relative_separation_of_calibration_and_prediction=None,
                  robot_data_predict=None):
@@ -39,7 +42,10 @@ class RobotCalibration:
             self.robot_data_validation = robot_data_predict
         else:
             print("A wrong combination of arguments was provided.")
-
+        
+        q_m = np.array([self.robot_data_calibration.data[f"actual_q_{j}"] for j in range(1, self.robot_dynamics.n_joints + 1)])
+        _, qd_tf, _ = self._trajectory_filtering_and_central_difference(q_m, self.robot_data_calibration.dt_nominal, RobotCalibration.f_dyn)
+        self.non_static_start_idx, self.non_static_end_idx = find_nonstatic_start_and_end_indices(qd_tf, qd_threshold=RobotCalibration.qd_tf_noise_threshold)
         self.downsampling_factor = round(0.8 / (4 * RobotCalibration.f_dyn * self.robot_data_calibration.dt_nominal))
         self.parameters = None
         self.estimated_output = None
@@ -89,11 +95,11 @@ class RobotCalibration:
         #  EDIT: Maybe the elimination of zero-velocity data plays a role(?)
 
         observation_matrix = self._observation_matrix(self.robot_data_calibration,
-                                                       start_index=self.robot_data_calibration.non_static_start_index,
-                                                       end_index=self.robot_data_calibration.non_static_end_index)
+                                                      start_index=self.non_static_start_idx,
+                                                      end_index=self.non_static_end_idx)
         measurement_vector = self._measurement_vector(self.robot_data_calibration,
-                                                       start_index=self.robot_data_calibration.non_static_start_index,
-                                                       end_index=self.robot_data_calibration.non_static_end_index)
+                                                       start_index=self.non_static_start_idx,
+                                                       end_index=self.non_static_end_idx)
 
         # sklearn fit
         OLS = LinearRegression(fit_intercept=False)
@@ -168,6 +174,38 @@ class RobotCalibration:
         #error = measured_data - estimated_data
         t_data = np.linspace(0, data.dt_nominal * self.downsampling_factor * n_samples, n_samples)
         return t_data, measured_data, estimated_data
+
+    def plot_velocity(self):
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            import warnings
+            warnings.warn("The matplotlib package is not installed, please install it for plotting the calibration.")
+
+        t = self.robot_data_calibration.data["timestamp"]
+        n_joints = self.robot_dynamics.n_joints
+        q_m = np.array([self.robot_data_calibration.data[f"actual_q_{j+1}"] for j in range(n_joints)])
+        # _, qd_m = central_finite_difference(q_m, self.robot_data_calibration.dt_nominal, order=1)
+        _, qd_tf, _ = self._trajectory_filtering_and_central_difference(q_m, self.robot_data_calibration.dt_nominal, self.f_dyn)
+        qd_tf = np.insert(qd_tf, qd_tf.shape[1], np.repeat(0, n_joints, axis=0), axis=1)
+        qd_tf = np.insert(qd_tf, 0, np.repeat(0, n_joints, axis=0), axis=1)
+
+        for j in range(n_joints):
+            plt.plot(t, qd_tf[j, :], color=plot_colors[j], label=f"actual_q{j}_filtered")
+            # plt.plot(t, self.robot_data_calibration.data[f"target_qd_{j+1}"], color=plot_colors[j], label=f"target_q{j}")
+        
+        # plot non-static indices
+        ymin, ymax = plt.gca().get_ylim()
+        plt.plot([t[self.non_static_start_idx], t[self.non_static_start_idx]], [ymin, ymax], '--', color='black', linewidth=3, label='non_static_idx')
+        plt.plot([t[self.non_static_end_idx], t[self.non_static_end_idx]], [ymin, ymax], '--', color='black', linewidth=3)
+        plt.plot([t[0], t[-1]], [self.qd_tf_noise_threshold, self.qd_tf_noise_threshold], '--', color='red', linewidth=3, label='qd_noise_threshold')
+        plt.plot([t[0], t[-1]], [-self.qd_tf_noise_threshold, -self.qd_tf_noise_threshold], '--', color='red', linewidth=3)
+
+        plt.xlabel('Time [s]')
+        plt.ylabel('Velocity [rad/s]')
+        plt.legend()
+        plt.show()
+
 
     def plot_calibration(self, parameters):
         try:
