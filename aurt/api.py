@@ -52,8 +52,8 @@ def compile_rbd(mdh_path, gravity, output_path, plotting, block=True):
 
 
 
-def compile_rd(rbd_filename, friction_load_model, friction_viscous_powers, output_path):
-    rd = RobotDynamics(rbd_filename, viscous_friction_powers=friction_viscous_powers, friction_load_model=friction_load_model)
+def compile_rd(rbd_filename, friction_torque_model, friction_viscous_powers, output_path):
+    rd = RobotDynamics(rbd_filename, viscous_friction_powers=friction_viscous_powers, friction_torque_model=friction_torque_model)
     rd.regressor()
 
     # save class

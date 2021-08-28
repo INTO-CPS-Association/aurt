@@ -46,11 +46,11 @@ class APITests(unittest.TestCase):
 
     def test03_compile_rd(self):
         model_rbd = "rbd_twolink"
-        friction_load_model = "square"
+        friction_torque_model = "square"
         friction_viscous_powers = [2, 1, 4]
         output_file = "rd_twolink"
 
-        api.compile_rd(model_rbd, friction_load_model, friction_viscous_powers, output_file)
+        api.compile_rd(model_rbd, friction_torque_model, friction_viscous_powers, output_file)
 
         filename = from_cache(output_file + ".pickle")
         with open(filename, 'rb') as f:

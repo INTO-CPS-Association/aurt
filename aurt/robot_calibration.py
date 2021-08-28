@@ -1,3 +1,4 @@
+from numpy.core.numeric import normalize_axis_tuple
 from aurt import robot_dynamics
 from aurt.robot_dynamics import RobotDynamics
 import numpy as np
@@ -132,7 +133,10 @@ class RobotCalibration:
         measurement_vector_reshaped = np.reshape(measurement_vector, (self.robot_dynamics.n_joints, y_pred.shape[0] // self.robot_dynamics.n_joints))
         assert y_pred_reshaped.shape == measurement_vector_reshaped.shape
         mse = RobotCalibration.get_mse(measurement_vector_reshaped, y_pred_reshaped)
+        normalization = abs(np.mean(measurement_vector_reshaped, axis=1))
+        nmse = mse / normalization
         print(f"MSE (calibration data): {mse}")
+        print(f"NMSE (calibration data): {nmse}")
         weighted_observation_matrix = (wls_sample_weights*observation_matrix.T).T
         std_dev_parameter_estimate = np.sqrt(np.diagonal(np.linalg.inv(weighted_observation_matrix.T @ weighted_observation_matrix)))  # calculates the standard deviation of the parameter estimates from the diagonal elements (variance) of the covariance matrix
         cond = RobotCalibration._evaluate_dynamics_excitation_as_cost((wls_sample_weights*observation_matrix.T).T, metric="cond")

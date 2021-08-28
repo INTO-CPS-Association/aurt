@@ -33,12 +33,12 @@ class CLITests(unittest.TestCase):
     def init_rd(self):
         self.init_rbd()
         model_rbd = "out_rbd"
-        friction_load_model = "square"
+        friction_torque_model = "square"
         friction_viscous_powers = [2, 1, 4]
         out = "out_rd"
         parser = self.set_compile_rd_arguments(
             model_rbd,
-            friction_load_model,
+            friction_torque_model,
             friction_viscous_powers,
             out
         )
@@ -70,12 +70,12 @@ class CLITests(unittest.TestCase):
         compile_rbd_parser.logger_config = logger_config
         return compile_rbd_parser
 
-    def set_compile_rd_arguments(self, model_rbd, friction_load_model, friction_viscous_powers, out,
+    def set_compile_rd_arguments(self, model_rbd, friction_torque_model, friction_viscous_powers, out,
                                  logger_config=None):
         subparsers, _ = _init_cmd_parser()
         compile_rd_parser = _create_compile_rd_parser(subparsers)
         compile_rd_parser.model_rbd = model_rbd
-        compile_rd_parser.friction_load_model = friction_load_model
+        compile_rd_parser.friction_torque_model = friction_torque_model
         compile_rd_parser.friction_viscous_powers = friction_viscous_powers
         compile_rd_parser.out = out
         compile_rd_parser.logger_config = logger_config
@@ -181,12 +181,12 @@ class CLITests(unittest.TestCase):
     def test06_compile_rd_args_cli_correct(self):
         self.init_rbd()
         model_rbd = "out_rbd"
-        friction_load_model = "square"
+        friction_torque_model = "square"
         friction_viscous_powers = [2, 1, 4]
         out = "out_rd"
         parser = self.set_compile_rd_arguments(
             model_rbd,
-            friction_load_model,
+            friction_torque_model,
             friction_viscous_powers,
             out
         )

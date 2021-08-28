@@ -55,12 +55,12 @@ def compile_rd(args):
         raise Exception(f"The viscous friction powers must be a set of unique integers.")
 
     model_rbd_path = args.model_rbd
-    friction_load_model = args.friction_load_model
+    friction_torque_model = args.friction_torque_model
     friction_viscous_powers = args.friction_viscous_powers
     #friction_hysteresis_model = args.friction_hysteresis_model # saved for later implementation
     output_path = args.out
 
-    api.compile_rd(model_rbd_path, friction_load_model, friction_viscous_powers, output_path)
+    api.compile_rd(model_rbd_path, friction_torque_model, friction_viscous_powers, output_path)
 
 
 def calibrate(args):
@@ -210,9 +210,9 @@ def _create_compile_rd_parser(subparsers):
     compile_rd_parser.add_argument('--model-rbd', required=True,
                                        help="The rigid body dynamics model created with the compile-rbd command.")
 
-    compile_rd_parser.add_argument('--friction-load-model', required=True,
+    compile_rd_parser.add_argument('--friction-torque-model', required=True,
                                        choices=["none", "square", "absolute"],
-                                       help="The friction load model.")
+                                       help="The friction/torque model.")
 
     compile_rd_parser.add_argument('--friction-viscous-powers', required=True, nargs="+",
                                        type=int,

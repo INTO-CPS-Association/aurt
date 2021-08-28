@@ -278,7 +278,7 @@ class RigidBodyDynamics:
 
             # Evaluate rank of observation matrix
             rank_W.append(np.linalg.matrix_rank(W))
-            print(f"Rank of observation matrix: {rank_W[-1]}")
+            print(f"Rank of dummy observation matrix - iteration no. {RigidBodyDynamics._n_regressor_evals_per_rank_calculation * (n_rank_evals + 1)}: {rank_W[-1]}")
 
             n_rank_evals += 1
             if n_rank_evals > RigidBodyDynamics._max_number_of_rank_evaluations:
