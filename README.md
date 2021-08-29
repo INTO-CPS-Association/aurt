@@ -35,16 +35,16 @@ To visualize the mdh model of the robot, make sure the `roboticstoolbox-python` 
 ## Compile Robot Dynamics Model
 
 ```
-aurt compile-rd --model-rbd rigid_body_dynamics --friction-load-model square --friction-viscous-powers 2 1 4 --out robot_dynamics
+aurt compile-rd --model-rbd rigid_body_dynamics --friction-torque-model square --friction-viscous-powers 2 1 4 --out robot_dynamics
 ```
 
 Reads the rigid-body dynamics model created with the `compile-rbd` command, and generates the robot dynamics model, 
 taking into account the joint dynamics configuration.
 
 The friction configuration options are:
-- `--friction-load-model TYPE` where `TYPE in {none, square, absolute}` are depicted in the figure below for, respectively, parts (a), (b), and (c).
+- `--friction-torque-model TYPE` where `TYPE in {none, square, absolute}` are depicted in the figure below for, respectively, parts (a), (b), and (c).
 <p align="center">
-  <img src="resources/friction_load_models.png" alt="The different possibilities for load-dependent friction models" width="400"/>
+  <img src="resources/friction_load_models.png" alt="The different possibilities for joint torque-dependent friction models" width="400"/>
 </p>
 
 - `--friction-viscous-powers POWERS` where `POWERS` is a set <img src="https://render.githubusercontent.com/render/math?math=S"> of integers having the format `P1 P2 ...` used to define the odd polynomial function
