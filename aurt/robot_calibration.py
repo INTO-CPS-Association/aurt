@@ -133,7 +133,7 @@ class RobotCalibration:
         measurement_vector_reshaped = np.reshape(measurement_vector, (self.robot_dynamics.n_joints, y_pred.shape[0] // self.robot_dynamics.n_joints))
         assert y_pred_reshaped.shape == measurement_vector_reshaped.shape
         mse = RobotCalibration.get_mse(measurement_vector_reshaped, y_pred_reshaped)
-        normalization = abs(np.mean(measurement_vector_reshaped, axis=1))
+        normalization = np.mean(abs(measurement_vector_reshaped), axis=1)
         nmse = mse / normalization
         print(f"MSE (calibration data): {mse}")
         print(f"NMSE (calibration data): {nmse}")
@@ -143,17 +143,14 @@ class RobotCalibration:
         print(f"Condition no. of weighted observation matrix: {cond}.")
 
         self.parameters = wls_calibration.coef_
-        print(f"std_dev_parameter_estimate.shape: {std_dev_parameter_estimate.shape}")
         rel_std_dev_parameter_estimate = 100 * (std_dev_parameter_estimate / self.parameters)
-        print(f"parameters: {self.robot_dynamics.parameters()}")
-        print(f"rel_std_dev_parameter_estimate: {rel_std_dev_parameter_estimate}")
+        print(f"Parameters: {self.robot_dynamics.parameters()}")
+        print(f"Relative std.dev. of estimated parameters: {rel_std_dev_parameter_estimate}")
 
-        # cache_numpy(from_cache(filename_parameters), lambda: parameters)
         cache_csv(from_cache(filename_parameters), lambda: self.parameters)
         return wls_calibration.coef_
-        # return self.predict(self.robot_data_calibration, parameters, 'calibration_output')
 
-    def predict(self, robot_data_predict, parameters, filename_predicted_output):
+    def predict(self, robot_data_predict : RobotData, parameters, filename_predicted_output):
 
         def compute_prediction():
             observation_matrix = self._observation_matrix(robot_data_predict)
@@ -162,6 +159,13 @@ class RobotCalibration:
             n_samples_ds = round(observation_matrix.shape[0] / self.robot_dynamics.n_joints)
             assert n_samples_ds * self.robot_dynamics.n_joints == observation_matrix.shape[0]
             output_predicted_reshaped = np.reshape(estimated_output, (self.robot_dynamics.n_joints, n_samples_ds))
+
+            _, y_meas_reshaped, y_pred_reshaped = self._get_plot_values_for(robot_data_predict, parameters)
+            mse = RobotCalibration.get_mse(y_meas_reshaped, y_pred_reshaped)
+            normalization = np.mean(abs(y_meas_reshaped), axis=1)
+            nmse = mse / normalization
+            print(f"MSE (validation data): {mse}")
+            print(f"NMSE (validation data): {nmse}")
 
             #return robot_data_predict.time[
             #       ::self.downsampling_factor], output_predicted_reshaped  # TODO: CORRECT ERROR; 'time' does not correspond in length to 'output_predicted_reshaped'
@@ -456,7 +460,7 @@ class RobotCalibration:
         """
         This function calculates the mean squared error of each channel in y using sklearn.metrics.mean_squared_error.
         """
-        assert y_meas.shape == y_pred.shape
+        assert y_meas.shape == y_pred.shape, f"y_meas.shape: {y_meas.shape}, y_pred.shape: {y_pred.shape}"
 
         n_channels = y_meas.shape[0]  # no. of channels
         mse = np.zeros(n_channels)

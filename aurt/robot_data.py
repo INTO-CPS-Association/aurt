@@ -142,7 +142,7 @@ class RobotData:
         with safe_open(file_path, mode='r') as csvFile:
             csv_reader = csv.DictReader(csvFile, delimiter=delimiter)
 
-            self.n_joints = len([i for i in csv_reader.fieldnames if "target_q_" in i])
+            self.n_joints = len([i for i in csv_reader.fieldnames if "actual_q_" in i])
 
             self.time = np.empty(0)
             self.data = {}
