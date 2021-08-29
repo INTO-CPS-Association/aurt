@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Madsen"
+  given-names: "Emil"
+  orcid: "https://orcid.org/0000-0002-6819-3625"
+- family-names: "Tola"
+  given-names: "Daniella"
+  orcid: "https://orcid.org/0000-0001-7981-7037"
+- family-names: "Gomes"
+  given-names: "Cláudio"
+title: "Aarhus University Robotics Toolbox (AURT)"
+version: 0.0.2
+date-released: 2021-08-24
+url: "https://github.com/INTO-CPS-Association/aurt"
