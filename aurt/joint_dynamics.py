@@ -6,8 +6,8 @@ import numpy as np
 class JointDynamics:
     def __init__(self, n_joints, load_model=None, hysteresis_model=None, viscous_powers=None):
         self.n_joints = n_joints
-        self.__qd = [sp.Integer(0)] + [sp.symbols(f"qd{j}") for j in range(1, self.n_joints + 1)]
-        self.__tauJ = sp.symbols([f"tauJ{j}" for j in range(self.n_joints + 1)])
+        self._qd = [sp.Integer(0)] + [sp.symbols(f"qd{j}") for j in range(1, self.n_joints + 1)]
+        self._tauJ = sp.symbols([f"tauJ{j}" for j in range(self.n_joints + 1)])
 
         # Defaults
         if load_model is None:
@@ -21,7 +21,7 @@ class JointDynamics:
         self.hysteresis_model = hysteresis_model
         self.viscous_friction_powers = viscous_powers
 
-    def __coulomb_friction_parameters(self):
+    def _coulomb_friction_parameters(self):
         """
         Returns a list of 'n_joints + 1' elements, each element comprising a list of Coulomb friction parameters for
         each joint.
@@ -37,7 +37,7 @@ class JointDynamics:
         else:
             return [[fc[j], fcl[j]] for j in range(self.n_joints + 1)]
 
-    def __viscous_friction_parameters(self):
+    def _viscous_friction_parameters(self):
         """
         Returns a list of 'Njoints + 1' elements, each element comprising a list of viscous friction parameters for each
         joint.
@@ -51,42 +51,42 @@ class JointDynamics:
         corresponding joint.
         """
 
-        fcs = self.__coulomb_friction_parameters()
-        fvs = self.__viscous_friction_parameters()
+        fcs = self._coulomb_friction_parameters()
+        fvs = self._viscous_friction_parameters()
         return [[*fcs[j], *fvs[j]] for j in range(1, self.n_joints + 1)]
 
     def number_of_parameters(self):
         par = self.parameters()
         return [len(par[j]) for j in range(self.n_joints)]
 
-    def __coulomb_friction_basis(self):
+    def _coulomb_friction_basis(self):
         """
         Returns the basis (regressor) of the Coulomb friction model.
         """
 
         assert self.load_model.lower() in ('none', 'square', 'abs')
 
-        h = self.__generalized_hysteresis_model()
+        h = self._generalized_hysteresis_model()
         if self.load_model.lower() == 'none':
             return [[h[j]] for j in range(self.n_joints + 1)]
         elif self.load_model.lower() == 'square':
-            return [[h[j], h[j] * self.__tauJ[j] ** 2] for j in range(self.n_joints + 1)]
+            return [[h[j], h[j] * self._tauJ[j] ** 2] for j in range(self.n_joints + 1)]
         else:  # load_model == 'abs'
-            return [[h[j], h[j] * abs(self.__tauJ[j])] for j in range(self.n_joints + 1)]
+            return [[h[j], h[j] * abs(self._tauJ[j])] for j in range(self.n_joints + 1)]
 
-    def __generalized_hysteresis_model(self):
+    def _generalized_hysteresis_model(self):
         """
         Returns the hysteresis model used in the Coulomb friction model.
         """
         assert self.hysteresis_model.lower() in ('sign', 'gms')
 
         if self.hysteresis_model.lower() == 'sign':
-            return [sp.sign(self.__qd[j]) for j in range(self.n_joints + 1)]
+            return [sp.sign(self._qd[j]) for j in range(self.n_joints + 1)]
         else:
             print(f"GMS model not yet implemented - using a simple static model instead.")
-            return [sp.sign(self.__qd[j]) for j in range(self.n_joints + 1)]
+            return [sp.sign(self._qd[j]) for j in range(self.n_joints + 1)]
 
-    def __viscous_friction_basis(self):
+    def _viscous_friction_basis(self):
         """
         Returns the basis (regressor) of the viscous friction model.
         """
@@ -95,9 +95,9 @@ class JointDynamics:
         for j in range(self.n_joints + 1):
             for i, power in enumerate(self.viscous_friction_powers):
                 if power % 2 == 0:  # even
-                    fv_basis[j][i] = self.__qd[j] ** (power - 1) * abs(self.__qd[j])
+                    fv_basis[j][i] = self._qd[j] ** (power - 1) * abs(self._qd[j])
                 else:  # odd
-                    fv_basis[j][i] = self.__qd[j] ** power
+                    fv_basis[j][i] = self._qd[j] ** power
         return fv_basis
 
     def observation_matrix_joint(self, j, qd_j_num, tauJ_j_num):
@@ -106,7 +106,7 @@ class JointDynamics:
         assert 0 <= j < self.n_joints
 
         n_samples = qd_j_num.size
-        args_sym = [self.__qd[j+1], self.__tauJ[j+1]]
+        args_sym = [self._qd[j+1], self._tauJ[j+1]]
         args_num = np.concatenate((qd_j_num[:, np.newaxis], tauJ_j_num[:, np.newaxis]), axis=1).transpose()
         regressor_j = self.regressor()[j]
         observation_matrix_j = np.zeros((n_samples, regressor_j.shape[1]))
@@ -127,8 +127,8 @@ class JointDynamics:
         Returns an 'n_joints' list of regressors.
         """
 
-        fc_basis = self.__coulomb_friction_basis()
-        fv_basis = self.__viscous_friction_basis()
+        fc_basis = self._coulomb_friction_basis()
+        fv_basis = self._viscous_friction_basis()
         return [sp.Matrix([*fc_basis[j], *fv_basis[j]]).T for j in range(1, self.n_joints + 1)]
 
     def dynamics(self):
