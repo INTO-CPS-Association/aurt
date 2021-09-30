@@ -26,7 +26,7 @@ aurt compile-rbd --mdh mdh.csv --out rigid_body_dynamics
 ```
 Reads the Modified Denavit-Hartenberg (MDH) parameters in file `mdh.csv` and outputs rigid-body dynamics model to file `rigid_body_dynamics`.
 The generated model does not include the joint dynamics.
-To visualize the mdh model of the robot, make sure the `roboticstoolbox-python` is installed, and add the `--plot` argument to the `compile-rbd` command.
+To visualize the kinematics of the robot, make sure the `roboticstoolbox-python` is installed, and add the argument `--plot` to the `compile-rbd` command.
 <p align="center">
   <img src="resources/robot_Plot.png" alt="MDH plot" width="400"/>
 </p>
