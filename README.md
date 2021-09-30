@@ -22,12 +22,11 @@ which is a computationally demanding procedure.
 ## Compile Rigid Body Dynamics Model
 
 ```
-aurt compile-rbd --mdh mdh.csv --gravity 0.0 0.0 -9.81 --out rigid_body_dynamics
+aurt compile-rbd --mdh mdh.csv --out rigid_body_dynamics
 ```
 Reads the Modified Denavit-Hartenberg (MDH) parameters in file `mdh.csv` and outputs rigid-body dynamics model to file `rigid_body_dynamics`.
-The gravity vector determines the orientation of the robot base for which the parameters will be calibrated.
 The generated model does not include the joint dynamics.
-To visualize the mdh model of the robot, make sure the `roboticstoolbox-python` is installed, and add the `--plot` argument to the `compile-rbd` command.
+To visualize the kinematics of the robot, make sure the `roboticstoolbox-python` is installed, and add the argument `--plot` to the `compile-rbd` command.
 <p align="center">
   <img src="resources/robot_Plot.png" alt="MDH plot" width="400"/>
 </p>
@@ -63,10 +62,11 @@ The friction configuration options are:
 ## Calibrate
 
 ```
-aurt calibrate --model robot_dynamics --data measured_data.csv --out-params calibrated_parameters.csv --out-calibrated-model rd_calibrated --plot
+aurt calibrate --model robot_dynamics --data measured_data.csv --gravity 0 0 -9.81 --out-params calibrated_parameters.csv --out-calibrated-model rd_calibrated --plot
 ```
 
-Reads the model produced by the `compile-rd` command, the measured data in `measured_data.csv`, writes the values of the calibrated base parameters to `calibrated_parameters.csv`, and writes the calibrated robot dynamics model to `rd_calibrated`.
+Reads; 1) the model produced by the `compile-rd` command, 2) the measured data in `measured_data.csv`, and 3) the gravity components `GX GY GZ` and writes; 1) the values of the calibrated base parameters to `calibrated_parameters.csv` and 2) the calibrated robot dynamics model to `rd_calibrated`.
+The gravity vector determines the orientation of the robot base for which the parameters will be calibrated.
 For showing the calibration plot, use the argument `--plot`.
 
 The measured data should contain the following fields:
@@ -78,11 +78,12 @@ The measured data should contain the following fields:
 ## Predict
 
 ```
-aurt predict --model rd_calibrated --data measured_data.csv --out predicted_output.csv
+aurt predict --model rd_calibrated --data measured_data.csv --gravity 0 0 -9.81 --out predicted_output.csv
 ```
 
-Reads the model produced by the `calibrate` command, 
-the measured data in `measured_data.csv`, 
+Reads; 1) the model produced by the `calibrate` command, 
+2) the measured data in `measured_data.csv`, and
+3) the gravity components `GX GY GZ`,
 and writes the predicted output to `predicted_output.csv`.
 
 The prediction fields are:
@@ -91,7 +92,7 @@ The prediction fields are:
 
 ## Calibrate and Validate
 ```
-aurt calibrate-validate --model robot_dynamics --data measured_data.csv --calibration-data-rel FRACTION --out-params calibrated_parameters.csv --out-calibrated-model rd_calibrated --out-prediction predicted_output.csv --plot
+aurt calibrate-validate --model robot_dynamics --data measured_data.csv --gravity 0 0 -9.81 --calibration-data-rel FRACTION --out-params calibrated_parameters.csv --out-calibrated-model rd_calibrated --out-prediction predicted_output.csv --plot
 ```
 Simultaneously calibrates and validates the robot dynamics model using the dataset `measured_data.csv`. 
 The command implements the functionalities of the commands `calibrate` and `predict`. 
@@ -113,14 +114,15 @@ _NOTE: Run tests before commits. If they don't pass, fix them before committing.
 
 ## Publishing this package on pypi
 
-1. Make sure all tests, except the live ones, are passing.
-2. Delete folders `dist` `build` if they exist.
-3. Activate virtual environment.
-4. Install twine and wheel: `pip install twine wheel`
-5. Create a source distribution: `python setup.py sdist`
-6. Create the binary distribution: `python setup.py bdist_wheel`
-7. Upload distribution to PyPI: `python -m twine upload dist/*`
-8. When asked for username and password, use the token and password created with your PyPI account.
+1. Update version in `setup.py`
+2. Make sure all tests, except the live ones, are passing.
+3. Delete folders `dist` `build` if they exist.
+4. Activate virtual environment.
+5. Install twine and wheel: `pip install twine wheel`
+6. Create a source distribution: `python setup.py sdist`
+7. Create the binary distribution: `python setup.py bdist_wheel`
+8. Upload distribution to PyPI: `python -m twine upload dist/*`
+9. When asked for username and password, use the token and password created with your PyPI account.
 
 ## Dataset management
 
