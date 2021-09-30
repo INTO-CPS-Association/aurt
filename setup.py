@@ -11,7 +11,7 @@ setuptools.setup(
     description="A robot dynamic parameters calibration toolbox.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://gitlab.au.dk/software-engineering/aurt",
+    url="https://github.com/INTO-CPS-Association/aurt/",
     packages=["aurt"],
     install_requires=[
         "numpy>=1",
