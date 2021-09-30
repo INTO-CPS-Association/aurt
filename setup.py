@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="aurt",
-    version="0.0.2",
+    version="0.0.3",
     author="Emil Madsen, Daniella Tola, Claudio Gomes",
     author_email="ema@ece.au.dk",
     description="A robot dynamic parameters calibration toolbox.",
