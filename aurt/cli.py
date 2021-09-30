@@ -10,32 +10,27 @@ def setup_logger(args):
     if args.logger_config is not None:
         fileConfig(args.logger_config)
     else:
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.WARNING)
     return logging.getLogger("aurt")
 
 
 def compile_rbd(args):
     l = setup_logger(args)
     l.info("Compiling rigid body dynamics model.")
-    l.debug(f"Gravity vector: {args.gravity}")
 
     if args.mdh[-4:] != ".csv":
         raise Exception(f"The provided mdh file {args.mdh} is not a CSV file. AURT only supports CSV files. Please provide a CSV file.")
     if not os.path.isfile(args.mdh):
         raise OSError(f"The mdh file {args.mdh} could not be located. Please specify a valid filename (csv).")
-    gravity_vector_type = {True if isinstance(g,float) or isinstance(g,int) else False for g in args.gravity}
-    if False in gravity_vector_type:
-        raise TypeError(f"The given gravity vector is not a float, nor an integer. Please provide a valid gravity vector.")
     filename = from_cache(args.out + ".pickle")
     if os.path.isfile(filename):
-        l.warning(f"The rigid body dynamics file {filename} already exists, and its content will be overwritten.")
+        l.warning(f"The rigid body dynamics file {filename} already exists. Its content will be overwritten.")
     
     mdh_path = args.mdh
-    gravity = np.array(args.gravity)
     output_path = args.out
     plotting = args.plot
 
-    api.compile_rbd(mdh_path, gravity, output_path, plotting)
+    api.compile_rbd(mdh_path, output_path, plotting)
 
 
 def compile_rd(args):
@@ -67,6 +62,10 @@ def calibrate(args):
     l = setup_logger(args)
     l.info("Calibrating robot dynamics model.")
 
+    gravity_vector_type = {True if isinstance(g,float) or isinstance(g,int) else False for g in args.gravity}
+    if False in gravity_vector_type:
+        raise TypeError(f"The given gravity vector is not a float, nor an integer. Please provide a valid gravity vector.")
+
     filename = from_cache(args.model + ".pickle")
     if not os.path.isfile(filename):
         raise Exception(f"The robot dynamics file {filename} could not be located. Please specify a valid filename.")
@@ -82,12 +81,13 @@ def calibrate(args):
         l.warning(f"The calibration model filename {args.out_calibration_model} already exists, and its content will be overwritten.")
 
     model_path = args.model
+    gravity = np.array(args.gravity)
     data_path = args.data
     params_path = args.out_params
     calbration_model_path = args.out_calibration_model
     plotting = args.plot
     
-    api.calibrate(model_path, data_path, params_path, calbration_model_path, plotting)
+    api.calibrate(model_path, data_path, gravity, params_path, calbration_model_path, plotting)
 
 
 def predict(args):
@@ -100,6 +100,10 @@ def predict(args):
     
     if not os.path.isfile(args.data):
         raise Exception(f"The data file {args.data} could not be located. Please specify a valid filename.")
+    
+    gravity_vector_type = {True if isinstance(g,float) or isinstance(g,int) else False for g in args.gravity}
+    if False in gravity_vector_type:
+        raise TypeError(f"The given gravity vector is not a float, nor an integer. Please provide a valid gravity vector.")
 
     filename = from_cache(args.out)
     if os.path.isfile(filename):
@@ -107,9 +111,10 @@ def predict(args):
 
     model_path = args.model
     data_path = args.data
+    gravity = np.array(args.gravity)
     output_path = args.out
     
-    api.predict(model_path, data_path, output_path)
+    api.predict(model_path, data_path, gravity, output_path)
 
 
 def calibrate_validate(args):
@@ -122,6 +127,10 @@ def calibrate_validate(args):
     
     if not os.path.isfile(args.data):
         raise Exception(f"The data file {args.data} could not be located. Please specify a valid filename.")
+    
+    gravity_vector_type = {True if isinstance(g,float) or isinstance(g,int) else False for g in args.gravity}
+    if False in gravity_vector_type:
+        raise TypeError(f"The given gravity vector is not a float, nor an integer. Please provide a valid gravity vector.")
 
     if os.path.isfile(args.out_params):
         l.warning(f"The parameters filename {args.out_params} already exists, and its content will be overwritten.")
@@ -140,13 +149,14 @@ def calibrate_validate(args):
 
     model_path = args.model
     data_path = args.data
+    gravity = np.array(args.gravity)
     calbration_model_path = args.out_calibrated_model
     calibration_data_rel = args.calibration_data_rel # TODO: make sure to check that it is between 0 and 1
     plotting = args.plot
     params_path = args.out_params
     output_prediction_path = args.out_prediction
     
-    api.calibrate_validate(model_path, data_path, calibration_data_rel, params_path, calbration_model_path, output_prediction_path, plotting)
+    api.calibrate_validate(model_path, data_path, gravity, calibration_data_rel, params_path, calbration_model_path, output_prediction_path, plotting)
 
 
 def create_cmd_parser():
@@ -190,12 +200,6 @@ def _create_compile_rbd_parser(subparsers):
     compile_rbd_parser.add_argument('--mdh', required=True,
                                     help="Modified Denavit-Hartenberg (MDH) parameters file (csv)")
 
-    compile_rbd_parser.add_argument('--gravity', required=True,
-                                    nargs=3,
-                                    type=float,
-                                    metavar='R',
-                                    help="Gravity vector, e.g.: 0 0 -9.81")
-
     compile_rbd_parser.add_argument('--out', required=True,
                                     help="Path of outputted rigid body dynamics model (pickle).")
 
@@ -237,6 +241,12 @@ def _create_calibrate_parser(subparsers):
 
     calibrate_parser.add_argument('--data', required=True,
                                     help="The measured data (csv).")
+    
+    calibrate_parser.add_argument('--gravity', required=True,
+                                  nargs=3,
+                                  type=float,
+                                  metavar='R',
+                                  help="Gravity vector, e.g.: 0 0 -9.81")
 
     calibrate_parser.add_argument('--out-params',
                                     help="The resulting parameter values (csv).")
@@ -257,6 +267,12 @@ def _create_predict_parser(subparsers):
 
     predict_parser.add_argument('--data', required=True,
                                     help="The measured data (csv).")
+    
+    predict_parser.add_argument('--gravity', required=True,
+                                nargs=3,
+                                type=float,
+                                metavar='R',
+                                help="Gravity vector, e.g.: 0 0 -9.81")
 
     predict_parser.add_argument('--out', required=True,
                                     help="Path of outputted prediction values (csv).")
@@ -271,6 +287,12 @@ def _create_calibrate_validate_parser(subparsers):
                                            help="The robot dynamics model created with the compile-rd command.")
 
     calibrate_validate_parser.add_argument('--data', required=True, help="The measured data (csv).")
+
+    calibrate_validate_parser.add_argument('--gravity', required=True,
+                                           nargs=3,
+                                           type=float,
+                                           metavar='R',
+                                           help="Gravity vector, e.g.: 0 0 -9.81")
 
     calibrate_validate_parser.add_argument('--calibration-data-rel', required=True, type=float,
                                            help="The relative fraction of the dataset to be used for calibration. The value should be in the range [0.1; 0.9].")

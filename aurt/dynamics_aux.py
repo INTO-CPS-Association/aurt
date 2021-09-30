@@ -1,5 +1,10 @@
 
 import sympy as sp
+from itertools import chain
+
+def list_2D_to_sympy_vector(my_2D_list):
+        """Flattens 2D list to 1D list and converts 1D list to sympy.Matrix() object."""
+        return sp.Matrix(list(chain.from_iterable(my_2D_list)))
 
 
 def sym_mat_to_subs(sym_mats, num_mats):
@@ -41,14 +46,14 @@ def replace_first_moments(args):
 
 def compute_regressor_row(args): 
     """
-    We compute the regressor via symbolic differentiation. Each torque equation must be linearizable with respect to
-    the dynamic coefficients.
+    We compute the regressor by extracting the coefficient to the parameter. Each torque equation must be linearizable 
+    with respect to the dynamic coefficients.
 
     Example:
-        Given the equation 'tau = sin(q)*a', tau is linearizable with respect to 'a', and the regressor 'sin(q)' can be
-        obtained by partial differentiation of 'tau' with respect to 'a'.
+        Given the equation 'tau = sin(q)*a', tau is linear with respect to 'a' and the regressor 'sin(q)' can be
+        obtained as the coefficient of 'a' in 'tau'.
     """
-    tau_sym_linearizable_j = args[0][0]  # tau_sym_linearizable[j]
+    tau_sym_linearizable_j = args[0][0]
     j = args[0][1]
     n_joints = args[1]
     p_linear = args[2]
@@ -68,12 +73,9 @@ def compute_regressor_row(args):
     for jj in range(j, n_joints + 1):  # Joint loop including this and distal (succeeding) joints (jj >= j)
         for i in range(n_par[jj]):  # joint jj parameter loop
             column_idx = sum(n_par[:jj]) + i
+            
             print(
-                f"Computing regressor(row={j}/{n_joints + 1}, column={column_idx + 1}/{sum(n_par)}) by analyzing dependency of tau[{j}] on joint {jj}'s parameter {i}: {p_linear[jj][i]}")
-            # reg_row_j[0, column_idx] = sp.diff(tau_sym_linearizable_j, p_linear[jj][i])  # Tests using instead 'sp.collect(expr, x).coeff(x)' yielded significant worse performance
-            reg_row_j[0, column_idx] = tau_sym_linearizable_j.coeff(p_linear[jj][i])
-            # x = [x1,x2]
-            # res = sp.collect(expr, x)
-            # for ...
-            #    res.coeff(x[i])
+                f"Computing regressor(row={j}/{n_joints + 1}, column={column_idx - n_par[0] + 1}/{sum(n_par[1:])}) by analyzing dependency of tau[{j}] on joint {jj}'s parameter {i+1}: {p_linear[jj][i]}")
+            # reg_row_j[0, column_idx] = tau_sym_linearizable_j.expand().coeff(p_linear[jj][i])
+            reg_row_j[0, column_idx] = tau_sym_linearizable_j.diff(p_linear[jj][i])
     return reg_row_j

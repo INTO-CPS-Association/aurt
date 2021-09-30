@@ -3,16 +3,18 @@ import numpy as np
 import pickle
 
 from aurt.file_system import cache_object, from_cache
+from aurt.dynamics_aux import list_2D_to_sympy_vector
 from aurt.rigid_body_dynamics import RigidBodyDynamics
 from aurt.joint_dynamics import JointDynamics
 
 
 class RobotDynamics:
-    def __init__(self, rbd_filename, tcp_force_torque=None, viscous_friction_powers=None, friction_torque_model=None, hysteresis_model=None): # TODO ask Emil about tcp_force_torque
+    def __init__(self, rbd_filename, viscous_friction_powers=None, friction_torque_model=None, hysteresis_model=None):
         # Load saved RigidBodyDynamics model
         filename = from_cache(rbd_filename + ".pickle")
         with open(filename, 'rb') as f:
             self.rigid_body_dynamics: RigidBodyDynamics = pickle.load(f)
+        
         self.n_joints = self.rigid_body_dynamics.mdh.n_joints
         self.q = [sp.Integer(0)] + [sp.symbols(f"q{j}") for j in range(1, self.n_joints + 1)]
         self.qd = [sp.Integer(0)] + [sp.symbols(f"qd{j}") for j in range(1, self.n_joints + 1)]
@@ -29,25 +31,37 @@ class RobotDynamics:
 
     def parameters(self):
         """
-        Returns a list of 'n_joints + 1' elements with each element comprising a list of all parameters related to that
-        corresponding link and joint.
+        Returns a list of 'n_joints' elements with each element 'j' = 1, ..., 'n_joints' comprising a list of
+        Base Parameters (BP) related to link and joint 'j'.
         """
         par_rigid_body = self.rigid_body_dynamics.params
         par_joint = self.joint_dynamics.parameters()
         return [par_rigid_body[j] + par_joint[j] for j in range(self.n_joints)]
 
     def number_of_parameters(self):
+        """
+        Returns a list of 'n_joints' elements with each element 'j' = 1, ..., 'n_joints' indicating the 
+        number of Base Parameters (BP) related to link and joint 'j'.
+        """
         n_par_rbd = self.rigid_body_dynamics.n_params
         n_par_jd = self.joint_dynamics.number_of_parameters()
         return [n_par_rbd[j] + n_par_jd[j] for j in range(self.n_joints)]
 
-    def observation_matrix_joint(self, j, q_num, qd_num, qdd_num):
+    def parameters_essential(self, q, qd, qdd):
+        # 1. Do SVD of observation matrix
+        # 2. Choose Essential Inertial Parameters (EIP) based on some criteria´(Akaike's Information Criteria)
+        # ...
+        obs_mat = self.observation_matrix()
+        obs_mat.linalg.svd()
+        return 1
+
+    def observation_matrix_joint(self, j, q_num, qd_num, qdd_num, g_num):
         assert q_num.shape == qd_num.shape == qdd_num.shape
         assert 0 <= j < self.n_joints
 
         n_samples = q_num.shape[1]
         obs_mat_j = np.empty((n_samples, 0))
-        obs_mat_j_rbd = self.rigid_body_dynamics.observation_matrix_joint(j, q_num, qd_num, qdd_num)
+        obs_mat_j_rbd = self.rigid_body_dynamics.observation_matrix_joint(j, q_num, qd_num, qdd_num, g_num)
         for j_par in range(self.n_joints):
             if j_par == j:
                 tauJ_j_basis_num = np.sum(obs_mat_j_rbd, axis=1).transpose()
@@ -105,3 +119,8 @@ class RobotDynamics:
             return reg
 
         return cache_object(filepath_regressor, compute_regressor)
+    
+    def dynamics(self):
+        """The robot dynamics consisting of; 1) the rigid-body dynamics formulated in terms of
+        the Base Inertial Parameters (BIP) and 2) the joint dynamics."""
+        return self.regressor() @ list_2D_to_sympy_vector(self.parameters())

@@ -1,12 +1,12 @@
-from numpy.core.numeric import normalize_axis_tuple
-from aurt import robot_dynamics
-from aurt.robot_dynamics import RobotDynamics
 import numpy as np
 from scipy import signal
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 import pickle
+from logging import Logger
 
+from aurt import robot_dynamics
+from aurt.robot_dynamics import RobotDynamics
 from aurt.signal_processing import central_finite_difference
 from aurt.calibration_aux import find_nonstatic_start_and_end_indices
 from aurt.file_system import cache_numpy, cache_csv, load_numpy, from_cache, cache_object, load_object
@@ -15,10 +15,13 @@ from aurt.robot_data import RobotData, plot_colors
 
 class RobotCalibration:
     f_dyn = 10  # Approximate cut-off frequency [Hz] of robot dynamics
-    qd_tf_noise_threshold = 0.03  # Threshold to dermine non-stationary (any(abs(qd) > 0)) data
+    qd_tf_noise_threshold = 0.03  # Threshold [rad/s] to determine non-stationary (any(abs(qd) > qd_tf_noise_threshold)) data
 
-    def __init__(self, rd_filename, robot_data_path, relative_separation_of_calibration_and_prediction=None,
+    def __init__(self, l: Logger, rd_filename, robot_data_path, gravity, relative_separation_of_calibration_and_prediction=None,
                  robot_data_predict=None):
+        self.logger = l
+
+        self.gravity = gravity
 
         # Load saved RobotDynamics model
         filename = from_cache(rd_filename + ".pickle")
@@ -27,9 +30,11 @@ class RobotCalibration:
 
 
         if relative_separation_of_calibration_and_prediction is None and robot_data_predict is None:
+            """All data is used for calibration."""
             self.robot_data_calibration = RobotData(robot_data_path, delimiter=' ', interpolate_missing_samples=True)
             self.robot_data_validation = None
         elif relative_separation_of_calibration_and_prediction is not None and robot_data_predict is None:
+            """Using a single dataset, some of the data is used for calibration and some is used for validation."""
             assert 0 < relative_separation_of_calibration_and_prediction < 1, "The specified relative separation of " \
                                                                               "data used for calibration and " \
                                                                               "prediction must be in the range from 0 " \
@@ -39,10 +44,12 @@ class RobotCalibration:
             self.robot_data_calibration = RobotData(robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(0, t_sep))
             self.robot_data_validation = RobotData(robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(t_sep, np.inf))
         elif relative_separation_of_calibration_and_prediction is None and robot_data_predict is not None:
+            """Using two datasets, one for calibration and one for validation."""
             self.robot_data_calibration = RobotData(robot_data_path, delimiter=' ', interpolate_missing_samples=True)
             self.robot_data_validation = robot_data_predict
         else:
-            print("A wrong combination of arguments was provided.")
+            # exit here? call __del__()?
+            self.logger.error("A wrong combination of arguments was provided.")
         
         q_m = np.array([self.robot_data_calibration.data[f"actual_q_{j}"] for j in range(1, self.robot_dynamics.n_joints + 1)])
         _, qd_tf, _ = self._trajectory_filtering_and_central_difference(q_m, self.robot_data_calibration.dt_nominal, RobotCalibration.f_dyn)
@@ -61,7 +68,7 @@ class RobotCalibration:
 
         return compute_measurement_vector()
 
-    def _observation_matrix(self, robot_data, start_index=None, end_index=None):
+    def _observation_matrix(self, robot_data, gravity, start_index=None, end_index=None):
         q_m = np.array([robot_data.data[f"actual_q_{j}"] for j in range(1, self.robot_dynamics.n_joints + 1)])
 
         # Low-pass filter (smoothen) measured angular position(s) and obtain 1st and 2nd order time-derivatives
@@ -77,7 +84,7 @@ class RobotCalibration:
                                        sum(self.robot_dynamics.number_of_parameters())))  # Initialization
         for j in range(self.robot_dynamics.n_joints):
             # Obtain the rows of the observation matrix related to joint j
-            obs_mat_j = self.robot_dynamics.observation_matrix_joint(j, q_tf, qd_tf, qdd_tf)
+            obs_mat_j = self.robot_dynamics.observation_matrix_joint(j, q_tf, qd_tf, qdd_tf, gravity)
 
             # Parallel filter and decimate/downsample the rows of the observation matrix related to joint j.
             obs_mat_j_ds = RobotCalibration._downsample(
@@ -87,15 +94,14 @@ class RobotCalibration:
             observation_matrix[j * n_samples_ds:(j + 1) * n_samples_ds, :] = obs_mat_j_ds
         return observation_matrix
 
-    def calibrate(self, filename_parameters):  # , calibration_method='wls', weighting='variance'):
-        # TODO: make it possible to specify the relative portion of the dataset you want, e.g. 0.5 for half of the
-        #  dataset. Also, the actual number of e.g. 52.9 does not make any sense here - I don't think the "bias"
-        #  correction of the timestamps (see the function 'load_data()' in 'data_processing.py'):
-        #     time_range -= time_range[0]
-        #  is corrected...
-        #  EDIT: Maybe the elimination of zero-velocity data plays a role(?)
+    def calibrate(self, filename_parameters):
+        """
+        Calibrates the 'robot_dynamics' model using dataset 'robot_data_calibration' and output values of the
+        calibrated parameters to file 'filename_parameters'.
+        """
 
         observation_matrix = self._observation_matrix(self.robot_data_calibration,
+                                                      self.gravity,
                                                       start_index=self.non_static_start_idx,
                                                       end_index=self.non_static_end_idx)
         measurement_vector = self._measurement_vector(self.robot_data_calibration,
@@ -135,37 +141,37 @@ class RobotCalibration:
         mse = RobotCalibration.get_mse(measurement_vector_reshaped, y_pred_reshaped)
         normalization = np.mean(abs(measurement_vector_reshaped), axis=1)
         nmse = mse / normalization
-        print(f"MSE (calibration data): {mse}")
-        print(f"NMSE (calibration data): {nmse}")
+        self.logger.info(f"MSE (calibration data): {mse}")
+        self.logger.info(f"NMSE (calibration data): {nmse}")
         weighted_observation_matrix = (wls_sample_weights*observation_matrix.T).T
         std_dev_parameter_estimate = np.sqrt(np.diagonal(np.linalg.inv(weighted_observation_matrix.T @ weighted_observation_matrix)))  # calculates the standard deviation of the parameter estimates from the diagonal elements (variance) of the covariance matrix
         cond = RobotCalibration._evaluate_dynamics_excitation_as_cost((wls_sample_weights*observation_matrix.T).T, metric="cond")
-        print(f"Condition no. of weighted observation matrix: {cond}.")
+        self.logger.info(f"Condition no. of weighted observation matrix: {cond}.")
 
         self.parameters = wls_calibration.coef_
         rel_std_dev_parameter_estimate = 100 * (std_dev_parameter_estimate / self.parameters)
-        print(f"Parameters: {self.robot_dynamics.parameters()}")
-        print(f"Relative std.dev. of estimated parameters: {rel_std_dev_parameter_estimate}")
+        self.logger.info(f"Parameters: {self.robot_dynamics.parameters()}")
+        self.logger.info(f"Relative std.dev. of estimated parameters: {rel_std_dev_parameter_estimate}")
 
         cache_csv(from_cache(filename_parameters), lambda: self.parameters)
         return wls_calibration.coef_
 
-    def predict(self, robot_data_predict : RobotData, parameters, filename_predicted_output):
+    def predict(self, robot_data_predict: RobotData, gravity, parameters, filename_predicted_output):
 
         def compute_prediction():
-            observation_matrix = self._observation_matrix(robot_data_predict)
+            observation_matrix = self._observation_matrix(robot_data_predict, gravity)
             estimated_output = observation_matrix @ parameters
 
             n_samples_ds = round(observation_matrix.shape[0] / self.robot_dynamics.n_joints)
             assert n_samples_ds * self.robot_dynamics.n_joints == observation_matrix.shape[0]
             output_predicted_reshaped = np.reshape(estimated_output, (self.robot_dynamics.n_joints, n_samples_ds))
 
-            _, y_meas_reshaped, y_pred_reshaped = self._get_plot_values_for(robot_data_predict, parameters)
+            _, y_meas_reshaped, y_pred_reshaped = self._get_plot_values_for(robot_data_predict, gravity, parameters)
             mse = RobotCalibration.get_mse(y_meas_reshaped, y_pred_reshaped)
             normalization = np.mean(abs(y_meas_reshaped), axis=1)
             nmse = mse / normalization
-            print(f"MSE (validation data): {mse}")
-            print(f"NMSE (validation data): {nmse}")
+            self.logger.info(f"MSE (validation data): {mse}")
+            self.logger.info(f"NMSE (validation data): {nmse}")
 
             #return robot_data_predict.time[
             #       ::self.downsampling_factor], output_predicted_reshaped  # TODO: CORRECT ERROR; 'time' does not correspond in length to 'output_predicted_reshaped'
@@ -173,8 +179,8 @@ class RobotCalibration:
 
         return cache_csv(from_cache(filename_predicted_output), compute_prediction)
 
-    def _get_plot_values_for(self, data, parameters):
-        observation_matrix = self._observation_matrix(data)
+    def _get_plot_values_for(self, data, gravity, parameters):
+        observation_matrix = self._observation_matrix(data, gravity)
         n_samples = observation_matrix.shape[0] // self.robot_dynamics.n_joints
         estimated_data = np.reshape(observation_matrix @ parameters, (self.robot_dynamics.n_joints, n_samples))
         measured_data = np.reshape(self._measurement_vector(data),
@@ -214,7 +220,6 @@ class RobotCalibration:
         plt.legend()
         plt.show()
 
-
     def plot_calibration(self, parameters):
         try:
             import matplotlib.colors
@@ -223,7 +228,7 @@ class RobotCalibration:
             import warnings
             warnings.warn("The matplotlib package is not installed, please install it for plotting the calibration.")
 
-        t, measured_output_reshaped, estimated_output_reshaped = self._get_plot_values_for(self.robot_data_calibration, parameters)
+        t, measured_output_reshaped, estimated_output_reshaped = self._get_plot_values_for(self.robot_data_calibration, self.gravity, parameters)
         error = measured_output_reshaped - estimated_output_reshaped
 
         fig = plt.figure()
@@ -266,7 +271,7 @@ class RobotCalibration:
 
         t, y = load_object(from_cache(filename_predict + '.pickle'))
 
-        observation_matrix = self._observation_matrix(self.robot_data_calibration)
+        observation_matrix = self._observation_matrix(self.robot_data_calibration, gravity)
         n_samples = observation_matrix.shape[0] // self.robot_dynamics.n_joints
         estimated_output_reshaped = np.reshape(observation_matrix @ parameters,
                                                (self.robot_dynamics.n_joints, n_samples))
@@ -321,8 +326,8 @@ class RobotCalibration:
             warnings.warn("The matplotlib package is not installed, please install it for plotting the calibration.")
 
         ## Calibration and Validation estimation and data
-        t_calibration, measured_output_reshaped, estimated_output_reshaped = self._get_plot_values_for(self.robot_data_calibration, parameters)
-        t_validation, measured_validation_output_reshaped, validation_output_reshaped = self._get_plot_values_for(self.robot_data_validation, parameters)
+        t_calibration, measured_output_reshaped, estimated_output_reshaped = self._get_plot_values_for(self.robot_data_calibration, self.gravity, parameters)
+        t_validation, measured_validation_output_reshaped, validation_output_reshaped = self._get_plot_values_for(self.robot_data_validation, self.gravity, parameters)
         t_validation += t_calibration[-1]
 
         def darken_color(plot_color, darken_amount=0.45):
