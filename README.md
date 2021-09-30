@@ -114,14 +114,15 @@ _NOTE: Run tests before commits. If they don't pass, fix them before committing.
 
 ## Publishing this package on pypi
 
-1. Make sure all tests, except the live ones, are passing.
-2. Delete folders `dist` `build` if they exist.
-3. Activate virtual environment.
-4. Install twine and wheel: `pip install twine wheel`
-5. Create a source distribution: `python setup.py sdist`
-6. Create the binary distribution: `python setup.py bdist_wheel`
-7. Upload distribution to PyPI: `python -m twine upload dist/*`
-8. When asked for username and password, use the token and password created with your PyPI account.
+1. Update version in `setup.py`
+2. Make sure all tests, except the live ones, are passing.
+3. Delete folders `dist` `build` if they exist.
+4. Activate virtual environment.
+5. Install twine and wheel: `pip install twine wheel`
+6. Create a source distribution: `python setup.py sdist`
+7. Create the binary distribution: `python setup.py bdist_wheel`
+8. Upload distribution to PyPI: `python -m twine upload dist/*`
+9. When asked for username and password, use the token and password created with your PyPI account.
 
 ## Dataset management
 
