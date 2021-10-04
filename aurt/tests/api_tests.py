@@ -14,7 +14,6 @@ class APITests(unittest.TestCase):
     def test01_compile_rbd(self):
         init_cache_dir()
         mdh_path = str(from_project_root("aurt/tests/resources/twolink_dh.csv"))
-        gravity = [0.0, -9.81, 0.0]
         output_path = "rbd_twolink"
         plotting = False
 
