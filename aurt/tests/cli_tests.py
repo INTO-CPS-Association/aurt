@@ -10,9 +10,18 @@ from aurt.file_system import from_cache, load_csv, from_project_root
 ##    o add tests for compile-rd
 ##    o add tests for calibrate
 ##    o add tests for predict
+from aurt.tests.units import init_cache_dir
 
 
 class CLITests(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        """
+        Runs when class is loaded.
+        """
+        cls.cache_dir = from_project_root('cache')
+        init_cache_dir(cls.cache_dir)
 
     def init_rbd(self):
         mdh_filename = str(from_project_root("aurt/tests/resources/twolink_dh.csv"))
@@ -64,6 +73,7 @@ class CLITests(unittest.TestCase):
         compile_rbd_parser.out = out
         compile_rbd_parser.plot = plotting
         compile_rbd_parser.logger_config = logger_config
+        compile_rbd_parser.cache = self.cache_dir
         return compile_rbd_parser
 
     def set_compile_rd_arguments(self, model_rbd, friction_torque_model, friction_viscous_powers, out,
@@ -75,6 +85,7 @@ class CLITests(unittest.TestCase):
         compile_rd_parser.friction_viscous_powers = friction_viscous_powers
         compile_rd_parser.out = out
         compile_rd_parser.logger_config = logger_config
+        compile_rd_parser.cache = self.cache_dir
         return compile_rd_parser
 
     def set_calibrate_arguments(self, model, data, gravity, out_params, out_calibration_model, plot, logger_config=None):
@@ -112,7 +123,8 @@ class CLITests(unittest.TestCase):
 
         with open(out_filename, 'rb') as f:
             out_rbd = pickle.load(f)
-        self.assertTrue(out_rbd != None)
+
+        self.assertTrue(out_rbd is not None)
 
     def test02_compile_rbd_args_cli_file_not_csv(self):
         mdh_filename = str(from_project_root("aurt/tests/resources/twolink_dh"))

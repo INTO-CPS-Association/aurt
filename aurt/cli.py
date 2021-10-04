@@ -30,11 +30,9 @@ def compile_rbd(args):
 
     mdh_path = args.mdh
     plotting = args.plot
-
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        l.debug(f"Using folder {tmpdirname} as cache.")
-        cache = PersistentPickleCache(tmpdirname)
-        api.compile_rbd(mdh_path, output_path, plotting, cache)
+    l.debug(f"Using folder {args.cache} as cache.")
+    cache = PersistentPickleCache(args.cache)
+    api.compile_rbd(mdh_path, output_path, plotting, cache)
 
 
 def compile_rd(args):
@@ -57,10 +55,9 @@ def compile_rd(args):
     #friction_hysteresis_model = args.friction_hysteresis_model # saved for later implementation
     output_path = args.out
 
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        l.debug(f"Using folder {tmpdirname} as cache.")
-        cache = PersistentPickleCache(tmpdirname)
-        api.compile_rd(model_rbd_path, friction_torque_model, friction_viscous_powers, output_path, cache)
+    l.debug(f"Using folder {args.cache} as cache.")
+    cache = PersistentPickleCache(args.cache)
+    api.compile_rd(model_rbd_path, friction_torque_model, friction_viscous_powers, output_path, cache)
 
 
 def calibrate(args):
@@ -200,6 +197,9 @@ def _create_compile_rbd_parser(subparsers):
     compile_rbd_parser.add_argument('--out', required=True,
                                     help="Path of outputted rigid body dynamics model (pickle).")
 
+    compile_rbd_parser.add_argument('--cache', required=False, default="cache",
+                                    help="Path of folder that is used for temporary storage of results.")
+
     compile_rbd_parser.add_argument('--plot', action="store_true", default=False)
 
     compile_rbd_parser.set_defaults(command=compile_rbd)
@@ -219,6 +219,9 @@ def _create_compile_rd_parser(subparsers):
                                        type=int,
                                        metavar='R',
                                        help="The viscous friction polynomial powers.")
+
+    compile_rd_parser.add_argument('--cache', required=False, default="cache",
+                                    help="Path of folder that is used for temporary storage of results.")
 
     # compile_rd_parser.add_argument('--friction-hysteresis-model', required=True,
     #                                    choices=["sign", "maxwells"],

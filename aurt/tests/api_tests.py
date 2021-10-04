@@ -18,15 +18,15 @@ class APITests(unittest.TestCase):
         Runs when class is loaded.
         """
         cls.cache_dir = from_project_root('cache')
+        init_cache_dir(cls.cache_dir)
         cls.cache = PersistentPickleCache(cls.cache_dir)
 
     # The naming of the test cases control the order of the tests
     def test01_compile_rbd(self):
-        init_cache_dir(self.cache_dir)
         mdh_path = str(from_project_root("aurt/tests/resources/twolink_dh.csv"))
         output_path = from_cache("rbd_twolink.pickle")
         plotting = False
-        
+
         api.compile_rbd(mdh_path, output_path, plotting, self.cache)
         with open(output_path, 'rb') as f:
             rbd_twolink_estimate: RigidBodyDynamics = pickle.load(f)
