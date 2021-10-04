@@ -6,6 +6,7 @@ import numpy as np
 import os.path
 import aurt.api as api
 from aurt.caching import PersistentPickleCache
+from aurt.tests.units import init_cache_dir
 
 
 def setup_logger(args):
@@ -31,6 +32,8 @@ def compile_rbd(args):
     mdh_path = args.mdh
     plotting = args.plot
     l.debug(f"Using folder {args.cache} as cache.")
+    l.info(f"Clearing cache {args.cache}.")
+    init_cache_dir(args.cache)
     cache = PersistentPickleCache(args.cache)
     api.compile_rbd(mdh_path, output_path, plotting, cache)
 
@@ -77,17 +80,17 @@ def calibrate(args):
     if os.path.isfile(args.out_params):
         l.warning(f"The parameters filename {args.out_params} already exists, and its contents will be overwritten.")
 
-    if os.path.isfile(args.out_calibration_model):
-        l.warning(f"The calibration model filename {args.out_calibration_model} already exists, and its contents will be overwritten.")
+    if os.path.isfile(args.out_calibrated_model):
+        l.warning(f"The calibration model filename {args.out_calibrated_model} already exists, and its contents will be overwritten.")
 
     model_path = args.model
     gravity = np.array(args.gravity)
     data_path = args.data
     params_path = args.out_params
-    calbration_model_path = args.out_calibration_model
+    calibrated_model_path = args.out_calibrated_model
     plotting = args.plot
     
-    api.calibrate(model_path, data_path, gravity, params_path, calbration_model_path, plotting)
+    api.calibrate(model_path, data_path, gravity, params_path, calibrated_model_path, plotting)
 
 
 def predict(args):
@@ -197,7 +200,7 @@ def _create_compile_rbd_parser(subparsers):
     compile_rbd_parser.add_argument('--out', required=True,
                                     help="Path of outputted rigid body dynamics model (pickle).")
 
-    compile_rbd_parser.add_argument('--cache', required=False, default="cache",
+    compile_rbd_parser.add_argument('--cache', required=False, default="./cache",
                                     help="Path of folder that is used for temporary storage of results.")
 
     compile_rbd_parser.add_argument('--plot', action="store_true", default=False)
@@ -309,6 +312,7 @@ def _create_calibrate_validate_parser(subparsers):
 
     calibrate_validate_parser.set_defaults(command=calibrate_validate)
     return calibrate_validate_parser
+
 
 def main():
    create_cmd_parser()

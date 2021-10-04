@@ -39,7 +39,7 @@ class CLITests(unittest.TestCase):
         model_rbd = from_cache("out_rbd.pickle")
         friction_torque_model = "square"
         friction_viscous_powers = [2, 1, 4]
-        out = from_cache("out_rd")
+        out = from_cache("out_rd.pickle")
         parser = self.set_compile_rd_arguments(
             model_rbd,
             friction_torque_model,
@@ -54,14 +54,14 @@ class CLITests(unittest.TestCase):
         data = str(from_project_root("aurt/tests/resources/twolink_data.csv"))
         gravity = [0, -9.81, 0]
         out_params = from_cache("twolink_model_params.csv")
-        out_calibration_model = from_cache("out_calibrate.pickle")
+        out_calibrated_model = from_cache("out_calibrate.pickle")
         plot = False
         parser = self.set_calibrate_arguments(
             model,
             data,
             gravity,
             out_params,
-            out_calibration_model,
+            out_calibrated_model,
             plot
         )
         calibrate(parser)
@@ -88,14 +88,14 @@ class CLITests(unittest.TestCase):
         compile_rd_parser.cache = self.cache_dir
         return compile_rd_parser
 
-    def set_calibrate_arguments(self, model, data, gravity, out_params, out_calibration_model, plot, logger_config=None):
+    def set_calibrate_arguments(self, model, data, gravity, out_params, out_calibrated_model, plot, logger_config=None):
         subparsers, _ = _init_cmd_parser()
         calibrate_parser = _create_calibrate_parser(subparsers)
         calibrate_parser.model = model
         calibrate_parser.data = data
         calibrate_parser.gravity = gravity
         calibrate_parser.out_params = out_params
-        calibrate_parser.out_calibration_model = out_calibration_model
+        calibrate_parser.out_calibrated_model = out_calibrated_model
         calibrate_parser.plot = plot
         calibrate_parser.logger_config = logger_config
         return calibrate_parser
@@ -174,19 +174,19 @@ class CLITests(unittest.TestCase):
         data = str(from_project_root("aurt/tests/resources/twolink_data.csv"))
         gravity = [0.7, -0.7, 0.7]
         out_params = from_cache("calibrated_params.csv")
-        out_calibration_model = from_cache("out_calibration.pickle")
+        out_calibrated_model = from_cache("out_calibration.pickle")
         plot = False
         parser = self.set_calibrate_arguments(
             model,
             data,
             gravity,
             out_params,
-            out_calibration_model,
+            out_calibrated_model,
             plot
         )
         calibrate(parser)
 
-        with open(out_calibration_model, 'rb') as f:
+        with open(out_calibrated_model, 'rb') as f:
             out_calibration = pickle.load(f)
         self.assertTrue(out_calibration is not None)
     
@@ -196,14 +196,14 @@ class CLITests(unittest.TestCase):
         data = str(from_project_root("aurt/tests/resources/twolink_data.csv"))
         gravity = ["a", "b", "c"]
         out_params = from_cache("calibrated_params.csv")
-        out_calibration_model = from_cache("out_calibration.pickle")
+        out_calibrated_model = from_cache("out_calibration.pickle")
         plot = False
         parser = self.set_calibrate_arguments(
             model,
             data,
             gravity,
             out_params,
-            out_calibration_model,
+            out_calibrated_model,
             plot
         )
         with self.assertRaises(TypeError):
@@ -215,19 +215,19 @@ class CLITests(unittest.TestCase):
         data = str(from_project_root("aurt/tests/resources/twolink_data.csv"))
         gravity = [0, 1, 0]
         out_params = from_cache("calibrated_params.csv")
-        out_calibration_model = from_cache("out_calibration.pickle")
+        out_calibrated_model = from_cache("out_calibration.pickle")
         plot = False
         parser = self.set_calibrate_arguments(
             model,
             data,
             gravity,
             out_params,
-            out_calibration_model,
+            out_calibrated_model,
             plot
         )
         calibrate(parser)
 
-        with open(out_calibration_model, 'rb') as f:
+        with open(out_calibrated_model, 'rb') as f:
             out_calibration = pickle.load(f)
         self.assertTrue(out_calibration is not None)
 
