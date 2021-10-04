@@ -1,20 +1,16 @@
 import sympy as sp
 import numpy as np
-import pickle
 
-from aurt.file_system import cache_object, from_cache
+from aurt.caching import Cache
 from aurt.dynamics_aux import list_2D_to_sympy_vector
 from aurt.rigid_body_dynamics import RigidBodyDynamics
 from aurt.joint_dynamics import JointDynamics
 
 
 class RobotDynamics:
-    def __init__(self, rbd_filename, viscous_friction_powers=None, friction_torque_model=None, hysteresis_model=None):
-        # Load saved RigidBodyDynamics model
-        filename = from_cache(rbd_filename + ".pickle")
-        with open(filename, 'rb') as f:
-            self.rigid_body_dynamics: RigidBodyDynamics = pickle.load(f)
-        
+    def __init__(self, rigid_body_dynamics: RigidBodyDynamics, cache: Cache, viscous_friction_powers=None, friction_torque_model=None, hysteresis_model=None):
+        self.rigid_body_dynamics = rigid_body_dynamics
+        self._cache = cache
         self.n_joints = self.rigid_body_dynamics.mdh.n_joints
         self.q = [sp.Integer(0)] + [sp.symbols(f"q{j}") for j in range(1, self.n_joints + 1)]
         self.qd = [sp.Integer(0)] + [sp.symbols(f"qd{j}") for j in range(1, self.n_joints + 1)]
@@ -25,9 +21,6 @@ class RobotDynamics:
                                             load_model=friction_torque_model,
                                             hysteresis_model=hysteresis_model,
                                             viscous_powers=viscous_friction_powers)
-
-    def filepath_regressor_joint(self, j):
-        return from_cache(f'robot_dynamics_regressor_joint_{j}')
 
     def parameters(self):
         """
@@ -102,24 +95,20 @@ class RobotDynamics:
                 reg_j = sp.Matrix.hstack(reg_j, reg_j_rbd_par_j, reg_j_jd)
             return reg_j
 
-        return compute_regressor_joint()#cache_object(self.filepath_regressor_joint(j+1), compute_regressor_joint)
+        return compute_regressor_joint()
 
-    def regressor(self, output_filename="robot_dynamics_regressor"):
-        filepath_regressor = from_cache(output_filename)
+    def regressor(self, output_filename="robot_dynamics_regressor.pickle"):
+        return self._cache.get_or_cache(output_filename, self.compute_regressor)
 
-        def compute_regressor():
-            """Merges regressor matrices for rigid-body dynamics and joint dynamics to construct a regressor for the
-            robot dynamics."""
-            reg = sp.zeros(self.n_joints, sum(self.number_of_parameters()))
-            for j in range(self.n_joints):
-                reg[j, :] = self.regressor_joint(j)
+    def compute_regressor(self):
+        """Merges regressor matrices for rigid-body dynamics and joint dynamics to construct a regressor for the
+        robot dynamics."""
+        reg = sp.zeros(self.n_joints, sum(self.number_of_parameters()))
+        for j in range(self.n_joints):
+            reg[j, :] = self.regressor_joint(j)
 
-            # for j in range(self.n_joints):
-            #     cache_object(from_cache(f"robot_dynamics_regressor_joint_{j+1}"), lambda: reg[j, :])
-            return reg
+        return reg
 
-        return cache_object(filepath_regressor, compute_regressor)
-    
     def dynamics(self):
         """The robot dynamics consisting of; 1) the rigid-body dynamics formulated in terms of
         the Base Inertial Parameters (BIP) and 2) the joint dynamics."""

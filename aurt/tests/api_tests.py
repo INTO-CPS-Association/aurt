@@ -2,6 +2,8 @@ import unittest
 import pickle
 from pathlib import Path
 import sympy as sp
+
+from aurt.caching import PersistentPickleCache
 from aurt.file_system import from_cache, from_project_root
 from aurt import api
 from aurt.rigid_body_dynamics import RigidBodyDynamics
@@ -10,18 +12,25 @@ from aurt.tests.units import init_cache_dir
 
 class APITests(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        """
+        Runs when class is loaded.
+        """
+        cls.cache_dir = from_project_root('cache')
+        cls.cache = PersistentPickleCache(cls.cache_dir)
+
     # The naming of the test cases control the order of the tests
     def test01_compile_rbd(self):
-        init_cache_dir()
+        init_cache_dir(self.cache_dir)
         mdh_path = str(from_project_root("aurt/tests/resources/twolink_dh.csv"))
-        output_path = "rbd_twolink"
+        output_path = from_cache("rbd_twolink.pickle")
         plotting = False
-
-        api.compile_rbd(mdh_path, output_path, plotting)
-        filename = from_cache(output_path + ".pickle")
-        with open(filename, 'rb') as f:
+        
+        api.compile_rbd(mdh_path, output_path, plotting, self.cache)
+        with open(output_path, 'rb') as f:
             rbd_twolink_estimate: RigidBodyDynamics = pickle.load(f)
-        with open(str(from_project_root(Path("aurt/tests/resources", output_path))) + ".pickle", 'rb') as f:
+        with open(from_project_root(Path("aurt/tests/resources", output_path)), 'rb') as f:
             rbd_twolink_true: RigidBodyDynamics = pickle.load(f)
 
         self.assertEqual(rbd_twolink_estimate.mdh, rbd_twolink_true.mdh)
@@ -38,8 +47,8 @@ class APITests(unittest.TestCase):
 
     def test02_compile_rbd_save_class(self):
         # test that class is saved properly
-        output_path = "rbd_twolink"
-        filename = from_cache(output_path + ".pickle")
+        output_path = "rbd_twolink.pickle"
+        filename = from_cache(output_path)
 
         with open(filename, 'rb') as f:
             newrbd: RigidBodyDynamics = pickle.load(f)
@@ -47,17 +56,17 @@ class APITests(unittest.TestCase):
         self.assertIsNotNone(newrbd.params, "The parameters are not set.")
 
     def test03_compile_rd(self):
-        model_rbd = "rbd_twolink"
+        model_rbd = from_cache("rbd_twolink.pickle")
         friction_torque_model = "square"
         friction_viscous_powers = [2, 1, 4]
-        output_file = "rd_twolink"
+        output_file = "rd_twolink.pickle"
+        output_path = from_cache(output_file)
 
-        api.compile_rd(model_rbd, friction_torque_model, friction_viscous_powers, output_file)
+        api.compile_rd(model_rbd, friction_torque_model, friction_viscous_powers, output_path, self.cache)
 
-        filename = from_cache(output_file + ".pickle")
-        with open(filename, 'rb') as f:
+        with open(output_path, 'rb') as f:
             rd_twolink_estimate = pickle.load(f)
-        with open(str(from_project_root(Path("aurt/tests/resources", output_file))) + ".pickle", 'rb') as f:
+        with open(from_project_root(Path("aurt/tests/resources", output_file)), 'rb') as f:
             rd_twolink_true = pickle.load(f)
 
         self.assertEqual(rd_twolink_estimate.n_joints, rd_twolink_true.n_joints)
@@ -65,29 +74,42 @@ class APITests(unittest.TestCase):
         self.assertEqual(rd_twolink_estimate.tauJ, rd_twolink_true.tauJ)
 
     def test04_calibrate(self):
-        model_rd = "rd_twolink"
+        model_rd = from_cache("rd_twolink.pickle")
         data_file = str(from_project_root("aurt/tests/resources/twolink_data.csv"))
         gravity = [0, -9.81, 0]
-        params_out = "twolink_params.csv"
-        calibration_out = "rc_twolink"
+        params_out = from_cache("twolink_params.csv")
+        calibration_out = from_cache("rc_twolink.pickle")
         plotting = False
 
         api.calibrate(model_rd, data_file, gravity, params_out, calibration_out, plotting)
 
     def test05_predict(self):
-        model = "rc_twolink"
+        model = from_cache("rc_twolink.pickle")
         data = str(from_project_root("aurt/tests/resources/twolink_data.csv"))
         gravity = [0, -9.81, 0]
-        prediction = "out_predict.csv"
+        prediction = from_cache("out_predict.csv")
 
         api.predict(model, data, gravity, prediction)
 
     def test06_plot_kinematics(self):
         mdh_path = str(from_project_root("aurt/tests/resources/twolink_dh.csv"))
-        output_path = "rbd_twolink"
+        output_path = from_cache("rbd_twolink.pickle")
         plotting = True
 
-        api.compile_rbd(mdh_path, output_path, plotting, block=False)
+        api.compile_rbd(mdh_path, output_path, plotting, self.cache)
+
+    def test07_calibrate_validate(self):
+        model_rd = from_cache("rd_twolink.pickle")
+        data_file = str(from_project_root("aurt/tests/resources/twolink_data.csv"))
+        gravity = [0, -9.81, 0]
+        params_out = from_cache("twolink_params.csv")
+        calibration_out = from_cache("rc_twolink.pickle")
+        prediction = from_cache("out_predict.csv")
+        plotting = False
+        calibration_data_relative = 0.8
+
+        api.calibrate_validate(model_rd, data_file, gravity, calibration_data_relative,
+                               params_out, calibration_out, prediction, plotting)
 
 
 if __name__ == '__main__':

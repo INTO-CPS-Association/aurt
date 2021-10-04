@@ -1,10 +1,12 @@
 import argparse
+import tempfile
 from logging.config import fileConfig
 import logging
 import numpy as np
 import os.path
 import aurt.api as api
-from aurt.file_system import from_cache
+from aurt.caching import PersistentPickleCache
+
 
 def setup_logger(args):
     if args.logger_config is not None:
@@ -19,18 +21,20 @@ def compile_rbd(args):
     l.info("Compiling rigid body dynamics model.")
 
     if args.mdh[-4:] != ".csv":
-        raise Exception(f"The provided mdh file {args.mdh} is not a CSV file. AURT only supports CSV files. Please provide a CSV file.")
+        raise ValueError(f"The provided mdh file {args.mdh} is not a CSV file. AURT only supports CSV files. Please provide a CSV file.")
     if not os.path.isfile(args.mdh):
         raise OSError(f"The mdh file {args.mdh} could not be located. Please specify a valid filename (csv).")
-    filename = from_cache(args.out + ".pickle")
-    if os.path.isfile(filename):
-        l.warning(f"The rigid body dynamics file {filename} already exists. Its content will be overwritten.")
-    
-    mdh_path = args.mdh
     output_path = args.out
+    if os.path.isfile(output_path):
+        l.warning(f"The rigid body dynamics file {output_path} already exists. Its contents will be overwritten.")
+
+    mdh_path = args.mdh
     plotting = args.plot
 
-    api.compile_rbd(mdh_path, output_path, plotting)
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        l.debug(f"Using folder {tmpdirname} as cache.")
+        cache = PersistentPickleCache(tmpdirname)
+        api.compile_rbd(mdh_path, output_path, plotting, cache)
 
 
 def compile_rd(args):
@@ -38,16 +42,14 @@ def compile_rd(args):
     l.info("Compiling robot dynamics model.")
     l.debug(f"Viscous friction powers: {args.friction_viscous_powers}.")
 
-    filename = from_cache(args.model_rbd + ".pickle")
-    if not os.path.isfile(filename):
-        raise Exception(f"The rigid body dynamics file {filename} could not be located. Please specify a valid filename.")
+    if not os.path.isfile(args.model_rbd):
+        raise ValueError(f"The rigid body dynamics file {args.model_rbd} could not be located. Please specify a valid filename.")
 
-    filename = from_cache(args.out + ".pickle")
-    if os.path.isfile(filename):
-        l.warning(f"The robot dynamics filename {args.out} already exists, and its content will be overwritten.")
+    if os.path.isfile(args.out):
+        l.warning(f"The robot dynamics filename {args.out} already exists, and its contents will be overwritten.")
 
     if len(set(args.friction_viscous_powers)) != len(list(args.friction_viscous_powers)):
-        raise Exception(f"The viscous friction powers must be a set of unique integers.")
+        raise ValueError(f"The viscous friction powers must be a set of unique integers.")
 
     model_rbd_path = args.model_rbd
     friction_torque_model = args.friction_torque_model
@@ -55,7 +57,10 @@ def compile_rd(args):
     #friction_hysteresis_model = args.friction_hysteresis_model # saved for later implementation
     output_path = args.out
 
-    api.compile_rd(model_rbd_path, friction_torque_model, friction_viscous_powers, output_path)
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        l.debug(f"Using folder {tmpdirname} as cache.")
+        cache = PersistentPickleCache(tmpdirname)
+        api.compile_rd(model_rbd_path, friction_torque_model, friction_viscous_powers, output_path, cache)
 
 
 def calibrate(args):
@@ -66,19 +71,17 @@ def calibrate(args):
     if False in gravity_vector_type:
         raise TypeError(f"The given gravity vector is not a float, nor an integer. Please provide a valid gravity vector.")
 
-    filename = from_cache(args.model + ".pickle")
-    if not os.path.isfile(filename):
-        raise Exception(f"The robot dynamics file {filename} could not be located. Please specify a valid filename.")
+    if not os.path.isfile(args.model):
+        raise ValueError(f"The robot dynamics file {args.model} could not be located. Please specify a valid filename.")
 
     if not os.path.isfile(args.data):
-        raise Exception(f"The data file {args.data} could not be located. Please specify a valid filename.")
+        raise ValueError(f"The data file {args.data} could not be located. Please specify a valid filename.")
 
     if os.path.isfile(args.out_params):
-        l.warning(f"The parameters filename {args.out_params} already exists, and its content will be overwritten.")
+        l.warning(f"The parameters filename {args.out_params} already exists, and its contents will be overwritten.")
 
-    filename = from_cache(args.out_calibration_model + ".pickle")
-    if os.path.isfile(filename):
-        l.warning(f"The calibration model filename {args.out_calibration_model} already exists, and its content will be overwritten.")
+    if os.path.isfile(args.out_calibration_model):
+        l.warning(f"The calibration model filename {args.out_calibration_model} already exists, and its contents will be overwritten.")
 
     model_path = args.model
     gravity = np.array(args.gravity)
@@ -94,20 +97,18 @@ def predict(args):
     l = setup_logger(args)
     l.info("Predicting robot current.")
 
-    filename = from_cache(args.model + ".pickle")
-    if not os.path.isfile(filename):
-        raise Exception(f"The robot calibration file {filename} could not be located. Please specify a valid filename.")
+    if not os.path.isfile(args.model):
+        raise ValueError(f"The robot calibration file {args.model} could not be located. Please specify a valid filename.")
     
     if not os.path.isfile(args.data):
-        raise Exception(f"The data file {args.data} could not be located. Please specify a valid filename.")
+        raise ValueError(f"The data file {args.data} could not be located. Please specify a valid filename.")
     
     gravity_vector_type = {True if isinstance(g,float) or isinstance(g,int) else False for g in args.gravity}
     if False in gravity_vector_type:
         raise TypeError(f"The given gravity vector is not a float, nor an integer. Please provide a valid gravity vector.")
 
-    filename = from_cache(args.out)
-    if os.path.isfile(filename):
-        l.warning(f"The output prediction file {filename} already exists, and its content will be overwritten.")
+    if os.path.isfile(args.out):
+        l.warning(f"The output prediction file {args.out} already exists, and its content will be overwritten.")
 
     model_path = args.model
     data_path = args.data
@@ -121,12 +122,11 @@ def calibrate_validate(args):
     l = setup_logger(args)
     l.info("Calibrating and validating robot dynamics model.")
 
-    filename = from_cache(args.model + ".pickle")
-    if not os.path.isfile(filename):
-        raise Exception(f"The robot dynamics file {filename} could not be located. Please specify a valid filename.")
+    if not os.path.isfile(args.model):
+        raise ValueError(f"The robot dynamics file {args.model} could not be located. Please specify a valid filename.")
     
     if not os.path.isfile(args.data):
-        raise Exception(f"The data file {args.data} could not be located. Please specify a valid filename.")
+        raise ValueError(f"The data file {args.data} could not be located. Please specify a valid filename.")
     
     gravity_vector_type = {True if isinstance(g,float) or isinstance(g,int) else False for g in args.gravity}
     if False in gravity_vector_type:
@@ -135,23 +135,20 @@ def calibrate_validate(args):
     if os.path.isfile(args.out_params):
         l.warning(f"The parameters filename {args.out_params} already exists, and its content will be overwritten.")
 
-    filename = from_cache(args.out_prediction)
-    if os.path.isfile(filename):
-        l.warning(f"The output prediction file {filename} already exists, and its content will be overwritten.")
+    if os.path.isfile(args.out_prediction):
+        l.warning(f"The output prediction file {args.out_prediction} already exists, and its contents will be overwritten.")
 
-    filename = from_cache(args.out_calibrated_model + ".pickle")
-    if os.path.isfile(filename):
+    if os.path.isfile(args.out_calibrated_model):
         l.warning(f"The calibration model filename {args.out_calibrated_model} already exists, and its content will be overwritten.")
 
-
     if not (0.1 < args.calibration_data_rel < 0.9):
-        raise Exception(f"The calibration data rel value is not within the limits of 0.1 and 0.9, it is {args.calibration_data_rel}. Please provide a valid value.")
+        raise ValueError(f"The calibration data rel value is not within the limits of 0.1 and 0.9, it is {args.calibration_data_rel}. Please provide a valid value.")
 
     model_path = args.model
     data_path = args.data
     gravity = np.array(args.gravity)
     calbration_model_path = args.out_calibrated_model
-    calibration_data_rel = args.calibration_data_rel # TODO: make sure to check that it is between 0 and 1
+    calibration_data_rel = args.calibration_data_rel
     plotting = args.plot
     params_path = args.out_params
     output_prediction_path = args.out_prediction

@@ -89,7 +89,6 @@ def cache_numpy(file, callable):
         return expr
 
 
-
 def cache_csv(file, callable):
     if not file[-4:] == '.csv':
         file = file + '.csv'
