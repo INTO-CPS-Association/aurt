@@ -22,6 +22,7 @@ class CLITests(unittest.TestCase):
         """
         cls.cache_dir = from_project_root('cache')
         init_cache_dir(cls.cache_dir)
+        logging.basicConfig(level=logging.WARNING)
 
     def init_rbd(self):
         mdh_filename = str(from_project_root("aurt/tests/resources/twolink_dh.csv"))

@@ -1,3 +1,4 @@
+import logging
 import unittest
 import pickle
 from pathlib import Path
@@ -20,6 +21,7 @@ class APITests(unittest.TestCase):
         cls.cache_dir = from_project_root('cache')
         init_cache_dir(cls.cache_dir)
         cls.cache = PersistentPickleCache(cls.cache_dir)
+        logging.basicConfig(level=logging.WARNING)
 
     # The naming of the test cases control the order of the tests
     def test01_compile_rbd(self):

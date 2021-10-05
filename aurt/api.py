@@ -10,12 +10,7 @@ from aurt.data_processing import *
 from aurt.file_system import store_csv
 
 
-def compile_rbd(mdh_path, output_path, plotting, cache: Cache, block=True, logging_level="default"):
-
-    if logging_level == "verbose":
-        logging.basicConfig(level=logging.DEBUG)
-    elif logging_level == "default":
-        logging.basicConfig(level=logging.WARNING)
+def compile_rbd(mdh_path, output_path, plotting, cache: Cache, block=True):
     l = logging.getLogger("aurt")
 
     mdh = convert_file_to_mdh(mdh_path)
@@ -43,11 +38,7 @@ def compile_rd(rbd_filename, friction_torque_model, friction_viscous_powers, out
         pickle.dump(rd, f)
 
 
-def calibrate(model_path, data_path, gravity, output_params, output_calibration, plotting, logging_level="default"):
-    if logging_level == "verbose":
-        logging.basicConfig(level=logging.DEBUG)
-    elif logging_level == "default":
-        logging.basicConfig(level=logging.WARNING)
+def calibrate(model_path, data_path, gravity, output_params, output_calibration, plotting):
     l = logging.getLogger("aurt")
 
     # Load RobotDynamics
@@ -77,13 +68,7 @@ def predict(model_path, data_path, gravity, output_path):
     store_csv(output_path, prediction)
 
 
-def calibrate_validate(model_path, data_path, gravity, calibration_data_relative, output_params, output_calibration, output_predict, plotting, logging_level="default"):
-
-    # TODO: Loggers are instantiated before calling API.
-    if logging_level == "verbose":
-        logging.basicConfig(level=logging.DEBUG)
-    elif logging_level == "default":
-        logging.basicConfig(level=logging.WARNING)
+def calibrate_validate(model_path, data_path, gravity, calibration_data_relative, output_params, output_calibration, output_predict, plotting):
     l = logging.getLogger("aurt")
 
     # Load RobotDynamics
