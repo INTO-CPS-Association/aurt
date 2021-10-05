@@ -175,7 +175,7 @@ class CLITests(unittest.TestCase):
         gravity = [0.7, -0.7, 0.7]
         out_params = from_cache("calibrated_params.csv")
         out_calibrated_model = from_cache("out_calibration.pickle")
-        plot = False
+        plot = True
         parser = self.set_calibrate_arguments(
             model,
             data,
