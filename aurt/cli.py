@@ -84,7 +84,7 @@ def calibrate(args):
     gravity = np.array(args.gravity)
     data_path = args.data
     params_path = args.out_params
-    calbration_model_path = args.out_calibrated_model
+    calbration_model_path = args.out_calibration_model
     plotting = args.plot
     
     api.calibrate(model_path, data_path, gravity, params_path, calbration_model_path, plotting)
