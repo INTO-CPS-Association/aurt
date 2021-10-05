@@ -1,3 +1,4 @@
+import logging
 import os.path
 import pickle
 import unittest
@@ -19,8 +20,10 @@ class URExampleTests(unittest.TestCase):
         cls.cache_dir = from_project_root('cache')
         init_cache_dir(cls.cache_dir)
         cls.cache = PersistentPickleCache(cls.cache_dir)
+        logging.basicConfig(level=logging.DEBUG)
 
     def test_ur5e_dh(self):
+        l = logging.getLogger("Tests")
         mdh_path = str(from_project_root("resources/robot_parameters/ur5e_dh.csv"))
         gravity = [0.0, 6.937, -6.937]
         out_rbd = from_cache("rigid_body_dynamics.pickle")
@@ -33,20 +36,23 @@ class URExampleTests(unittest.TestCase):
         prediction = from_cache("out_predict.csv")
 
         # Compile RBD
+        l.info("Compile RBD")
         self.assertFalse(os.path.isfile(out_rbd))
         api.compile_rbd(mdh_path, out_rbd, False, self.cache)
         self.assertTrue(os.path.isfile(out_rbd))
         with open(out_rbd, 'rb') as f:
             newrbd: RigidBodyDynamics = pickle.load(f)
-        self.assertIsNotNone(newrbd.regressor_linear, "The regressor_linear is not set")
+        self.assertIsNotNone(newrbd.regressor(), "The regressor is not set")
         self.assertIsNotNone(newrbd.params, "The parameters are not set")
 
         # Compile RD
+        l.info("Compile RD")
         self.assertFalse(os.path.isfile(out_rd))
         api.compile_rd(out_rbd, friction_load_model, friction_viscous_powers, out_rd, self.cache)
         self.assertTrue(os.path.isfile(out_rd))
 
         # Calibrate
+        l.info("Calibrate")
         self.assertFalse(os.path.isfile(calibration_out))
         self.assertFalse(os.path.isfile(params_out))
         api.calibrate(out_rd, data_file, gravity, params_out, calibration_out, plotting=False)
@@ -54,6 +60,7 @@ class URExampleTests(unittest.TestCase):
         self.assertTrue(os.path.isfile(params_out))
 
         # Predict
+        l.info("Predict")
         prediction_path = from_cache(prediction)
         self.assertFalse(os.path.isfile(prediction_path))
         api.predict(calibration_out, data_file, gravity, prediction)
