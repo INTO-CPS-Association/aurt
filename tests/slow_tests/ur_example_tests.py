@@ -23,6 +23,7 @@ class URExampleTests(unittest.TestCase):
         logging.basicConfig(level=logging.DEBUG)
 
     def test_ur5e_dh(self):
+        self.assertEqual(0, len(os.listdir(self.cache_dir)))
         l = logging.getLogger("Tests")
         mdh_path = str(from_project_root("resources/robot_parameters/ur5e_dh.csv"))
         gravity = [0.0, 6.937, -6.937]
