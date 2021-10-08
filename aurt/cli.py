@@ -1,11 +1,11 @@
 import argparse
-import tempfile
 from logging.config import fileConfig
 import logging
 import numpy as np
 import os.path
 import aurt.api as api
 from aurt.caching import PersistentPickleCache
+from aurt.messages import CONTENT_OVERWRITTEN
 from aurt.tests.units import init_cache_dir
 
 
@@ -27,7 +27,7 @@ def compile_rbd(args):
         raise OSError(f"The mdh file {args.mdh} could not be located. Please specify a valid filename (csv).")
     output_path = args.out
     if os.path.isfile(output_path):
-        l.warning(f"The rigid body dynamics file {output_path} already exists. Its contents will be overwritten.")
+        l.warning(CONTENT_OVERWRITTEN % {"description": "rigid body dynamics", "filepath": output_path})
 
     mdh_path = args.mdh
     plotting = args.plot
@@ -47,7 +47,7 @@ def compile_rd(args):
         raise ValueError(f"The rigid body dynamics file {args.model_rbd} could not be located. Please specify a valid filename.")
 
     if os.path.isfile(args.out):
-        l.warning(f"The robot dynamics filename {args.out} already exists, and its contents will be overwritten.")
+        l.warning(CONTENT_OVERWRITTEN % {"description": "robot dynamics", "filepath": args.out})
 
     if len(set(args.friction_viscous_powers)) != len(list(args.friction_viscous_powers)):
         raise ValueError(f"The viscous friction powers must be a set of unique integers.")
@@ -78,10 +78,10 @@ def calibrate(args):
         raise ValueError(f"The data file {args.data} could not be located. Please specify a valid filename.")
 
     if os.path.isfile(args.out_params):
-        l.warning(f"The parameters filename {args.out_params} already exists, and its contents will be overwritten.")
+        l.warning(CONTENT_OVERWRITTEN % {"description": "parameters", "filepath": args.out_params})
 
     if os.path.isfile(args.out_calibrated_model):
-        l.warning(f"The calibration model filename {args.out_calibrated_model} already exists, and its contents will be overwritten.")
+        l.warning(CONTENT_OVERWRITTEN % {"description": "calibration model", "filepath": args.out_calibrated_model})
 
     model_path = args.model
     gravity = np.array(args.gravity)
@@ -108,7 +108,7 @@ def predict(args):
         raise TypeError(f"The given gravity vector is not a float, nor an integer. Please provide a valid gravity vector.")
 
     if os.path.isfile(args.out):
-        l.warning(f"The output prediction file {args.out} already exists, and its content will be overwritten.")
+        l.warning(CONTENT_OVERWRITTEN % {"description": "output prediction", "filepath": args.out})
 
     model_path = args.model
     data_path = args.data
@@ -133,13 +133,13 @@ def calibrate_validate(args):
         raise TypeError(f"The given gravity vector is not a float, nor an integer. Please provide a valid gravity vector.")
 
     if os.path.isfile(args.out_params):
-        l.warning(f"The parameters filename {args.out_params} already exists, and its content will be overwritten.")
+        l.warning(CONTENT_OVERWRITTEN % {"description": "parameters", "filepath": args.out_params})
 
     if os.path.isfile(args.out_prediction):
-        l.warning(f"The output prediction file {args.out_prediction} already exists, and its contents will be overwritten.")
+        l.warning(CONTENT_OVERWRITTEN % {"description": "output prediction", "filepath": args.out_prediction})
 
     if os.path.isfile(args.out_calibrated_model):
-        l.warning(f"The calibration model filename {args.out_calibrated_model} already exists, and its content will be overwritten.")
+        l.warning(CONTENT_OVERWRITTEN % {"description": "calibration model", "filepath": args.out_calibrated_model})
 
     if not (0.1 < args.calibration_data_rel < 0.9):
         raise ValueError(f"The calibration data rel value is not within the limits of 0.1 and 0.9, it is {args.calibration_data_rel}. Please provide a valid value.")
@@ -315,7 +315,7 @@ def _create_calibrate_validate_parser(subparsers):
 
 
 def main():
-   create_cmd_parser()
+    create_cmd_parser()
 
 
 if __name__ == '__main__':

@@ -98,7 +98,7 @@ class APITests(unittest.TestCase):
         output_path = from_cache("rbd_twolink.pickle")
         plotting = True
 
-        api.compile_rbd(mdh_path, output_path, plotting, self.cache)
+        api.compile_rbd(mdh_path, output_path, plotting, self.cache, block=False)  # Set block=True to see plot.
 
     def test07_calibrate_validate(self):
         model_rd = from_cache("rd_twolink.pickle")
