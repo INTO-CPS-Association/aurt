@@ -93,14 +93,7 @@ class APITests(unittest.TestCase):
 
         api.predict(model, data, gravity, prediction)
 
-    def test06_plot_kinematics(self):
-        mdh_path = str(from_project_root("aurt/tests/resources/twolink_dh.csv"))
-        output_path = from_cache("rbd_twolink.pickle")
-        plotting = True
-
-        api.compile_rbd(mdh_path, output_path, plotting, self.cache, block=False)  # Set block=True to see plot.
-
-    def test07_calibrate_validate(self):
+    def test06_calibrate_validate(self):
         model_rd = from_cache("rd_twolink.pickle")
         data_file = str(from_project_root("aurt/tests/resources/twolink_data.csv"))
         gravity = [0, -9.81, 0]
