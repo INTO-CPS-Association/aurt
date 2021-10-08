@@ -6,7 +6,7 @@ from inspect import signature
 import sys
 from logging import Logger
 
-from aurt.file_system import cache_object, from_cache
+from aurt.caching import Cache
 from aurt.dynamics_aux import list_2D_to_sympy_vector, sym_mat_to_subs
 from aurt.num_sym_layers import spvector, spcross, spdot
 from aurt.data_processing import ModifiedDH
@@ -18,15 +18,12 @@ class RigidBodyDynamics:
     _n_rank_convergence = 3  # No. of rank calculations in which the rank should not increase to assume convergence of the BIP identification
     _n_regressor_evals_per_rank_calculation = 1  # No. of regressor evaluations per rank calculation
     _min_rank_evals = 4
-    _file_extension = '.pickle'
-    _filename = "rigid_body_dynamics"
-    _filename_regressor = "rigid_body_dynamics_regressor"
     _filename_regressor_joint = "rigid_body_dynamics_regressor_joint"
-    _filename_regressor_free_gravity_joint = "rigid_body_dynamics_regressor_free_gravity_joint"
 
-    def __init__(self, l: Logger, modified_dh: ModifiedDH, tcp_force_torque=None, multi_processing=True):
+    def __init__(self, l: Logger, modified_dh: ModifiedDH, cache: Cache, tcp_force_torque=None, multi_processing=True):
         self.logger = l
         self.multi_processing = multi_processing
+        self._cache = cache
         self.mdh = modified_dh
         self.n_joints = modified_dh.n_joints
 
@@ -80,16 +77,8 @@ class RigidBodyDynamics:
         self.idx_bip = None
 
     @staticmethod
-    def file_dynamcis():
-        return from_cache(f"{RigidBodyDynamics._filename + RigidBodyDynamics._file_extension}")
-
-    @staticmethod
-    def filepath_regressor():
-        return from_cache(f"{RigidBodyDynamics._filename_regressor + RigidBodyDynamics._file_extension}")
-
-    @staticmethod
     def filepath_regressor_joint(j):
-        return from_cache(f"{RigidBodyDynamics._filename_regressor_joint}_{j}")
+        return f"{RigidBodyDynamics._filename_regressor_joint}_{j}"
 
     @property
     def n_params(self):
@@ -274,15 +263,15 @@ class RigidBodyDynamics:
         def compute_bip_information():
             args_sym = self.q[1:] + self.qd[1:] + self.qdd[1:] + self._g.T.tolist()[0]
             sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
-            regressor_free_trajectory_and_gravity_func = sp.lambdify(args_sym, cache_object(
-                from_cache('rigid_body_dynamics_regressor_free_trajectory_and_gravity'),
-                lambda: self._regressor_sip_exist_instantiated_dh()))
+            regressor_sip_instantiated_dh = self._cache.get_or_cache('rigid_body_dynamics_regressor_free_trajectory_and_gravity',
+                                                                    lambda: self._regressor_sip_exist_instantiated_dh())
+            regressor_free_trajectory_and_gravity_func = sp.lambdify(args_sym, regressor_sip_instantiated_dh)
             idx_bip_global = self._indices_bip(regressor_free_trajectory_and_gravity_func)
 
             _, n_sip_exist, p_sip_exist = self._sip_exist(self._regressor_sip_full())
             p_sip_exist_vector = list_2D_to_sympy_vector(p_sip_exist)
 
-            p_bip_vector = cache_object(from_cache('bip_vector'), lambda: p_sip_exist_vector[idx_bip_global, :])
+            p_bip_vector = self._cache.get_or_cache('bip_vector', lambda: p_sip_exist_vector[idx_bip_global, :])
 
             # Initialization
             n_par_bip = n_sip_exist.copy()
@@ -301,20 +290,16 @@ class RigidBodyDynamics:
 
             return idx_is_bip, n_par_bip, p_bip
 
-        idx_is_bip, n_par_bip, p_bip = cache_object(from_cache('bip_information'), compute_bip_information)
+        idx_is_bip, n_par_bip, p_bip = self._cache.get_or_cache('bip_information', compute_bip_information)
 
         return idx_is_bip, n_par_bip, p_bip
     
     def _regressor_sip_exist_instantiated_dh(self):
         d, a, _ = self._mdh_num_to_sym()
 
-        def load_regressor_and_subs():
-            regressor_reduced = self._regressor_sip_exist()
-            print(f"Regressor SIP exist: {regressor_reduced}")
-            return regressor_reduced.subs(
+        regressor_reduced = self._regressor_sip_exist()
+        return regressor_reduced.subs(
                 sym_mat_to_subs([a, d], [self.mdh.a, self.mdh.d]))
-
-        return load_regressor_and_subs()
 
     def _indices_bip(self, regressor_with_instantiated_parameters):
         """
@@ -447,28 +432,28 @@ class RigidBodyDynamics:
         return res
 
     def regressor_joint(self, j):
-        return cache_object(RigidBodyDynamics.filepath_regressor_joint(j+1), lambda: self.regressor()[j, :])
+        return self._cache.get_or_cache(RigidBodyDynamics.filepath_regressor_joint(j+1), lambda: self.regressor()[j, :])
 
     def regressor(self, output_filename="rigid_body_dynamics_regressor", gravity=g_num):
         """
         The regressor matrix formulated in terms of the Base Inertial Parameters (BIP).
         """
-        filepath_regressor = from_cache(output_filename)
+        return self._cache.get_or_cache(output_filename, self._compute_regressor)
 
-        def compute_regressor():
-            regressor_sip_exist = self._regressor_sip_exist_instantiated_dh()
-            args_sym = self.q[1:] + self.qd[1:] + self.qdd[1:] + self._g.T.tolist()[0]  # list concatenation
-            sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
-            regressor_sip_exist_func = sp.lambdify(args_sym, regressor_sip_exist, 'numpy')
+    def _compute_regressor(self):
+        regressor_sip_exist = self._regressor_sip_exist_instantiated_dh()
+        args_sym = self.q[1:] + self.qd[1:] + self.qdd[1:] + self._g.T.tolist()[0]  # list concatenation
+        sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
+        regressor_sip_exist_func = sp.lambdify(args_sym, regressor_sip_exist, 'numpy')
             print(f"regressor_sip_exist: {regressor_sip_exist}")
-            parameter_indices_bip = self._indices_bip(regressor_sip_exist_func)
+        parameter_indices_bip = self._indices_bip(regressor_sip_exist_func)
 
-            for j in range(self.n_joints):
-                cache_object(RigidBodyDynamics.filepath_regressor_joint(j+1), lambda: regressor_sip_exist[j+1, parameter_indices_bip])
-            
-            return regressor_sip_exist[1:, parameter_indices_bip]
-        
-        return cache_object(filepath_regressor, compute_regressor)
+        for j in range(self.n_joints):
+            # TODO: Why do we do this here? Seems an optimization?
+            regressor_joint_name = RigidBodyDynamics.filepath_regressor_joint(j + 1)
+            self._cache.get_or_cache(regressor_joint_name, lambda: regressor_sip_exist[j + 1, parameter_indices_bip])
+
+        return regressor_sip_exist[1:, parameter_indices_bip]
 
     def dynamics_sip(self):
         """
@@ -491,7 +476,7 @@ class RigidBodyDynamics:
                     rbd_lin[j] = self._replace_first_moments(data_per_task[j])
             return rbd_lin
 
-        return compute_dynamics_and_replace_first_moments() #cache_object(from_cache('rigid_body_dynamics'), compute_dynamics_and_replace_first_moments)
+        return compute_dynamics_and_replace_first_moments()
 
     def dynamics(self):
         """The rigid-body dynamics formulated in terms of the Base Inertial Parameters (BIP),

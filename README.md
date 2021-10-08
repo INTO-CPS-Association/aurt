@@ -107,7 +107,7 @@ To setup the development environment:
 1. Open terminal in the current folder.
 2. Install all packages for development: `pip install -e .[vis]`.
 3. Unpack the datasets (see [Dataset management](#dataset-management))
-4. To run `api` tests, open a command prompt or powershell in the repository root, and run `python build.py --run-tests api`. 
+4. To run all non live tests, open a command prompt or powershell in the repository root, and run `python build.py --run-tests all-non-live`. 
    If you are using Linux, use `python3` instead of `python`.
 
 _NOTE: Run tests before commits. If they don't pass, fix them before committing._

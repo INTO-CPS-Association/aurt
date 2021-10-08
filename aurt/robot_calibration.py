@@ -2,14 +2,11 @@ import numpy as np
 from scipy import signal
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
-import pickle
 from logging import Logger
 
-from aurt import robot_dynamics
 from aurt.robot_dynamics import RobotDynamics
 from aurt.signal_processing import central_finite_difference
 from aurt.calibration_aux import find_nonstatic_start_and_end_indices
-from aurt.file_system import cache_numpy, cache_csv, load_numpy, from_cache, cache_object, load_object
 from aurt.robot_data import RobotData, plot_colors
 
 
@@ -17,17 +14,13 @@ class RobotCalibration:
     f_dyn = 10  # Approximate cut-off frequency [Hz] of robot dynamics
     qd_tf_noise_threshold = 0.03  # Threshold [rad/s] to determine non-stationary (any(abs(qd) > qd_tf_noise_threshold)) data
 
-    def __init__(self, l: Logger, rd_filename, robot_data_path, gravity, relative_separation_of_calibration_and_prediction=None,
+    def __init__(self, l: Logger, robot_dynamics: RobotDynamics, robot_data_path, gravity, relative_separation_of_calibration_and_prediction=None,
                  robot_data_predict=None):
         self.logger = l
 
         self.gravity = gravity
 
-        # Load saved RobotDynamics model
-        filename = from_cache(rd_filename + ".pickle")
-        with open(filename, 'rb') as f:
-            self.robot_dynamics: RobotDynamics = pickle.load(f)
-
+        self.robot_dynamics: RobotDynamics = robot_dynamics
 
         if relative_separation_of_calibration_and_prediction is None and robot_data_predict is None:
             """All data is used for calibration."""
@@ -98,7 +91,7 @@ class RobotCalibration:
             observation_matrix[j * n_samples_ds:(j + 1) * n_samples_ds, :] = obs_mat_j_ds
         return observation_matrix
 
-    def calibrate(self, filename_parameters):
+    def calibrate(self):
         """
         Calibrates the 'robot_dynamics' model using dataset 'robot_data_calibration' and output values of the
         calibrated parameters to file 'filename_parameters'.
@@ -157,31 +150,26 @@ class RobotCalibration:
         self.logger.info(f"Parameters: {self.robot_dynamics.parameters()}")
         self.logger.info(f"Relative std.dev. of estimated parameters: {rel_std_dev_parameter_estimate}")
 
-        cache_csv(from_cache(filename_parameters), lambda: self.parameters)
-        return wls_calibration.coef_
+        return self.parameters
 
-    def predict(self, robot_data_predict: RobotData, gravity, parameters, filename_predicted_output):
+    def predict(self, robot_data_predict: RobotData, gravity, parameters):
+        observation_matrix = self._observation_matrix(robot_data_predict, gravity)
+        estimated_output = observation_matrix @ parameters
 
-        def compute_prediction():
-            observation_matrix = self._observation_matrix(robot_data_predict, gravity)
-            estimated_output = observation_matrix @ parameters
+        n_samples_ds = round(observation_matrix.shape[0] / self.robot_dynamics.n_joints)
+        assert n_samples_ds * self.robot_dynamics.n_joints == observation_matrix.shape[0]
+        output_predicted_reshaped = np.reshape(estimated_output, (self.robot_dynamics.n_joints, n_samples_ds))
 
-            n_samples_ds = round(observation_matrix.shape[0] / self.robot_dynamics.n_joints)
-            assert n_samples_ds * self.robot_dynamics.n_joints == observation_matrix.shape[0]
-            output_predicted_reshaped = np.reshape(estimated_output, (self.robot_dynamics.n_joints, n_samples_ds))
+        _, y_meas_reshaped, y_pred_reshaped = self._get_plot_values_for(robot_data_predict, gravity, parameters)
+        mse = RobotCalibration.get_mse(y_meas_reshaped, y_pred_reshaped)
+        normalization = np.mean(abs(y_meas_reshaped), axis=1)
+        nmse = mse / normalization
+        self.logger.info(f"MSE (validation data): {mse}")
+        self.logger.info(f"NMSE (validation data): {nmse}")
 
-            _, y_meas_reshaped, y_pred_reshaped = self._get_plot_values_for(robot_data_predict, gravity, parameters)
-            mse = RobotCalibration.get_mse(y_meas_reshaped, y_pred_reshaped)
-            normalization = np.mean(abs(y_meas_reshaped), axis=1)
-            nmse = mse / normalization
-            self.logger.info(f"MSE (validation data): {mse}")
-            self.logger.info(f"NMSE (validation data): {nmse}")
-
-            #return robot_data_predict.time[
-            #       ::self.downsampling_factor], output_predicted_reshaped  # TODO: CORRECT ERROR; 'time' does not correspond in length to 'output_predicted_reshaped'
-            return output_predicted_reshaped
-
-        return cache_csv(from_cache(filename_predicted_output), compute_prediction)
+        # return robot_data_predict.time[
+        #       ::self.downsampling_factor], output_predicted_reshaped  # TODO: CORRECT ERROR; 'time' does not correspond in length to 'output_predicted_reshaped'
+        return output_predicted_reshaped
 
     def _get_plot_values_for(self, data, gravity, parameters):
         observation_matrix = self._observation_matrix(data, gravity)
@@ -261,55 +249,6 @@ class RobotCalibration:
         for j in range(self.robot_dynamics.n_joints):
             axs[1].plot(t, error[j].T, '-', color=plot_colors[j], linewidth=1.3, label=f'joint {j + 1}')
             plt.legend(loc="upper left")
-        axs[1].set_xlim([t[0], t[-1]])
-
-        for ax in axs.flat:
-            ax.label_outer()
-        plt.setp(axs[0], ylabel='Current [A]')
-        plt.setp(axs[1], ylabel='Error [A]')
-        plt.setp(axs[1], xlabel='Time [s]')
-
-        plt.show()
-
-    def plot_prediction(self, filename_predict):
-
-        t, y = load_object(from_cache(filename_predict + '.pickle'))
-
-        observation_matrix = self._observation_matrix(self.robot_data_calibration, gravity)
-        n_samples = observation_matrix.shape[0] // self.robot_dynamics.n_joints
-        estimated_output_reshaped = np.reshape(observation_matrix @ parameters,
-                                               (self.robot_dynamics.n_joints, n_samples))
-        measured_output_reshaped = np.reshape(self._measurement_vector(self.robot_data_calibration),
-                                              (self.robot_dynamics.n_joints, n_samples))
-        error = measured_output_reshaped - estimated_output_reshaped
-        t = np.linspace(0, self.robot_data_calibration.dt_nominal * self.downsampling_factor * n_samples, n_samples)
-
-        import matplotlib.colors
-        import matplotlib.pyplot as plt
-        fig = plt.figure()
-        gs = fig.add_gridspec(2, 1, hspace=0.03)
-        axs = gs.subplots(sharex='col', sharey='all')
-
-        def darken_color(plot_color, darken_amount=0.35):
-            """Computes rgb values to a darkened color"""
-            line_color_rgb = matplotlib.colors.ColorConverter.to_rgb(plot_color)
-            line_color_hsv = matplotlib.colors.rgb_to_hsv(line_color_rgb)
-            darkened_line_color_hsv = line_color_hsv - np.array([0, 0, darken_amount])
-            darkened_line_color_rgb = matplotlib.colors.hsv_to_rgb(darkened_line_color_hsv)
-            return darkened_line_color_rgb
-
-        # Current
-        for j in range(self.robot_dynamics.n_joints):
-            axs[0].plot(t, measured_output_reshaped[j, :], '-', color=plot_colors[j], linewidth=1.5,
-                        label=f'joint {j}, meas.')
-            axs[0].plot(t, estimated_output_reshaped[j, :], color=darken_color(plot_colors[j]), linewidth=1,
-                        label=f'joint {j}, pred.')
-        axs[0].set_xlim([t[0], t[-1]])
-        axs[0].set_title('Prediction')
-
-        # Error
-        for j in range(self.robot_dynamics.n_joints):
-            axs[1].plot(t, error[j].T, '-', color=plot_colors[j], linewidth=1.3, label=f'joint {j + 1}')
         axs[1].set_xlim([t[0], t[-1]])
 
         for ax in axs.flat:
