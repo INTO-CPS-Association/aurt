@@ -18,7 +18,7 @@ jobs:
       - name: Install python packages
         run: pip install .[vis]
       - name: Test API
-        run: python build.py --run-tests api
+        run: python build.py --run-tests all-non-live
 
   install-aurt-ubuntu:
     runs-on: ubuntu-latest
@@ -33,7 +33,7 @@ jobs:
       - name: Install python packages
         run: pip3 install .[vis]
       - name: Test API
-        run: python3 build.py --run-tests api
+        run: python3 build.py --run-tests all-non-live
 
   install-aurt-macos:
     runs-on: macos-latest
@@ -48,4 +48,4 @@ jobs:
       - name: Install python packages
         run: pip3 install .[vis]
       - name: Test API
-        run: python3 build.py --run-tests api
+        run: python3 build.py --run-tests all-non-live

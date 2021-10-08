@@ -7,12 +7,12 @@ import unittest
 import pathlib
 
 if __name__ == '__main__':
-    
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--run-tests",
         dest="run_tests",
-        choices=["api","cli","slow_tests","live", "all-non-live"],
+        choices=["api", "cli", "slow_tests", "live", "all-non-live"],
         help="when set, the dynamic calibration tests will be run, depending on the choice: 'api','cli','slow_tests','live'. Live tests can be performed on a UR robot."
     )
     args = parser.parse_args()
@@ -27,7 +27,7 @@ if __name__ == '__main__':
         suite.addTest(unittest.TestLoader().discover("aurt/tests", pattern="api_tests.py"))
         runner = unittest.TextTestRunner()
         res = runner.run(suite)
-    elif args.run_tests ==  "cli":
+    elif args.run_tests == "cli":
         suite = unittest.TestSuite()
         suite.addTest(unittest.TestLoader().discover("aurt/tests", pattern="cli_tests.py"))
         runner = unittest.TextTestRunner()
@@ -47,7 +47,7 @@ if __name__ == '__main__':
             runner.run(suite)
         except:
             pass
-    
+
     if res.wasSuccessful():
         exit(0)
     else:
