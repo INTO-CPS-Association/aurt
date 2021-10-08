@@ -98,9 +98,9 @@ class RobotDynamics:
         return compute_regressor_joint()
 
     def regressor(self, output_filename="robot_dynamics_regressor.pickle"):
-        return self._cache.get_or_cache(output_filename, self.compute_regressor)
+        return self._cache.get_or_cache(output_filename, self._compute_regressor)
 
-    def compute_regressor(self):
+    def _compute_regressor(self):
         """Merges regressor matrices for rigid-body dynamics and joint dynamics to construct a regressor for the
         robot dynamics."""
         reg = sp.zeros(self.n_joints, sum(self.number_of_parameters()))

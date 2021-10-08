@@ -36,7 +36,7 @@ class URExampleTests(unittest.TestCase):
         prediction = from_cache("out_predict.csv")
 
         # Compile RBD
-        l.info("Compile RBD")
+        l.info("Compiling rigid-body dynamics...")
         self.assertFalse(os.path.isfile(out_rbd))
         api.compile_rbd(mdh_path, out_rbd, False, self.cache)
         self.assertTrue(os.path.isfile(out_rbd))
@@ -46,7 +46,7 @@ class URExampleTests(unittest.TestCase):
         self.assertIsNotNone(newrbd.params, "The parameters are not set")
 
         # Compile RD
-        l.info("Compile RD")
+        l.info("Compile robot dynamics...")
         self.assertFalse(os.path.isfile(out_rd))
         api.compile_rd(out_rbd, friction_load_model, friction_viscous_powers, out_rd, self.cache)
         self.assertTrue(os.path.isfile(out_rd))
@@ -60,7 +60,7 @@ class URExampleTests(unittest.TestCase):
         self.assertTrue(os.path.isfile(params_out))
 
         # Predict
-        l.info("Predict")
+        l.info("Validating robot dynamics")
         prediction_path = from_cache(prediction)
         self.assertFalse(os.path.isfile(prediction_path))
         api.predict(calibration_out, data_file, gravity, prediction)
