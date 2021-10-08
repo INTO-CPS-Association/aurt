@@ -1,1 +1,1 @@
-CONTENT_OVERWRITTEN = "The %(description) file %(filepath) already exists. Its contents will be overwritten."
+CONTENT_OVERWRITTEN = "The %(description)s file %(filepath)s already exists. Its contents will be overwritten."
