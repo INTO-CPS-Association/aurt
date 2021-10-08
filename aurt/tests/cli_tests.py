@@ -173,7 +173,7 @@ class CLITests(unittest.TestCase):
         self.init_rd()
         model = from_cache("out_rd.pickle")
         data = str(from_project_root("aurt/tests/resources/twolink_data.csv"))
-        gravity = [0.7, -0.7, 0.7]
+        gravity = [0, -9.81, 0]
         out_params = from_cache("calibrated_params.csv")
         out_calibrated_model = from_cache("out_calibration.pickle")
         plot = True
@@ -214,7 +214,7 @@ class CLITests(unittest.TestCase):
         self.init_rd()
         model = from_cache("out_rd.pickle")
         data = str(from_project_root("aurt/tests/resources/twolink_data.csv"))
-        gravity = [0, 1, 0]
+        gravity = [0, -1, 0]
         out_params = from_cache("calibrated_params.csv")
         out_calibrated_model = from_cache("out_calibration.pickle")
         plot = False
