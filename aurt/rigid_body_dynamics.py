@@ -421,9 +421,9 @@ class RigidBodyDynamics:
         """
         The regressor matrix formulated in terms of the Base Inertial Parameters (BIP).
         """
-        return self._cache.get_or_cache(output_filename, self.compute_regressor)
+        return self._cache.get_or_cache(output_filename, self._compute_regressor)
 
-    def compute_regressor(self):
+    def _compute_regressor(self):
         regressor_sip_exist = self._regressor_sip_exist_instantiated_dh()
         args_sym = self.q[1:] + self.qd[1:] + self.qdd[1:] + self._g.T.tolist()[0]  # list concatenation
         sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify

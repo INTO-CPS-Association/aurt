@@ -17,7 +17,7 @@ jobs:
           python-version: "3.8"
       - name: Install python packages
         run: pip install .[vis]
-      - name: Test API
+      - name: Run all tests
         run: python build.py --run-tests all-non-live
 
   install-aurt-ubuntu:
