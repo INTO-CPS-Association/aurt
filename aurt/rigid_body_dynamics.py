@@ -34,10 +34,10 @@ class RigidBodyDynamics:
         self.qd = [sp.Integer(0)] + [sp.symbols(f"qd{j}") for j in range(1, self.n_joints + 1)]
         self.qdd = [sp.Integer(0)] + [sp.symbols(f"qdd{j}") for j in range(1, self.n_joints + 1)]
 
-        self._m = sp.symbols([f"m{j}" for j in range(self.n_joints + 1)])
-        self._mX = sp.symbols([f"mX{j}" for j in range(self.n_joints + 1)])
-        self._mY = sp.symbols([f"mY{j}" for j in range(self.n_joints + 1)])
-        self._mZ = sp.symbols([f"mZ{j}" for j in range(self.n_joints + 1)])
+        self._m = sp.symbols(f"m:{self.n_joints + 1}")
+        self._mX = sp.symbols(f"mX:{self.n_joints + 1}")
+        self._mY = sp.symbols(f"mY:{self.n_joints + 1}")
+        self._mZ = sp.symbols(f"mZ:{self.n_joints + 1}")
 
         PC = [spvector([0, 0, 0]) for _ in range(self.n_joints + 1)]
         for j in range(1, self.n_joints + 1):
@@ -46,12 +46,12 @@ class RigidBodyDynamics:
 
         self._m_pc = [[self._mX[j], self._mY[j], self._mZ[j]] for j in range(self.n_joints + 1)]
 
-        self._XX = sp.symbols([f"XX{j}" for j in range(self.n_joints + 1)])
-        self._XY = sp.symbols([f"XY{j}" for j in range(self.n_joints + 1)])
-        self._XZ = sp.symbols([f"XZ{j}" for j in range(self.n_joints + 1)])
-        self._YY = sp.symbols([f"YY{j}" for j in range(self.n_joints + 1)])
-        self._YZ = sp.symbols([f"YZ{j}" for j in range(self.n_joints + 1)])
-        self._ZZ = sp.symbols([f"ZZ{j}" for j in range(self.n_joints + 1)])
+        self._XX = sp.symbols(f"XX:{self.n_joints + 1}")
+        self._XY = sp.symbols(f"XY:{self.n_joints + 1}")
+        self._XZ = sp.symbols(f"XZ:{self.n_joints + 1}")
+        self._YY = sp.symbols(f"YY:{self.n_joints + 1}")
+        self._YZ = sp.symbols(f"YZ:{self.n_joints + 1}")
+        self._ZZ = sp.symbols(f"ZZ:{self.n_joints + 1}")
         self._i_cor = [sp.zeros(3, 3) for _ in range(self.n_joints + 1)]
         for j in range(self.n_joints + 1):
             self._i_cor[j] = sp.Matrix([
@@ -146,6 +146,7 @@ class RigidBodyDynamics:
             return self.regressor_sip
 
         dynamics_sip = self.dynamics_sip()
+        print(f"Parameters SIP full: {self._parameters_sip_full()}")
 
         js = list(range(self.n_joints + 1))
         tau_per_task = [dynamics_sip[j] for j in js]  # Allows one to control how many tasks by controlling how many js
@@ -229,7 +230,8 @@ class RigidBodyDynamics:
                 column_idx = sum(n_par[:jj]) + i
                 self.logger.info(f"Computing regressor(row={j}/{n_joints + 1}, column={column_idx - n_par[0] + 1}/{sum(n_par[1:])}) by analyzing dependency of tau[{j}] on joint {jj}'s parameter {i+1}: {p_linear[jj][i]}")
                 # reg_row_j[0, column_idx] = tau_sym_linearizable_j.expand().coeff(p_linear[jj][i])
-                reg_row_j[0, column_idx] = tau_sym_linearizable_j.diff(p_linear[jj][i])
+                if p_linear[jj][i] is not sp.Integer(0):
+                    reg_row_j[0, column_idx] = tau_sym_linearizable_j.diff(p_linear[jj][i])
         return reg_row_j
 
     def _regressor_sip_exist(self):
@@ -308,6 +310,7 @@ class RigidBodyDynamics:
 
         def load_regressor_and_subs():
             regressor_reduced = self._regressor_sip_exist()
+            print(f"Regressor SIP exist: {regressor_reduced}")
             return regressor_reduced.subs(
                 sym_mat_to_subs([a, d], [self.mdh.a, self.mdh.d]))
 
@@ -324,39 +327,21 @@ class RigidBodyDynamics:
         if self.idx_bip is not None:
             return self.idx_bip
 
-        # The set of dummy observations
-        # dummy_pos = np.array([-np.pi, -0.5 * np.pi, -0.25 * np.pi, 0.0, 0.25 * np.pi, 0.5 * np.pi, np.pi])
-        # dummy_vel = np.array([-1.0, -0.5, -0.25, 0.0, 0.25, 0.5, 1.0])
-        # dummy_acc = np.array([-1.0, -0.5, -0.25, 0.0, 0.25, 0.5, 1.0])
-        # ************************************************************************************************
-        # dummy_gravity = np.array([-1.0, 0, 1.0])
         n_args = len(signature(regressor_with_instantiated_parameters).parameters)  # No. of arguments to the lambdified regressor
         dummy_args = np.random.uniform(low=-np.pi, high=np.pi, size=n_args)  # 'n_args' random numbers uniformly distributed in the interval [-pi; pi]
-        # ************************************************************************************************
-        # assert len(dummy_pos) == len(dummy_vel) == len(dummy_acc)
 
         n_rank_evals = 0  # Loop counter for observation matrix concatenations
         rank_W = []
 
-        # random_idx_init = [[np.random.randint(self.n_joints + 1) for _ in range(self.n_joints)] for _ in range(3)]
-        # dummy_args_init = np.concatenate((dummy_pos[random_idx_init[0][:]], dummy_vel[random_idx_init[1][:]],
-        #                                   dummy_acc[random_idx_init[2][:]]))
-
-        # W_N = regressor_with_instantiated_parameters(*dummy_args_init)
-        # W = regressor_with_instantiated_parameters(*dummy_args_init)
         W_N = regressor_with_instantiated_parameters(*dummy_args)
         W = regressor_with_instantiated_parameters(*dummy_args)
 
         self.logger.info("Determining numerically the number of Base Inertial Parameters (BIP) of the rigid-body dynamics...")
         while n_rank_evals < RigidBodyDynamics._min_rank_evals or rank_W[-1] > rank_W[-self._n_rank_convergence]:  # While the rank of the observation matrix keeps increasing (converging)
             # Generate random indices for the dummy observations
-            # random_idx = [[[np.random.randint(self.n_joints + 1) for _ in range(self.n_joints)]
-            #                for _ in range(RigidBodyDynamics._n_regressor_evals_per_rank_calculation)] for _ in range(3)]
 
             # Evaluate the regressor in dummy observations and vertically stack the regressor matrices
             for _ in range(RigidBodyDynamics._n_regressor_evals_per_rank_calculation):
-                # dummy_args = np.concatenate(
-                #     (dummy_pos[random_idx[0][i][:]], dummy_vel[random_idx[1][i][:]], dummy_acc[random_idx[2][i][:]]))
                 dummy_args = 2*np.pi * np.random.uniform(low=-np.pi, high=np.pi, size=n_args) # 'n_args' random numbers uniformly distributed in the interval [-pi; pi]
                 reg_i = regressor_with_instantiated_parameters(*dummy_args)  # Each index contains a (n_joints x n_par) regressor matrix
                 W_N = np.append(W_N, reg_i, axis=0)
@@ -395,6 +380,39 @@ class RigidBodyDynamics:
     #     observation_matrix_j[:, nonzeros] = regressor_j_jpar_nonzeros_fcn(*args_num).transpose().squeeze(axis=2)
     #     return observation_matrix_j
 
+    def convert_to_payload_dynamics(self):
+        """
+        Converts the rigid-body dynamics to payload dynamics only. 
+        """
+        
+        self._pc = [sp.zeros(3,1) for _ in range(self.n_joints)] + [sp.Matrix([sp.symbols("PCx PCy PCz")]).T]
+
+        self._m = [sp.Integer(0) for _ in range(self.n_joints)] + [sp.Symbol("m")]
+        self._mX = [sp.Integer(0) for _ in range(self.n_joints)] + [sp.Symbol("mX")]
+        self._mY = [sp.Integer(0) for _ in range(self.n_joints)] + [sp.Symbol("mY")]
+        self._mZ = [sp.Integer(0) for _ in range(self.n_joints)] + [sp.Symbol("mZ")]
+        self._m_pc = [[self._mX[j], self._mY[j], self._mZ[j]] for j in range(self.n_joints + 1)]
+
+        self._XX = [sp.Integer(0) for _ in range(self.n_joints)] + [sp.Symbol("XX")]
+        self._XY = [sp.Integer(0) for _ in range(self.n_joints)] + [sp.Symbol("XY")]
+        self._XZ = [sp.Integer(0) for _ in range(self.n_joints)] + [sp.Symbol("XZ")]
+        self._YY = [sp.Integer(0) for _ in range(self.n_joints)] + [sp.Symbol("YY")]
+        self._YZ = [sp.Integer(0) for _ in range(self.n_joints)] + [sp.Symbol("YZ")]
+        self._ZZ = [sp.Integer(0) for _ in range(self.n_joints)] + [sp.Symbol("ZZ")]
+        self._i_cor = [sp.zeros(3) for _ in range(self.n_joints + 1)]
+        for j in range(self.n_joints + 1):
+            self._i_cor[j] = sp.Matrix([
+                [self._XX[j], self._XY[j], self._XZ[j]],
+                [self._XY[j], self._YY[j], self._YZ[j]],
+                [self._XZ[j], self._YZ[j], self._ZZ[j]]
+            ])
+        
+        # Forget everything
+        self.n_params = None
+        self.params = None
+        self.regressor_sip = None
+        self.idx_bip = None
+
     def observation_matrix_joint(self, j, q_num, qd_num, qdd_num, g_num):
         assert q_num.shape == qd_num.shape == qdd_num.shape
         assert 0 <= j < self.n_joints
@@ -431,7 +449,7 @@ class RigidBodyDynamics:
     def regressor_joint(self, j):
         return cache_object(RigidBodyDynamics.filepath_regressor_joint(j+1), lambda: self.regressor()[j, :])
 
-    def regressor(self, output_filename="rigid_body_dynamics_regressor"):
+    def regressor(self, output_filename="rigid_body_dynamics_regressor", gravity=g_num):
         """
         The regressor matrix formulated in terms of the Base Inertial Parameters (BIP).
         """
@@ -442,7 +460,7 @@ class RigidBodyDynamics:
             args_sym = self.q[1:] + self.qd[1:] + self.qdd[1:] + self._g.T.tolist()[0]  # list concatenation
             sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
             regressor_sip_exist_func = sp.lambdify(args_sym, regressor_sip_exist, 'numpy')
-
+            print(f"regressor_sip_exist: {regressor_sip_exist}")
             parameter_indices_bip = self._indices_bip(regressor_sip_exist_func)
 
             for j in range(self.n_joints):
@@ -520,7 +538,7 @@ class RigidBodyDynamics:
         P = self._position_vectors(a, d, alpha)
         PC = self._pc  # center-of-mass locations
 
-        I_CoM = [sp.zeros(3, 3) for _ in range(self.n_joints + 1)]
+        I_CoM = [sp.zeros(3) for _ in range(self.n_joints + 1)]
         for j in range(1, self.n_joints + 1):
             PC_dot_left = spdot(PC[j].transpose(), PC[j])
             PC_dot_right = spdot(PC[j], (PC[j].transpose()))
@@ -604,7 +622,6 @@ class RigidBodyDynamics:
         """The inertia matrix formulated in terms of the Base Inertial Parameters (BIP)."""
 
         N = self.n_joints
-        e = lambda i: sp.eye(N)[i, :] # standard basis
         zero_vector = lambda i: sp.zeros(i, 1) # zero vector
         qd = self.qd[1:]
         rbd_bip_inertial = self.dynamics().subs(sym_mat_to_subs([qd, self._g], [zero_vector(N), zero_vector(3)]))

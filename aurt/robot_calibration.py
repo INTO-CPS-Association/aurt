@@ -80,6 +80,10 @@ class RobotCalibration:
 
         n_samples_ds = self._measurement_vector(robot_data, start_index=start_index, end_index=end_index).shape[
                            0] // self.robot_dynamics.n_joints  # No. of samples in downsampled data
+        
+        # TODO: Reduce 'robot_dynamics.rigid_body_dynamics' dimensionality given gravity
+
+
         observation_matrix = np.zeros((self.robot_dynamics.n_joints * n_samples_ds,
                                        sum(self.robot_dynamics.number_of_parameters())))  # Initialization
         for j in range(self.robot_dynamics.n_joints):

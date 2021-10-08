@@ -76,15 +76,15 @@ def calibrate(args):
     if os.path.isfile(args.out_params):
         l.warning(f"The parameters filename {args.out_params} already exists, and its content will be overwritten.")
 
-    filename = from_cache(args.out_calibration_model + ".pickle")
+    filename = from_cache(args.out_calibrated_model + ".pickle")
     if os.path.isfile(filename):
-        l.warning(f"The calibration model filename {args.out_calibration_model} already exists, and its content will be overwritten.")
+        l.warning(f"The calibrated model filename {args.out_calibrated_model} already exists, and its content will be overwritten.")
 
     model_path = args.model
     gravity = np.array(args.gravity)
     data_path = args.data
     params_path = args.out_params
-    calbration_model_path = args.out_calibration_model
+    calbration_model_path = args.out_calibrated_model
     plotting = args.plot
     
     api.calibrate(model_path, data_path, gravity, params_path, calbration_model_path, plotting)
@@ -150,13 +150,13 @@ def calibrate_validate(args):
     model_path = args.model
     data_path = args.data
     gravity = np.array(args.gravity)
-    calbration_model_path = args.out_calibrated_model
+    calbrated_model_path = args.out_calibrated_model
     calibration_data_rel = args.calibration_data_rel # TODO: make sure to check that it is between 0 and 1
     plotting = args.plot
     params_path = args.out_params
     output_prediction_path = args.out_prediction
     
-    api.calibrate_validate(model_path, data_path, gravity, calibration_data_rel, params_path, calbration_model_path, output_prediction_path, plotting)
+    api.calibrate_validate(model_path, data_path, gravity, calibration_data_rel, params_path, calbrated_model_path, output_prediction_path, plotting)
 
 
 def create_cmd_parser():

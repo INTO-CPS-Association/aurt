@@ -47,12 +47,12 @@ class RobotDynamics:
         n_par_jd = self.joint_dynamics.number_of_parameters()
         return [n_par_rbd[j] + n_par_jd[j] for j in range(self.n_joints)]
 
-    def parameters_essential(self, q, qd, qdd):
+    def parameters_essential(self, q_num, qd_num, qdd_num):
         # 1. Do SVD of observation matrix
-        # 2. Choose Essential Inertial Parameters (EIP) based on some criteria´(Akaike's Information Criteria)
+        # 2. Choose Essential Inertial Parameters (EIP) based on some criteria (Akaike's Information Criteria, i.e. AIC?)
         # ...
-        obs_mat = self.observation_matrix()
-        obs_mat.linalg.svd()
+        obs_mat = self.observation_matrix(q_num, qd_num, qdd_num)
+        s = np.linalg.svd(obs_mat)
         return 1
 
     def observation_matrix_joint(self, j, q_num, qd_num, qdd_num, g_num):
