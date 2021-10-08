@@ -31,7 +31,6 @@ def compile_rbd(args):
 
     mdh_path = args.mdh
     plotting = args.plot
-    l.debug(f"Using folder {args.cache} as cache.")
     l.info(f"Clearing cache {args.cache}.")
     init_cache_dir(args.cache)
     cache = PersistentPickleCache(args.cache)
@@ -57,7 +56,7 @@ def compile_rd(args):
     friction_viscous_powers = args.friction_viscous_powers
     #friction_hysteresis_model = args.friction_hysteresis_model # saved for later implementation
     output_path = args.out
-
+    
     l.debug(f"Using folder {args.cache} as cache.")
     cache = PersistentPickleCache(args.cache)
     api.compile_rd(model_rbd_path, friction_torque_model, friction_viscous_powers, output_path, cache)
