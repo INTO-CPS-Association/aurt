@@ -17,7 +17,8 @@ setuptools.setup(
         "numpy>=1",
         "sympy>=1",
         "pandas>=1",
-        "scikit-learn>=0.24"
+        "scikit-learn>=0.24",
+        "CacheMan"
     ],
     extras_require={
         "vis": ["roboticstoolbox-python", "matplotlib>=1"]
