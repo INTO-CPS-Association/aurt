@@ -19,24 +19,15 @@ jobs:
         run: pip install .[vis]
       - name: Run all tests
         run: python build.py --run-tests all-non-live
+      - name: Run cli commands
+        run: ./.github/scripts/cli_cmds
+        shell: pwsh
 
-  install-aurt-ubuntu:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v2
-        with:
-            ref: ${{ github.event.pull_request.head.ref }}
-      - uses: actions/setup-python@v2
-        with:
-          python-version: "3.8"
-      - name: Install python packages
-        run: pip3 install .[vis]
-      - name: Test API
-        run: python3 build.py --run-tests all-non-live
-
-  install-aurt-macos:
-    runs-on: macos-latest
+  install-aurt-ubuntu-and-macos:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v2
@@ -49,3 +40,6 @@ jobs:
         run: pip3 install .[vis]
       - name: Test API
         run: python3 build.py --run-tests all-non-live
+      - name: Run cli commands
+        run: ./.github/scripts/cli_cmds
+        shell: pwsh
