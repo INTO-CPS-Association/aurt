@@ -8,8 +8,7 @@ from aurt.caching import PersistentPickleCache
 from aurt.file_system import from_cache, from_project_root
 from aurt import api
 from aurt.rigid_body_dynamics import RigidBodyDynamics
-from aurt.tests.units import init_cache_dir
-
+from aurt.caching import clear_cache_dir
 
 class APITests(unittest.TestCase):
 
@@ -19,7 +18,7 @@ class APITests(unittest.TestCase):
         Runs when class is loaded.
         """
         cls.cache_dir = from_project_root('cache')
-        init_cache_dir(cls.cache_dir)
+        clear_cache_dir(cls.cache_dir)
         cls.cache = PersistentPickleCache(cls.cache_dir)
         logging.basicConfig(level=logging.WARNING)
 

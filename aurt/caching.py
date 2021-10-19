@@ -1,6 +1,13 @@
 import os
-
+from shutil import rmtree
 from aurt.file_system import load_object, store_object
+
+
+def clear_cache_dir(dir):
+    if os.path.exists(dir):
+        rmtree(dir)
+    os.mkdir(dir)
+    return dir
 
 
 class Cache:
