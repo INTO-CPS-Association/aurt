@@ -4,10 +4,9 @@ import pickle
 import unittest
 
 from aurt import api
-from aurt.caching import PersistentPickleCache
+from aurt.caching import PersistentPickleCache, clear_cache_dir
 from aurt.file_system import from_project_root, from_cache
 from aurt.rigid_body_dynamics import RigidBodyDynamics
-from aurt.tests.units import init_cache_dir
 
 
 class URExampleTests(unittest.TestCase):
@@ -18,7 +17,7 @@ class URExampleTests(unittest.TestCase):
         Runs when class is loaded.
         """
         cls.cache_dir = from_project_root('cache')
-        init_cache_dir(cls.cache_dir)
+        clear_cache_dir(cls.cache_dir)
         cls.cache = PersistentPickleCache(cls.cache_dir)
         logging.basicConfig(level=logging.DEBUG)
 

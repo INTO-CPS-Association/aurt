@@ -1,22 +1,20 @@
 import os
-
+from shutil import rmtree
 from aurt.file_system import load_object, store_object
 
 
-class Cache():
+def clear_cache_dir(dir):
+    if os.path.exists(dir):
+        rmtree(dir)
+    os.mkdir(dir)
+    return dir
+
+
+class Cache:
     def __init__(self):
         pass
 
     def get_or_cache(self, key, fun):
-        raise NotImplementedError("Implemented by subclasses")
-
-    def set(self, key, val):
-        raise NotImplementedError("Implemented by subclasses")
-
-    def get(self, key):
-        raise NotImplementedError("Implemented by subclasses")
-
-    def is_cached(self, key):
         raise NotImplementedError("Implemented by subclasses")
 
 
@@ -37,16 +35,7 @@ class PersistentPickleCache(Cache):
             store_object(file, obj)
             return obj
 
-    def set(self, key, val):
-        pass
-
-    def get(self, key):
-        return load_object(self._get_file_name(key))
-
     def _get_file_name(self, key):
         file = key + '.pickle'
         return os.path.join(self._base_directory, file)
-
-    def is_cached(self, key):
-        return os.path.exists(self._get_file_name(key))
 

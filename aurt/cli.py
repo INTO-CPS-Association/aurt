@@ -4,9 +4,8 @@ import logging
 import numpy as np
 import os.path
 import aurt.api as api
-from aurt.caching import PersistentPickleCache
+from aurt.caching import PersistentPickleCache, clear_cache_dir
 from aurt.messages import CONTENT_OVERWRITTEN
-from aurt.tests.units import init_cache_dir
 
 
 def setup_logger(args):
@@ -32,7 +31,7 @@ def compile_rbd(args):
     mdh_path = args.mdh
     plotting = args.plot
     l.info(f"Clearing cache {args.cache}.")
-    init_cache_dir(args.cache)
+    clear_cache_dir(args.cache)
     cache = PersistentPickleCache(args.cache)
     api.compile_rbd(mdh_path, output_path, plotting, cache)
 

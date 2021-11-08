@@ -10,7 +10,7 @@ from aurt.file_system import from_cache, load_csv, from_project_root
 ##    o add tests for compile-rd
 ##    o add tests for calibrate
 ##    o add tests for predict
-from aurt.tests.units import init_cache_dir
+from aurt.caching import clear_cache_dir
 
 
 class CLITests(unittest.TestCase):
@@ -21,7 +21,7 @@ class CLITests(unittest.TestCase):
         Runs when class is loaded.
         """
         cls.cache_dir = from_project_root('cache')
-        init_cache_dir(cls.cache_dir)
+        clear_cache_dir(cls.cache_dir)
         logging.basicConfig(level=logging.WARNING)
 
     def init_rbd(self):
