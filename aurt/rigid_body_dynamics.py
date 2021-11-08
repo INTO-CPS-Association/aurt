@@ -233,6 +233,12 @@ class RigidBodyDynamics(LinearSystem):
         self.idx_bip = None
 
     def instantiate_gravity(self, gravity):
+        # if gravity is not None:
+        self.logger.info(f"gravity: {gravity}")
+        self.logger.info(f"self._g_num: {self._g_num}")
+        self.logger.info(f"gravity == self._g_num: {gravity == self._g_num}")
+        self.logger.info(f"all(gravity == self._g_num): {all(gravity == self._g_num)}")
+
         if not all(gravity == self._g_num):
             self._g_num = gravity
             self.compute_linearly_independent_system()

@@ -1,5 +1,6 @@
 import pickle
 import logging
+import numpy as np
 
 from aurt.caching import Cache
 from aurt.rigid_body_dynamics import RigidBodyDynamics
@@ -42,6 +43,7 @@ def compile_rd(rbd_filename, friction_torque_model, friction_viscous_powers, out
 
 def calibrate(model_path, data_path, gravity, output_params, output_calibration, plotting):
     l = logging.getLogger("aurt")
+    gravity = np.array(gravity)
 
     # Load RobotDynamics
     with open(model_path, 'rb') as f:
@@ -60,10 +62,13 @@ def calibrate(model_path, data_path, gravity, output_params, output_calibration,
 
 
 def predict(model_path, data_path, gravity, output_path):
+    l = logging.getLogger("aurt")
+    gravity = np.array(gravity)
+
     with open(model_path, 'rb') as f:
         rc: RobotCalibration = pickle.load(f)
 
-    rc_predict_data = RobotData(data_path, delimiter=' ', interpolate_missing_samples=True) # TODO should we always interpolate missing samples?
+    rc_predict_data = RobotData(l, data_path, delimiter=' ', interpolate_missing_samples=True) # TODO should we always interpolate missing samples?
     prediction = rc.predict(rc_predict_data, gravity, rc.parameters)
 
     # Store CSV
@@ -72,6 +77,7 @@ def predict(model_path, data_path, gravity, output_path):
 
 def calibrate_validate(model_path, data_path, gravity, calibration_data_relative, output_params, output_calibration, output_predict, plotting):
     l = logging.getLogger("aurt")
+    gravity = np.array(gravity)
 
     # Load RobotDynamics
     with open(model_path, 'rb') as f:

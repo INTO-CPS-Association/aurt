@@ -25,7 +25,7 @@ class RobotCalibration:
 
         if relative_separation_of_calibration_and_prediction is None and robot_data_predict is None:
             """All data is used for calibration."""
-            self.robot_data_calibration = RobotData(robot_data_path, delimiter=' ', interpolate_missing_samples=True)
+            self.robot_data_calibration = RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True)
             self.robot_data_validation = None
         elif relative_separation_of_calibration_and_prediction is not None and robot_data_predict is None:
             """Using a single dataset, some of the data is used for calibration and some is used for validation."""
@@ -33,13 +33,13 @@ class RobotCalibration:
                                                                               "data used for calibration and " \
                                                                               "prediction must be in the range from 0 " \
                                                                               "to 1."
-            dummy_data = RobotData(robot_data_path, delimiter=' ')
+            dummy_data = RobotData(l, robot_data_path, delimiter=' ')
             t_sep = dummy_data.time[-1] * relative_separation_of_calibration_and_prediction
-            self.robot_data_calibration = RobotData(robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(0, t_sep))
-            self.robot_data_validation = RobotData(robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(t_sep, np.inf))
+            self.robot_data_calibration = RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(0, t_sep))
+            self.robot_data_validation = RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(t_sep, np.inf))
         elif relative_separation_of_calibration_and_prediction is None and robot_data_predict is not None:
             """Using two datasets, one for calibration and one for validation."""
-            self.robot_data_calibration = RobotData(robot_data_path, delimiter=' ', interpolate_missing_samples=True)
+            self.robot_data_calibration = RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True)
             self.robot_data_validation = robot_data_predict
         else:
             # exit here? call __del__()?

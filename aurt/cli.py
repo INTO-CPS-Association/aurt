@@ -82,7 +82,7 @@ def calibrate(args):
         l.warning(CONTENT_OVERWRITTEN % {"description": "calibration model", "filepath": args.out_calibrated_model})
 
     model_path = args.model
-    gravity = np.array(args.gravity)
+    gravity = args.gravity
     data_path = args.data
     params_path = args.out_params
     calibrated_model_path = args.out_calibrated_model
