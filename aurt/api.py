@@ -26,11 +26,13 @@ def compile_rbd(mdh_path, output_path, plotting, cache: Cache, block=True):
 
 
 def compile_rd(rbd_filename, friction_torque_model, friction_viscous_powers, output_path, cache: Cache):
+    l = logging.getLogger("aurt")
+
     # Load RigidBodyDynamics
     with open(rbd_filename, 'rb') as f:
         rigid_body_dynamics: RigidBodyDynamics = pickle.load(f)
 
-    rd = RobotDynamics(rigid_body_dynamics, cache, viscous_friction_powers=friction_viscous_powers, friction_torque_model=friction_torque_model)
+    rd = RobotDynamics(rigid_body_dynamics, l, cache, viscous_friction_powers=friction_viscous_powers, friction_torque_model=friction_torque_model)
     rd.regressor()
 
     # save class

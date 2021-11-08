@@ -3,6 +3,7 @@ from scipy import signal
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from logging import Logger
+from aurt.dynamics_aux import list_2D_to_sympy_vector, number_of_elements_in_nested_list
 
 from aurt.robot_dynamics import RobotDynamics
 from aurt.signal_processing import central_finite_difference
@@ -71,17 +72,24 @@ class RobotCalibration:
                                                                                             start_index,
                                                                                             end_index)
 
+        self.robot_dynamics.rigid_body_dynamics.instantiate_gravity(gravity)
+        self.robot_dynamics.rigid_body_dynamics.name += f"_gravity={gravity}"
+        self.robot_dynamics.rigid_body_dynamics.recompute_system = True
+        self.robot_dynamics.rigid_body_dynamics.compute_linearly_independent_system()
+        self.robot_dynamics.compute_linearly_independent_system()
+
         n_samples_ds = self._measurement_vector(robot_data, start_index=start_index, end_index=end_index).shape[
                            0] // self.robot_dynamics.n_joints  # No. of samples in downsampled data
-        
-        # TODO: Reduce 'robot_dynamics.rigid_body_dynamics' dimensionality given gravity
-
 
         observation_matrix = np.zeros((self.robot_dynamics.n_joints * n_samples_ds,
                                        sum(self.robot_dynamics.number_of_parameters())))  # Initialization
+        states_num = np.empty((q_tf.shape[0] + qd_tf.shape[0] + qdd_tf.shape[0], q_tf.shape[1]))
+        states_num[0::3, :] = q_tf
+        states_num[1::3, :] = qd_tf
+        states_num[2::3, :] = qdd_tf
         for j in range(self.robot_dynamics.n_joints):
             # Obtain the rows of the observation matrix related to joint j
-            obs_mat_j = self.robot_dynamics.observation_matrix_joint(j, q_tf, qd_tf, qdd_tf, gravity)
+            obs_mat_j = self.robot_dynamics.observation_matrix_joint(j, states_num)
 
             # Parallel filter and decimate/downsample the rows of the observation matrix related to joint j.
             obs_mat_j_ds = RobotCalibration._downsample(
@@ -98,12 +106,12 @@ class RobotCalibration:
         """
 
         observation_matrix = self._observation_matrix(self.robot_data_calibration,
-                                                      self.gravity,
+                                                      gravity=self.gravity,
                                                       start_index=self.non_static_start_idx,
                                                       end_index=self.non_static_end_idx)
         measurement_vector = self._measurement_vector(self.robot_data_calibration,
-                                                       start_index=self.non_static_start_idx,
-                                                       end_index=self.non_static_end_idx)
+                                                      start_index=self.non_static_start_idx,
+                                                      end_index=self.non_static_end_idx)
 
         # sklearn fit
         OLS = LinearRegression(fit_intercept=False)
@@ -140,6 +148,7 @@ class RobotCalibration:
         nmse = mse / normalization
         self.logger.info(f"MSE (calibration data): {mse}")
         self.logger.info(f"NMSE (calibration data): {nmse}")
+        
         weighted_observation_matrix = (wls_sample_weights*observation_matrix.T).T
         std_dev_parameter_estimate = np.sqrt(np.diagonal(np.linalg.inv(weighted_observation_matrix.T @ weighted_observation_matrix)))  # calculates the standard deviation of the parameter estimates from the diagonal elements (variance) of the covariance matrix
         cond = RobotCalibration._evaluate_dynamics_excitation_as_cost((wls_sample_weights*observation_matrix.T).T, metric="cond")
@@ -147,7 +156,8 @@ class RobotCalibration:
 
         self.parameters = wls_calibration.coef_
         rel_std_dev_parameter_estimate = 100 * (std_dev_parameter_estimate / self.parameters)
-        self.logger.info(f"Parameters: {self.robot_dynamics.parameters()}")
+        self.logger.info(f"Full Parameters: {self.robot_dynamics._parameters_full()}")
+        self.logger.info(f"Base Parameters: {self.robot_dynamics.parameters}")
         self.logger.info(f"Relative std.dev. of estimated parameters: {rel_std_dev_parameter_estimate}")
 
         return self.parameters

@@ -1,10 +1,17 @@
 import sys
 import sympy as sp
 import numpy as np
+from logging import Logger
+
+from aurt.caching import Cache
+from aurt.linear_system import LinearSystem
+from aurt.generalized_maxwell_slip import GeneralizedMaxwellSlip
 
 
-class JointDynamics:
-    def __init__(self, n_joints, load_model=None, hysteresis_model=None, viscous_powers=None):
+class JointDynamics(LinearSystem):
+    def __init__(self, logger: Logger, cache: Cache, n_joints: int, load_model=None, hysteresis_model=None, viscous_powers=None):
+        super().__init__(logger, cache, name="joint dynamics")
+
         self.n_joints = n_joints
         self._qd = [sp.Integer(0)] + [sp.symbols(f"qd{j}") for j in range(1, self.n_joints + 1)]
         self._tauJ = sp.symbols([f"tauJ{j}" for j in range(self.n_joints + 1)])
@@ -20,6 +27,21 @@ class JointDynamics:
         self.load_model = load_model
         self.hysteresis_model = hysteresis_model
         self.viscous_friction_powers = viscous_powers
+
+        super().compute_linearly_independent_system()
+
+    def states(self):
+        return [list(a) for a in zip(self._qd[1:], self._tauJ[1:])]
+
+    def _parameters_full(self):
+        """
+        Returns a list of 'n_joints + 1' elements with each element comprising a list of joint dynamics parameters for that
+        corresponding joint.
+        """
+
+        fcs = self._coulomb_friction_parameters()
+        fvs = self._viscous_friction_parameters()
+        return [[*fcs[j], *fvs[j]] for j in range(1, self.n_joints + 1)]
 
     def _coulomb_friction_parameters(self):
         """
@@ -44,20 +66,6 @@ class JointDynamics:
         """
 
         return [[sp.symbols(f"Fv{j}_{i}") for i in self.viscous_friction_powers] for j in range(self.n_joints + 1)]
-
-    def parameters(self):
-        """
-        Returns a list of 'Njoints + 1' elements with each element comprising a list of joint dynamics parameters for that
-        corresponding joint.
-        """
-
-        fcs = self._coulomb_friction_parameters()
-        fvs = self._viscous_friction_parameters()
-        return [[*fcs[j], *fvs[j]] for j in range(1, self.n_joints + 1)]
-
-    def number_of_parameters(self):
-        par = self.parameters()
-        return [len(par[j]) for j in range(self.n_joints)]
 
     def _coulomb_friction_basis(self):
         """
@@ -86,6 +94,10 @@ class JointDynamics:
             print(f"GMS model not yet implemented - using a simple static model instead.")
             return [sp.sign(self._qd[j]) for j in range(self.n_joints + 1)]
 
+    def _generalized_maxwell_slip(self):
+        
+        return 1
+
     def _viscous_friction_basis(self):
         """
         Returns the basis (regressor) of the viscous friction model.
@@ -100,41 +112,16 @@ class JointDynamics:
                     fv_basis[j][i] = self._qd[j] ** power
         return fv_basis
 
-    def observation_matrix_joint(self, j, qd_j_num, tauJ_j_num):
-        """Returns a (n_samples x self.number_of_parameters[j]) observation matrix"""
-        assert qd_j_num.size == tauJ_j_num.size
-        assert 0 <= j < self.n_joints
-
-        n_samples = qd_j_num.size
-        args_sym = [self._qd[j+1], self._tauJ[j+1]]
-        args_num = np.concatenate((qd_j_num[:, np.newaxis], tauJ_j_num[:, np.newaxis]), axis=1).transpose()
-        regressor_j = self.regressor()[j]
-        observation_matrix_j = np.zeros((n_samples, regressor_j.shape[1]))
-        sys.setrecursionlimit(int(1e6))
-        reg_j_fcn = sp.lambdify(args_sym, regressor_j, 'numpy')
-        observation_matrix_j[:n_samples, :] = reg_j_fcn(*args_num).squeeze().transpose()
-
-        return observation_matrix_j
-
-    def observation_matrix(self, qd_num, tauJ_num):
-        """Returns a list of observation matrices for each joint."""
-        assert qd_num.shape == tauJ_num.shape
-
-        return [self.observation_matrix_joint(j, qd_num[j, :], tauJ_num[j, :]) for j in range(self.n_joints)]
-
-    def regressor(self):
+    def _regressor_joint_parameters_for_joint(self, j, par_j):
         """
-        Returns an 'n_joints' list of regressors.
+        Those columns of row 'j' of the regressor related to the parameters 'par_j' for joint j.
+        We make use of the fact that the parameters for any joint j affects the torque of joint j only.
+        This also means that the joints dynamics regressor is block diagonal.
         """
+        regressor_j_par_j = sp.zeros(1, self._number_of_parameters_full()[par_j])
 
-        fc_basis = self._coulomb_friction_basis()
-        fv_basis = self._viscous_friction_basis()
-        return [sp.Matrix([*fc_basis[j], *fv_basis[j]]).T for j in range(1, self.n_joints + 1)]
-
-    def dynamics(self):
-        """
-        Returns a list of joint dynamics with the list elements corresponding to the joint dynamics of each joint.
-        """
-        jd_basis = self.regressor()
-        jd_par = self.parameters()
-        return [sum([b * p for b, p in zip(jd_basis[i], jd_par[i])]) for i in range(len(jd_basis))]
+        if j == par_j:
+            fc_basis_j = self._coulomb_friction_basis()[j + 1]
+            fv_basis_j = self._viscous_friction_basis()[j + 1]
+            regressor_j_par_j = sp.Matrix([*fc_basis_j, *fv_basis_j]).T
+        return regressor_j_par_j
