@@ -126,15 +126,15 @@ class LinearSystem(ABC):
             return reg_j
         
         filename = f"{self.name}_regressor_j{j}"
-        if self.recompute_system:
-            reg_j = compute_regressor_joint()
-            self.recompute_system = False
-            # import os
-            # os.remove(os.path.join(self._cache._base_directory, filename))  # TODO: Implement this functionality in 'caching.py'
-            # self._cache.get_or_cache(filename, compute_regressor_joint)
-            # ref_j = compute_regressor_joint()
-        else:
-            reg_j =  self._cache.get_or_cache(filename, compute_regressor_joint)
+        # if self.recompute_system:
+        #     reg_j = compute_regressor_joint()
+        #     self.recompute_system = False
+        #     # import os
+        #     # os.remove(os.path.join(self._cache._base_directory, filename))  # TODO: Implement this functionality in 'caching.py'
+        #     # self._cache.get_or_cache(filename, compute_regressor_joint)
+        #     # ref_j = compute_regressor_joint()
+        # else:
+        reg_j =  self._cache.get_or_cache(filename, compute_regressor_joint)
 
         return reg_j
     

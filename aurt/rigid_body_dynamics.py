@@ -21,7 +21,7 @@ class RigidBodyDynamics(LinearSystem):
     _min_rank_evals = 4
     _filename_regressor_joint = "rigid_body_dynamics_regressor_joint"
 
-    def __init__(self, logger: Logger, modified_dh: ModifiedDH, cache: Cache, multi_processing: bool=False):  # MULTI_PROCESSING MUST DEFFAULT TO TRUE
+    def __init__(self, logger: Logger, modified_dh: ModifiedDH, cache: Cache, multi_processing: bool=True):
         super().__init__(logger, cache, name="rigid-body dynamics")
 
         self._g = [*sp.symbols("gx gy gz")]
@@ -233,12 +233,6 @@ class RigidBodyDynamics(LinearSystem):
         self.idx_bip = None
 
     def instantiate_gravity(self, gravity):
-        # if gravity is not None:
-        self.logger.info(f"gravity: {gravity}")
-        self.logger.info(f"self._g_num: {self._g_num}")
-        self.logger.info(f"gravity == self._g_num: {gravity == self._g_num}")
-        self.logger.info(f"all(gravity == self._g_num): {all(gravity == self._g_num)}")
-
         if not all(gravity == self._g_num):
             self._g_num = gravity
             self.compute_linearly_independent_system()
@@ -262,7 +256,6 @@ class RigidBodyDynamics(LinearSystem):
         col_start = sum(num_par[:par_j])
         col_end = col_start + num_par[par_j]
         return regressor[j, col_start:col_end]
-
 
     def _compute_regressor(self):
         regressor_sip = self._regressor_sip_instantiated_dh()

@@ -78,9 +78,10 @@ class JointDynamics(LinearSystem):
         if self.load_model.lower() == 'none':
             return [[h[j]] for j in range(self.n_joints + 1)]
         elif self.load_model.lower() == 'square':
-            return [[h[j], h[j] * self._tauJ[j] ** 2] for j in range(self.n_joints + 1)]
+            return [[h[j], h[j]*self._tauJ[j]**2] for j in range(self.n_joints + 1)]
+            # return [[*h[j], *(sp.Matrix(h[j])*self._tauJ[j]**2).tolist()] for j in range(self.n_joints + 1)]
         else:  # load_model == 'abs'
-            return [[h[j], h[j] * abs(self._tauJ[j])] for j in range(self.n_joints + 1)]
+            return [[*h[j], *(sp.Matrix(h[j])*abs(self._tauJ[j])).tolist()] for j in range(self.n_joints + 1)]
 
     def _generalized_hysteresis_model(self):
         """
@@ -92,11 +93,19 @@ class JointDynamics(LinearSystem):
             return [sp.sign(self._qd[j]) for j in range(self.n_joints + 1)]
         else:
             print(f"GMS model not yet implemented - using a simple static model instead.")
-            return [sp.sign(self._qd[j]) for j in range(self.n_joints + 1)]
+            n_gms_elements = 4
 
-    def _generalized_maxwell_slip(self):
-        
-        return 1
+            dq = sp.symbols(f"dq:{self.n_joints + 1}")
+            z0 = [sp.Matrix([sp.Symbol('z%d%d'%(j, i)) for i in range(n_gms_elements)]) for j in range(self.n_joints + 1)]  # Initialization of an 'n_joints'-elements list, each element equal to [z{0}, ..., z{n_gms_elements}] (type sp.Matrix)
+            Delta = [sp.Matrix([sp.Symbol('Delta%d%d'%(j, i)) for i in range(n_gms_elements)]) for j in range(self.n_joints + 1)]
+            
+            z1 = z0.copy()
+            for j in range(self.n_joints + 1):
+                for i in range(n_gms_elements):
+                    z1[j][i] = sp.sign(dq[j] + z0[j][i]) * sp.Min(abs(dq[j] + z0[j][i]), Delta[j][i])
+                z1[j] = z1[j].tolist()
+            
+            return z1
 
     def _viscous_friction_basis(self):
         """

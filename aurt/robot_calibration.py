@@ -33,8 +33,10 @@ class RobotCalibration:
                                                                               "data used for calibration and " \
                                                                               "prediction must be in the range from 0 " \
                                                                               "to 1."
+            # **** TODO: THIS SEEMS EXPENSIVE (approx. 14 s) ****
             dummy_data = RobotData(l, robot_data_path, delimiter=' ')
             t_sep = dummy_data.time[-1] * relative_separation_of_calibration_and_prediction
+            # ***************************************************
             self.robot_data_calibration = RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(0, t_sep))
             self.robot_data_validation = RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(t_sep, np.inf))
         elif relative_separation_of_calibration_and_prediction is None and robot_data_predict is not None:
@@ -72,11 +74,10 @@ class RobotCalibration:
                                                                                             start_index,
                                                                                             end_index)
 
-        self.robot_dynamics.rigid_body_dynamics.instantiate_gravity(gravity)
-        self.robot_dynamics.rigid_body_dynamics.name += f"_gravity={gravity}"
-        self.robot_dynamics.rigid_body_dynamics.recompute_system = True
-        self.robot_dynamics.rigid_body_dynamics.compute_linearly_independent_system()
-        self.robot_dynamics.compute_linearly_independent_system()
+        if not all(gravity == self.robot_dynamics.rigid_body_dynamics._g_num):
+            self.robot_dynamics.rigid_body_dynamics.instantiate_gravity(gravity)
+            self.robot_dynamics.rigid_body_dynamics.name += f"_gravity={gravity}"
+            self.robot_dynamics.compute_linearly_independent_system()
 
         n_samples_ds = self._measurement_vector(robot_data, start_index=start_index, end_index=end_index).shape[
                            0] // self.robot_dynamics.n_joints  # No. of samples in downsampled data
