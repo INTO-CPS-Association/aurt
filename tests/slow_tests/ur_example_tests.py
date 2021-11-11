@@ -43,7 +43,7 @@ class URExampleTests(unittest.TestCase):
         with open(out_rbd, 'rb') as f:
             newrbd: RigidBodyDynamics = pickle.load(f)
         self.assertIsNotNone(newrbd.regressor(), "The regressor is not set")
-        self.assertIsNotNone(newrbd.params, "The parameters are not set")
+        self.assertIsNotNone(newrbd.parameters, "The parameters are not set")
 
         # Compile RD
         l.info("Compile robot dynamics...")
