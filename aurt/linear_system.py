@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from math import ceil
 import sympy as sp
 import numpy as np
 import sys
@@ -26,7 +27,6 @@ class LinearSystem(ABC):
 
         self._parameters = None
         self.is_base_parameter = None
-        self._recompute_system = False
     
     @property
     def name(self) -> str:
@@ -35,14 +35,6 @@ class LinearSystem(ABC):
     @name.setter
     def name(self, name: str):
         self._name = name
-
-    @property
-    def recompute_system(self) -> bool:
-        return self._recompute_system
-    
-    @recompute_system.setter
-    def recompute_system(self, val: bool):
-        self._recompute_system = val
     
     @abstractmethod
     def states(self) -> list:
@@ -126,14 +118,6 @@ class LinearSystem(ABC):
             return reg_j
         
         filename = f"{self.name}_regressor_j{j}"
-        # if self.recompute_system:
-        #     reg_j = compute_regressor_joint()
-        #     self.recompute_system = False
-        #     # import os
-        #     # os.remove(os.path.join(self._cache._base_directory, filename))  # TODO: Implement this functionality in 'caching.py'
-        #     # self._cache.get_or_cache(filename, compute_regressor_joint)
-        #     # ref_j = compute_regressor_joint()
-        # else:
         reg_j =  self._cache.get_or_cache(filename, compute_regressor_joint)
 
         return reg_j
@@ -148,8 +132,8 @@ class LinearSystem(ABC):
         pass
 
     def regressor_joint_parameters_for_joint(self, j: int, par_j: int) -> sp.Matrix:
-        reg_j_parj = self._regressor_joint_parameters_for_joint(j, par_j)
-        return reg_j_parj[:, self.is_base_parameter[par_j]]
+        filename = f"{self.name}_regressor_j={j}_par_j={par_j}"
+        return self._cache.get_or_cache(filename, lambda: self._regressor_joint_parameters_for_joint(j, par_j)[:, self.is_base_parameter[par_j]])
 
     def compute_linearly_independent_system(self):
         """
@@ -171,7 +155,7 @@ class LinearSystem(ABC):
         sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
         regressor_full = self._regressor()
         regressor_lambdified = sp.lambdify(states1D, regressor_full, 'numpy')
-        min_rank_evals = int(max(n_rank_convergence, regressor_full.shape[1])*1.5)  # Minimum no. of rank evaluations
+        min_rank_evals = ceil(max(n_rank_convergence, regressor_full.shape[1]/regressor_full.shape[0]*1.5))  # Minimum no. of rank evaluations
 
         n_args = len(signature(regressor_lambdified).parameters)  # No. of arguments to the lambdified regressor
 
@@ -183,7 +167,7 @@ class LinearSystem(ABC):
 
         # 1.2 Compute the rank of the system iteratively, exit upon convergence or when the maximum number of iterations has been reached
         self.logger.debug(f"Determining numerically the number of base parameters of '{self.name}'...")
-        while n_rank_evals < max(min_rank_evals, n_rank_convergence) or rank_obs_mat[-1] > rank_obs_mat[-n_rank_convergence]:  # While the rank of the observation matrix keeps increasing (converging)
+        while n_rank_evals < min_rank_evals or rank_obs_mat[-1] > rank_obs_mat[-n_rank_convergence]:  # While the rank of the observation matrix keeps increasing (converging)
             n_rank_evals += 1
 
             dummy_args = np.random.uniform(low=-np.pi, high=np.pi, size=n_args)

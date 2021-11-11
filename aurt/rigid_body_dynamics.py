@@ -71,11 +71,6 @@ class RigidBodyDynamics(LinearSystem):
         # self._f_tcp_num = tcp_force_torque[0]
         # self._n_tcp_num = tcp_force_torque[1]
 
-        self.n_params = None
-        self.params = None
-        self.regressor_sip = None
-        self.idx_bip = None
-
         super().compute_linearly_independent_system()
 
     @staticmethod
@@ -101,9 +96,6 @@ class RigidBodyDynamics(LinearSystem):
         Constructs the regressor corresponding to the full set of Standard Inertial Parameters (SIP) based 
         on the dynamics formulated in terms of the SIP. 
         """
-        # if self.regressor_sip is not None:
-        #     return self.regressor_sip
-
         dynamics_sip = self.dynamics_sip()
 
         js = list(range(self.n_joints))
@@ -121,7 +113,6 @@ class RigidBodyDynamics(LinearSystem):
                 reg[j, :] = self._compute_regressor_row(data_per_task[j])
 
         res = sp.Matrix(reg)
-        # self.regressor_sip = res
         return res
     
     def _replace_first_moments(self, args):
@@ -174,10 +165,6 @@ class RigidBodyDynamics(LinearSystem):
         n_par = [len(p_linear[j]) for j in range(len(p_linear))]
         reg_row_j = sp.zeros(1, sum(n_par))  # Initialization
 
-        # if j == 0:
-        #     self.logger.info(f"Ignore joint {j}...")
-        #     return reg_row_j
-
         # For joint j, we loop through the parameters belonging to joints/links >= j. This is because it is physically
         # impossible for torque eq. j to include a parameter related to proximal links (< j). We divide the parameter
         # loop (for joints >= j) in two variables 'jj' and 'i':
@@ -195,9 +182,8 @@ class RigidBodyDynamics(LinearSystem):
     def _regressor_sip_instantiated_dh(self):
         d, a, _ = self._mdh_num_to_sym()
 
-        regressor = self._regressor_sip_full()
-        return regressor.subs(
-                sym_mat_to_subs([a, d], [self.mdh.a, self.mdh.d]))
+        filename = f"{self.name}_regressor_full"
+        return self._cache.get_or_cache(filename, lambda: self._regressor_sip_full().subs(sym_mat_to_subs([a, d], [self.mdh.a, self.mdh.d])))
 
     def convert_to_payload_dynamics(self):
         """
@@ -226,11 +212,7 @@ class RigidBodyDynamics(LinearSystem):
                 [self._XZ[j], self._YZ[j], self._ZZ[j]]
             ])
         
-        # Forget everything
-        self.n_params = None
-        self.params = None
-        self.regressor_sip = None
-        self.idx_bip = None
+        self.compute_linearly_independent_system()
 
     def instantiate_gravity(self, gravity):
         if not all(gravity == self._g_num):
@@ -243,36 +225,19 @@ class RigidBodyDynamics(LinearSystem):
         row 'j' related to the parameters for joint 'par_j'.
         """
 
-        output_filename = "rigid_body_dynamics_regressor"
-
-        # disable cache temporarily for debugging
-        # if self._g_num is None:
-        #     regressor =  self._cache.get_or_cache(output_filename, self._compute_regressor)
-        # else:
-        #     regressor = self._cache.get_or_cache(output_filename + f"_gravity_{self._g_num}", self._compute_regressor)
-        regressor = self._compute_regressor()
-        
+        regressor = self._regressor()
         num_par = self._number_of_parameters_full()
         col_start = sum(num_par[:par_j])
         col_end = col_start + num_par[par_j]
+            
         return regressor[j, col_start:col_end]
 
-    def _compute_regressor(self):
-        regressor_sip = self._regressor_sip_instantiated_dh()
+    def _regressor(self):
         if not self._g_num is None:
-            regressor_sip = regressor_sip.subs(sym_mat_to_subs([self._g], [self._g_num]))
-
-        # states_1D = list(chain.from_iterable(self.states()))
-        # sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
-        # regressor_sip_exist_func = sp.lambdify(states_1D, regressor_sip, 'numpy')
-        # parameter_indices_bip = self._indices_bip(regressor_sip_exist_func)
-
-        # for j in range(self.n_joints):
-        #     # TODO: Why do we do this here? Seems an optimization?
-        #     regressor_joint_filepath = RigidBodyDynamics.filepath_regressor_joint(j + 1)
-        #     self._cache.get_or_cache(regressor_joint_filepath, lambda: regressor_sip[j + 1, :])
-
-        return regressor_sip
+            regressor_filepath = f"{self.name}_gravity={self._g_num}_regressor_full"
+            return self._cache.get_or_cache(regressor_filepath, lambda: self._regressor_sip_instantiated_dh().subs(sym_mat_to_subs([self._g], [self._g_num])))
+        else:
+            return self._regressor_sip_instantiated_dh()
 
     def dynamics_sip(self):
         """
@@ -517,4 +482,3 @@ class RigidBodyDynamics(LinearSystem):
                     n_links.append(i+1)
                 super().__init__(links, name="robot")
         return MDHRobot
-
