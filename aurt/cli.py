@@ -30,8 +30,6 @@ def compile_rbd(args):
 
     mdh_path = args.mdh
     plotting = args.plot
-    l.info(f"Clearing cache {args.cache}.")
-    clear_cache_dir(args.cache)
     cache = PersistentPickleCache(args.cache)
     api.compile_rbd(mdh_path, output_path, plotting, cache)
 

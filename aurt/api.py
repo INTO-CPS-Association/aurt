@@ -2,7 +2,7 @@ import pickle
 import logging
 import numpy as np
 
-from aurt.caching import Cache
+from aurt.caching import Cache, clear_cache_dir, PersistentPickleCache
 from aurt.rigid_body_dynamics import RigidBodyDynamics
 from aurt.robot_dynamics import RobotDynamics
 from aurt.robot_calibration import RobotCalibration
@@ -11,8 +11,11 @@ from aurt.data_processing import *
 from aurt.file_system import store_csv
 
 
-def compile_rbd(mdh_path, output_path, plotting, cache: Cache, block=True):
+def compile_rbd(mdh_path, output_path, plotting, cache: PersistentPickleCache, block=True):
     l = logging.getLogger("aurt")
+
+    l.info(f"Clearing cache {cache._base_directory}.")
+    clear_cache_dir(cache._base_directory)
 
     mdh = convert_file_to_mdh(mdh_path)
     rbd = RigidBodyDynamics(l, mdh, cache)
