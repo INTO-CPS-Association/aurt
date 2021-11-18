@@ -3,7 +3,7 @@ from scipy import signal
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from logging import Logger
-from aurt.dynamics_aux import list_2D_to_sympy_vector, number_of_elements_in_nested_list
+from multiprocessing import Pool
 
 from aurt.robot_dynamics import RobotDynamics
 from aurt.signal_processing import central_finite_difference
@@ -16,7 +16,7 @@ class RobotCalibration:
     qd_tf_noise_threshold = 0.03  # Threshold [rad/s] to determine non-stationary (any(abs(qd) > qd_tf_noise_threshold)) data
 
     def __init__(self, l: Logger, robot_dynamics: RobotDynamics, robot_data_path, gravity, relative_separation_of_calibration_and_prediction=None,
-                 robot_data_predict=None):
+                 robot_data_predict=None, multi_processing: bool=True):
         self.logger = l
 
         self.gravity = gravity
@@ -33,12 +33,17 @@ class RobotCalibration:
                                                                               "data used for calibration and " \
                                                                               "prediction must be in the range from 0 " \
                                                                               "to 1."
-            # **** TODO: THIS SEEMS EXPENSIVE (approx. 14 s) ****
             dummy_data = RobotData(l, robot_data_path, delimiter=' ')
             t_sep = dummy_data.time[-1] * relative_separation_of_calibration_and_prediction
-            # ***************************************************
-            self.robot_data_calibration = RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(0, t_sep))
-            self.robot_data_validation = RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(t_sep, np.inf))
+            if multi_processing:
+                robot_data_args = [[l, robot_data_path, ' ', True, (0, t_sep)],
+                                   [l, robot_data_path, ' ', True, (t_sep, np.inf)]]
+                with Pool() as p:  # Compute using multiple processes
+                    robot_data_touple = p.map(self._load_robot_data_parallel, robot_data_args)
+                self.robot_data_calibration, self.robot_data_validation = robot_data_touple
+            else:
+                self.robot_data_calibration = RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(0, t_sep))
+                self.robot_data_validation = RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(t_sep, np.inf))
         elif relative_separation_of_calibration_and_prediction is None and robot_data_predict is not None:
             """Using two datasets, one for calibration and one for validation."""
             self.robot_data_calibration = RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True)
@@ -54,6 +59,13 @@ class RobotCalibration:
         self.parameters = None
         self.estimated_output = None
         self.number_of_samples_in_downsampled_data = None
+    
+    def _load_robot_data_parallel(args):
+        l = args[1]
+        robot_data_path = args[2]
+        timeframe = args[3]
+
+        return RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=timeframe)
 
     def _measurement_vector(self, robot_data, start_index=None, end_index=None):
         def compute_measurement_vector():
