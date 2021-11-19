@@ -1,3 +1,4 @@
+import multiprocessing
 import numpy as np
 from scipy import signal
 from sklearn.linear_model import LinearRegression
@@ -17,10 +18,9 @@ class RobotCalibration:
 
     def __init__(self, l: Logger, robot_dynamics: RobotDynamics, robot_data_path, gravity, relative_separation_of_calibration_and_prediction=None,
                  robot_data_predict=None, multi_processing: bool=True):
+
         self.logger = l
-
         self.gravity = gravity
-
         self.robot_dynamics: RobotDynamics = robot_dynamics
 
         if relative_separation_of_calibration_and_prediction is None and robot_data_predict is None:
@@ -35,9 +35,10 @@ class RobotCalibration:
                                                                               "to 1."
             dummy_data = RobotData(l, robot_data_path, delimiter=' ')
             t_sep = dummy_data.time[-1] * relative_separation_of_calibration_and_prediction
+            
             if multi_processing:
-                robot_data_args = [[l, robot_data_path, ' ', True, (0, t_sep)],
-                                   [l, robot_data_path, ' ', True, (t_sep, np.inf)]]
+                robot_data_args = [[l, robot_data_path, (0, t_sep)],
+                                   [l, robot_data_path, (t_sep, np.inf)]]
                 with Pool() as p:  # Compute using multiple processes
                     robot_data_touple = p.map(self._load_robot_data_parallel, robot_data_args)
                 self.robot_data_calibration, self.robot_data_validation = robot_data_touple
@@ -60,10 +61,10 @@ class RobotCalibration:
         self.estimated_output = None
         self.number_of_samples_in_downsampled_data = None
     
-    def _load_robot_data_parallel(args):
-        l = args[1]
-        robot_data_path = args[2]
-        timeframe = args[3]
+    def _load_robot_data_parallel(self, args):
+        l = args[0]
+        robot_data_path = args[1]
+        timeframe = args[2]
 
         return RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=timeframe)
 
