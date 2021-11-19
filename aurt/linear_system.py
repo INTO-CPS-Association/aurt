@@ -83,14 +83,13 @@ class LinearSystem(ABC):
         return regressor
     
     def regressor(self) -> sp.Matrix:
-        # Construct the regressor matrix with (possibly) linearly dependent columns
+        # Construct the regressor matrix with linearly independent columns
         n_par = self.number_of_parameters()
         n_joints = len(n_par)
         regressor = sp.zeros(n_joints, sum(n_par))
         for j in range(n_joints):
             regressor[j, :] = self.regressor_joint(j)
         
-        # Return regressor matrix having only linearly independent columns
         return regressor
 
     def _regressor_joint(self, j: int) -> sp.Matrix:
@@ -254,7 +253,7 @@ class LinearSystem(ABC):
         assert len(states_1D) == states_num.shape[0], f"The provided argument 'states_num' has a dimension of {states_num.shape[0]} along axis 0 should have that dimension equal to the number of states ({len(states_1D)})."
 
         n_samples = states_num.shape[1]
-        n_par_j = self.number_of_parameters()[j]
+        n_par_j = self.number_of_parameters()[par_j]
 
         regressor_j_parj = self.regressor_joint_parameters_for_joint(j, par_j)
         observation_matrix_j_parj = np.zeros((n_samples, n_par_j))
