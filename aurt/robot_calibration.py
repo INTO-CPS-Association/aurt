@@ -1,8 +1,10 @@
+import multiprocessing
 import numpy as np
 from scipy import signal
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from logging import Logger
+from multiprocessing import Pool
 
 from aurt.robot_dynamics import RobotDynamics
 from aurt.signal_processing import central_finite_difference
@@ -15,16 +17,15 @@ class RobotCalibration:
     qd_tf_noise_threshold = 0.03  # Threshold [rad/s] to determine non-stationary (any(abs(qd) > qd_tf_noise_threshold)) data
 
     def __init__(self, l: Logger, robot_dynamics: RobotDynamics, robot_data_path, gravity, relative_separation_of_calibration_and_prediction=None,
-                 robot_data_predict=None):
+                 robot_data_predict=None, multi_processing: bool=True):
+
         self.logger = l
-
         self.gravity = gravity
-
         self.robot_dynamics: RobotDynamics = robot_dynamics
 
         if relative_separation_of_calibration_and_prediction is None and robot_data_predict is None:
             """All data is used for calibration."""
-            self.robot_data_calibration = RobotData(robot_data_path, delimiter=' ', interpolate_missing_samples=True)
+            self.robot_data_calibration = RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True)
             self.robot_data_validation = None
         elif relative_separation_of_calibration_and_prediction is not None and robot_data_predict is None:
             """Using a single dataset, some of the data is used for calibration and some is used for validation."""
@@ -32,13 +33,21 @@ class RobotCalibration:
                                                                               "data used for calibration and " \
                                                                               "prediction must be in the range from 0 " \
                                                                               "to 1."
-            dummy_data = RobotData(robot_data_path, delimiter=' ')
+            dummy_data = RobotData(l, robot_data_path, delimiter=' ')
             t_sep = dummy_data.time[-1] * relative_separation_of_calibration_and_prediction
-            self.robot_data_calibration = RobotData(robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(0, t_sep))
-            self.robot_data_validation = RobotData(robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(t_sep, np.inf))
+            
+            if multi_processing:
+                robot_data_args = [[l, robot_data_path, (0, t_sep)],
+                                   [l, robot_data_path, (t_sep, np.inf)]]
+                with Pool() as p:  # Compute using multiple processes
+                    robot_data_touple = p.map(self._load_robot_data_parallel, robot_data_args)
+                self.robot_data_calibration, self.robot_data_validation = robot_data_touple
+            else:
+                self.robot_data_calibration = RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(0, t_sep))
+                self.robot_data_validation = RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(t_sep, np.inf))
         elif relative_separation_of_calibration_and_prediction is None and robot_data_predict is not None:
             """Using two datasets, one for calibration and one for validation."""
-            self.robot_data_calibration = RobotData(robot_data_path, delimiter=' ', interpolate_missing_samples=True)
+            self.robot_data_calibration = RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True)
             self.robot_data_validation = robot_data_predict
         else:
             # exit here? call __del__()?
@@ -51,6 +60,13 @@ class RobotCalibration:
         self.parameters = None
         self.estimated_output = None
         self.number_of_samples_in_downsampled_data = None
+    
+    def _load_robot_data_parallel(self, args):
+        l = args[0]
+        robot_data_path = args[1]
+        timeframe = args[2]
+
+        return RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=timeframe)
 
     def _measurement_vector(self, robot_data, start_index=None, end_index=None):
         def compute_measurement_vector():
@@ -71,13 +87,23 @@ class RobotCalibration:
                                                                                             start_index,
                                                                                             end_index)
 
+        if not all(gravity == self.robot_dynamics.rigid_body_dynamics._g_num):
+            self.robot_dynamics.rigid_body_dynamics.instantiate_gravity(gravity)
+            self.robot_dynamics.rigid_body_dynamics.name += f"_gravity={gravity}"
+            self.robot_dynamics.compute_linearly_independent_system()
+
         n_samples_ds = self._measurement_vector(robot_data, start_index=start_index, end_index=end_index).shape[
                            0] // self.robot_dynamics.n_joints  # No. of samples in downsampled data
+
         observation_matrix = np.zeros((self.robot_dynamics.n_joints * n_samples_ds,
                                        sum(self.robot_dynamics.number_of_parameters())))  # Initialization
+        states_num = np.empty((q_tf.shape[0] + qd_tf.shape[0] + qdd_tf.shape[0], q_tf.shape[1]))
+        states_num[0::3, :] = q_tf
+        states_num[1::3, :] = qd_tf
+        states_num[2::3, :] = qdd_tf
         for j in range(self.robot_dynamics.n_joints):
             # Obtain the rows of the observation matrix related to joint j
-            obs_mat_j = self.robot_dynamics.observation_matrix_joint(j, q_tf, qd_tf, qdd_tf, gravity)
+            obs_mat_j = self.robot_dynamics.observation_matrix_joint(j, states_num)
 
             # Parallel filter and decimate/downsample the rows of the observation matrix related to joint j.
             obs_mat_j_ds = RobotCalibration._downsample(
@@ -94,12 +120,12 @@ class RobotCalibration:
         """
 
         observation_matrix = self._observation_matrix(self.robot_data_calibration,
-                                                      self.gravity,
+                                                      gravity=self.gravity,
                                                       start_index=self.non_static_start_idx,
                                                       end_index=self.non_static_end_idx)
         measurement_vector = self._measurement_vector(self.robot_data_calibration,
-                                                       start_index=self.non_static_start_idx,
-                                                       end_index=self.non_static_end_idx)
+                                                      start_index=self.non_static_start_idx,
+                                                      end_index=self.non_static_end_idx)
 
         # sklearn fit
         OLS = LinearRegression(fit_intercept=False)
@@ -136,6 +162,7 @@ class RobotCalibration:
         nmse = mse / normalization
         self.logger.info(f"MSE (calibration data): {mse}")
         self.logger.info(f"NMSE (calibration data): {nmse}")
+        
         weighted_observation_matrix = (wls_sample_weights*observation_matrix.T).T
         std_dev_parameter_estimate = np.sqrt(np.diagonal(np.linalg.inv(weighted_observation_matrix.T @ weighted_observation_matrix)))  # calculates the standard deviation of the parameter estimates from the diagonal elements (variance) of the covariance matrix
         cond = RobotCalibration._evaluate_dynamics_excitation_as_cost((wls_sample_weights*observation_matrix.T).T, metric="cond")
@@ -143,7 +170,8 @@ class RobotCalibration:
 
         self.parameters = wls_calibration.coef_
         rel_std_dev_parameter_estimate = 100 * (std_dev_parameter_estimate / self.parameters)
-        self.logger.info(f"Parameters: {self.robot_dynamics.parameters()}")
+        self.logger.info(f"Full Parameters: {self.robot_dynamics._parameters_full()}")
+        self.logger.info(f"Base Parameters: {self.robot_dynamics.parameters}")
         self.logger.info(f"Relative std.dev. of estimated parameters: {rel_std_dev_parameter_estimate}")
 
         return self.parameters

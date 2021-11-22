@@ -51,7 +51,7 @@ class CLITests(unittest.TestCase):
 
     def init_calibrate(self):
         self.init_rd()
-        model = from_cache("out_rbd.pickle")
+        model = from_cache("out_rd.pickle")
         data = str(from_project_root("aurt/tests/resources/twolink_data.csv"))
         gravity = [0, -9.81, 0]
         out_params = from_cache("twolink_model_params.csv")

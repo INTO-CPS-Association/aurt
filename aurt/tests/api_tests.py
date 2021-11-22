@@ -54,7 +54,7 @@ class APITests(unittest.TestCase):
         with open(filename, 'rb') as f:
             newrbd: RigidBodyDynamics = pickle.load(f)
 
-        self.assertIsNotNone(newrbd.params, "The parameters are not set.")
+        self.assertIsNotNone(newrbd.parameters, "The parameters are not set.")
 
     def test03_compile_rd(self):
         model_rbd = from_cache("rbd_twolink.pickle")

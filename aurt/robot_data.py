@@ -1,10 +1,10 @@
-from aurt.signal_processing import ramer_douglas_peucker, central_finite_difference
+from re import L
 import numpy as np
 import csv
 from itertools import compress
+from logging import Logger
 
 from aurt.file_system import safe_open
-from aurt.calibration_aux import find_nonstatic_start_and_end_indices
 
 plot_colors = ['red', 'green', 'blue', 'chocolate', 'crimson', 'fuchsia', 'indigo', 'orange']
 
@@ -15,7 +15,9 @@ class RobotData:
     """
     This class contains sampled robot data related to an experiment.
     """
-    def __init__(self, file_path, delimiter, desired_timeframe=None, interpolate_missing_samples=False):
+    def __init__(self, l: Logger, file_path, delimiter, desired_timeframe=None, interpolate_missing_samples=False):
+        self.logger = l
+
         self.n_joints = None  # TODO: automatically determine number of joints from csv data
         self.fields = [
             f"timestamp",
@@ -79,7 +81,7 @@ class RobotData:
         n_samples_to_add = sum(samples_missing)
 
         if any(sample_is_missing):
-            print(f"Warning: {n_samples_to_add}/{len_data_before_interpolation+n_samples_to_add} ({round(n_samples_to_add/(len_data_before_interpolation+n_samples_to_add) * 100, 2)} %) samples are missing in this dataset.")
+            self.logger.warning(f"{n_samples_to_add}/{len_data_before_interpolation+n_samples_to_add} ({round(n_samples_to_add/(len_data_before_interpolation+n_samples_to_add) * 100, 2)} %) samples are missing in this dataset.")
 
         if interpolate_missing_samples:
             assert "interpolated" not in self.data

@@ -30,8 +30,6 @@ def compile_rbd(args):
 
     mdh_path = args.mdh
     plotting = args.plot
-    l.info(f"Clearing cache {args.cache}.")
-    clear_cache_dir(args.cache)
     cache = PersistentPickleCache(args.cache)
     api.compile_rbd(mdh_path, output_path, plotting, cache)
 
@@ -82,7 +80,7 @@ def calibrate(args):
         l.warning(CONTENT_OVERWRITTEN % {"description": "calibration model", "filepath": args.out_calibrated_model})
 
     model_path = args.model
-    gravity = np.array(args.gravity)
+    gravity = args.gravity
     data_path = args.data
     params_path = args.out_params
     calibrated_model_path = args.out_calibrated_model
@@ -145,13 +143,13 @@ def calibrate_validate(args):
     model_path = args.model
     data_path = args.data
     gravity = np.array(args.gravity)
-    calbration_model_path = args.out_calibrated_model
+    calbrated_model_path = args.out_calibrated_model
     calibration_data_rel = args.calibration_data_rel
     plotting = args.plot
     params_path = args.out_params
     output_prediction_path = args.out_prediction
     
-    api.calibrate_validate(model_path, data_path, gravity, calibration_data_rel, params_path, calbration_model_path, output_prediction_path, plotting)
+    api.calibrate_validate(model_path, data_path, gravity, calibration_data_rel, params_path, calbrated_model_path, output_prediction_path, plotting)
 
 
 def create_cmd_parser():
@@ -196,7 +194,7 @@ def _create_compile_rbd_parser(subparsers):
                                     help="Modified Denavit-Hartenberg (MDH) parameters file (csv)")
 
     compile_rbd_parser.add_argument('--out', required=True,
-                                    help="Path of outputted rigid body dynamics model (pickle).")
+                                    help="Path of outputted rigid-body dynamics model (pickle).")
 
     compile_rbd_parser.add_argument('--cache', required=False, default="./cache",
                                     help="Path of folder that is used for temporary storage of results.")
@@ -210,7 +208,7 @@ def _create_compile_rd_parser(subparsers):
     compile_rd_parser = subparsers.add_parser("compile-rd")
 
     compile_rd_parser.add_argument('--model-rbd', required=True,
-                                       help="The rigid body dynamics model created with the compile-rbd command.")
+                                       help="The rigid-body dynamics model created with the compile-rbd command.")
 
     compile_rd_parser.add_argument('--friction-torque-model', required=True,
                                        choices=["none", "square", "absolute"],
@@ -247,7 +245,7 @@ def _create_calibrate_parser(subparsers):
                                   nargs=3,
                                   type=float,
                                   metavar='R',
-                                  help="Gravity vector, e.g.: 0 0 -9.81")
+                                  help="Components (x, y, and z, respectively) of gravity vector, e.g. <0 0 -9.81>.")
 
     calibrate_parser.add_argument('--out-params',
                                     help="The resulting parameter values (csv).")
@@ -273,7 +271,7 @@ def _create_predict_parser(subparsers):
                                 nargs=3,
                                 type=float,
                                 metavar='R',
-                                help="Gravity vector, e.g.: 0 0 -9.81")
+                                help="Components (x, y, and z, respectively) of gravity vector, e.g. <0 0 -9.81>.")
 
     predict_parser.add_argument('--out', required=True,
                                     help="Path of outputted prediction values (csv).")
@@ -293,7 +291,7 @@ def _create_calibrate_validate_parser(subparsers):
                                            nargs=3,
                                            type=float,
                                            metavar='R',
-                                           help="Gravity vector, e.g.: 0 0 -9.81")
+                                           help="Components (x, y, and z, respectively) of gravity vector, e.g. <0 0 -9.81>.")
 
     calibrate_validate_parser.add_argument('--calibration-data-rel', required=True, type=float,
                                            help="The relative fraction of the dataset to be used for calibration. The value should be in the range [0.1; 0.9].")

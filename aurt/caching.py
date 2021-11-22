@@ -25,8 +25,8 @@ class PersistentPickleCache(Cache):
 
     def get_or_cache(self, key, fun):
         """
-            Caches the return value of the callable using pickle.
-            """
+        Caches the return value of the callable using pickle.
+        """
         file = os.path.join(self._base_directory, key + '.pickle')
         if os.path.exists(file):
             return load_object(file)
