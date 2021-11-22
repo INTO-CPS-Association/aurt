@@ -72,7 +72,7 @@ class LinearSystem(ABC):
         return [len(par[j]) for j in range(len(par))]
 
     def _regressor(self) -> sp.Matrix:
-        # Construct the regressor matrix with (possibly) linearly dependent columns
+        # Construct the regressor matrix with possibly linearly dependent columns
         n_par = self._number_of_parameters_full()
         n_joints = len(n_par)
         regressor = sp.zeros(n_joints, sum(n_par))
@@ -116,8 +116,8 @@ class LinearSystem(ABC):
                 reg_j[:, col_start:col_end] = self.regressor_joint_parameters_for_joint(j, par_j)
             return reg_j
         
-        filename = f"{self.name}_regressor_j{j}"
-        reg_j =  self._cache.get_or_cache(filename, compute_regressor_joint)
+        # filename = f"{self.name}_regressor_j{j}"
+        reg_j =  compute_regressor_joint()  # self._cache.get_or_cache(filename, compute_regressor_joint)
 
         return reg_j
     
@@ -131,8 +131,9 @@ class LinearSystem(ABC):
         pass
 
     def regressor_joint_parameters_for_joint(self, j: int, par_j: int) -> sp.Matrix:
-        filename = f"{self.name}_regressor_j={j}_par_j={par_j}"
-        return self._cache.get_or_cache(filename, lambda: self._regressor_joint_parameters_for_joint(j, par_j)[:, self.is_base_parameter[par_j]])
+        filename = f"{self.name}_regressor_full_j={j}_par_j={par_j}"
+        reg_full_j_parj = self._cache.get_or_cache(filename, lambda: self._regressor_joint_parameters_for_joint(j, par_j))
+        return reg_full_j_parj[:, self.is_base_parameter[par_j]]
 
     def compute_linearly_independent_system(self):
         """
@@ -200,7 +201,7 @@ class LinearSystem(ABC):
         # 3.2 Eliminate linearly dependent parameters
         for j in range(n_joints):
             for i in reversed(range(number_of_parameters_full[j])):
-                if not parameters[j][i] in parameters_base_1D:
+                if parameters[j][i].is_zero or not parameters[j][i] in parameters_base_1D:
                     number_of_parameters[j] -= 1
                     is_base_parameter[j][i] = False
                     del parameters[j][i]
@@ -211,7 +212,7 @@ class LinearSystem(ABC):
         self.is_base_parameter = is_base_parameter
 
         # Output information to logger
-        if not all(idx_is_base):
+        if not all(list(chain.from_iterable(is_base_parameter))):
             self.logger.info(f"For '{self.name}' some terms were linearly dependent, thus the following parameter(s) were eliminated: {not parameters_full_1D in parameters_base_1D}")
         else:
             self.logger.info(f"'{self.name}' consist entirely of linearly independent terms, thus no parameters were eliminated.")
