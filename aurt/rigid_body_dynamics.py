@@ -89,7 +89,7 @@ class RigidBodyDynamics(LinearSystem):
         Parameters (SIP) related to that corresponding rigid body.
         """
         return [[self._XX[j], self._XY[j], self._XZ[j], self._YY[j], self._YZ[j], self._ZZ[j],
-                 self._mX[j], self._mY[j], self._mZ[j], self._m[j]] for j in range(1, self.n_joints + 1)]
+                     self._mX[j], self._mY[j], self._mZ[j], self._m[j]] for j in range(1, self.n_joints + 1)]
 
     def _regressor_sip_full(self):
         """
@@ -174,7 +174,6 @@ class RigidBodyDynamics(LinearSystem):
             for i in range(n_par[jj]):  # joint jj parameter loop
                 column_idx = sum(n_par[:jj]) + i
                 self.logger.info(f"Computing regressor(row={j+1}/{n_joints}, column={column_idx - n_par[0] + 1}/{sum(n_par[1:])}) by analyzing dependency of tau[{j}] on joint {jj}'s parameter {i+1}: {p_linear[jj][i]}")
-                # reg_row_j[0, column_idx] = tau_sym_linearizable_j.expand().coeff(p_linear[jj][i])
                 if p_linear[jj][i] is not sp.Integer(0):
                     reg_row_j[0, column_idx] = tau_sym_linearizable_j.diff(p_linear[jj][i])
         return reg_row_j
