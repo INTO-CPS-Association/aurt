@@ -79,7 +79,6 @@ class JointDynamics(LinearSystem):
             return [[h[j]] for j in range(self.n_joints + 1)]
         elif self.load_model.lower() == 'square':
             return [[h[j], h[j]*self._tauJ[j]**2] for j in range(self.n_joints + 1)]
-            # return [[*h[j], *(sp.Matrix(h[j])*self._tauJ[j]**2).tolist()] for j in range(self.n_joints + 1)]
         else:  # load_model == 'abs'
             return [[*h[j], *(sp.Matrix(h[j])*abs(self._tauJ[j])).tolist()] for j in range(self.n_joints + 1)]
 
