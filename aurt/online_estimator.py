@@ -45,8 +45,9 @@ class OnlineEstimator(ABC):
         self._parameters = parameters
     
     def update(self, measurement: np.array, states: np.array) -> np.array:
-        eps = measurement - self._linear_system.observation_matrix(states) * self.parameters  # Innovations
-        self.parameters = self.parameters + self.gain_matrix(measurement)*eps  # Parameter estimate
+        obs_mat = self._linear_system.observation_matrix(states)
+        eps = measurement - obs_mat * self.parameters  # Innovations
+        self.parameters = self.parameters + self.gain_matrix(measurement, obs_mat)*eps  # Parameter estimate
         return self.parameters
     
     @abstractmethod
