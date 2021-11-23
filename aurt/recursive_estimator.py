@@ -6,7 +6,7 @@ from aurt.caching import Cache
 from aurt.linear_system import LinearSystem
 
 
-class OnlineEstimator(ABC):
+class RecursiveEstimator(ABC):
     """
     An abstract base class for an estimator for a linear system. The method requiring implementation are:\n
       - gain_matrix()
@@ -19,11 +19,7 @@ class OnlineEstimator(ABC):
         self._name = name
         self._linear_system = linear_system
 
-        # self.initialize_system(kwargs)
-
-        n_par = linear_system.number_of_parameters()
-        self.parameter = kwargs['initial_parameter']
-        self.parameters = np.zeros((sum(n_par), 1))
+        self.parameters = kwargs['initial_parameter']
     
     @property
     def name(self) -> str:
@@ -44,14 +40,14 @@ class OnlineEstimator(ABC):
     def parameters(self, parameters: np.array):
         self._parameters = parameters
     
-    def update(self, measurement: np.array, states: np.array) -> np.array:
-        obs_mat = self._linear_system.observation_matrix(states)
-        eps = measurement - obs_mat * self.parameters  # Innovations
-        self.parameters = self.parameters + self.gain_matrix(measurement, obs_mat)*eps  # Parameter estimate
+    def update_parameters(self, measurement: np.array, states: np.array) -> np.array:
+        observation_matrix = self._linear_system.observation_matrix(states)
+        eps = measurement - observation_matrix * self.parameters  # Innovations
+        self.parameters = self.parameters + self.gain_matrix(measurement, observation_matrix) * eps  # Parameter estimate
         return self.parameters
     
     @abstractmethod
-    def gain_matrix(self, measurement: np.array, observation_matrix: np.array) -> np.array:
+    def gain_matrix(self, observation_matrix: np.array) -> np.array:
         """
         The gain matrix used to update the estimate of the parameters in method 'update'.
         """
