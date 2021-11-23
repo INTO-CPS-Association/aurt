@@ -12,7 +12,7 @@ class RecursiveLeastSquares(RecursiveEstimator):
     """
     
     def __init__(self, logger: Logger, cache: Cache, linear_system: LinearSystem, name: str=None, **kwargs):
-        super.__init__(logger, cache, linear_system, name="RLS", kwargs=kwargs)
+        super().__init__(logger, cache, linear_system, name, kwargs)
 
         n_par = linear_system.number_of_parameters()
         self.parameter = kwargs['initial_parameter']
