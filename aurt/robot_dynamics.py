@@ -66,7 +66,7 @@ class RobotDynamics(LinearSystem):
         assert 0 <= j < self.n_joints
         assert states_num.shape[0] == number_of_elements_in_nested_list(self.rigid_body_dynamics.states())
 
-        n_samples = states_num.shape[1]
+        n_samples = states_num.shape[1] if states_num.ndim > 1 else 1
 
         n_par_rbd = self.rigid_body_dynamics.number_of_parameters()
         n_par_jd = self.joint_dynamics.number_of_parameters()
