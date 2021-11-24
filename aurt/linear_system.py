@@ -222,9 +222,9 @@ class LinearSystem(ABC):
 
         n_par = self.number_of_parameters()
         n_joints = len(n_par)
-        n_samples = states_num.shape[1]
+        n_samples = states_num.shape[1] if states_num.ndim > 1 else 1
 
-        observation_matrix = np.empty(n_samples*n_joints, sum(n_par))
+        observation_matrix = np.empty((n_samples*n_joints, sum(n_par)))
         for j in range(n_joints):
             observation_matrix[j*n_samples:(j+1)*n_samples, :] = self.observation_matrix_joint(j, states_num)
 
@@ -238,7 +238,7 @@ class LinearSystem(ABC):
         and time along axis 1.
         """
 
-        n_samples = states_num.shape[1]
+        n_samples = states_num.shape[1] if states_num.ndim > 1 else 1
         n_par = self.number_of_parameters()
 
         observation_matrix_j = np.empty((n_samples, sum(n_par)))
@@ -253,7 +253,7 @@ class LinearSystem(ABC):
 
         assert len(states_1D) == states_num.shape[0], f"The provided argument 'states_num' has a dimension of {states_num.shape[0]} along axis 0 should have that dimension equal to the number of states ({len(states_1D)})."
 
-        n_samples = states_num.shape[1]
+        n_samples = states_num.shape[1] if states_num.ndim > 1 else 1
         n_par_j = self.number_of_parameters()[par_j]
 
         regressor_j_parj = self.regressor_joint_parameters_for_joint(j, par_j)
@@ -262,7 +262,8 @@ class LinearSystem(ABC):
         if any(nonzeros):
             sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
             regressor_j_parj_nonzeros_fcn = sp.lambdify(states_1D, regressor_j_parj[:, nonzeros], 'numpy')
-            observation_matrix_j_parj[:, nonzeros] = regressor_j_parj_nonzeros_fcn(*states_num).T[:, :, 0]  # "[:, :, 0]" eliminates the last (excess) dimension
+            obs_mat_tmp = regressor_j_parj_nonzeros_fcn(*states_num).T
+            observation_matrix_j_parj[:, nonzeros] = obs_mat_tmp[:, :, 0] if obs_mat_tmp.ndim > 2 else obs_mat_tmp.T  # "[:, :, 0]" eliminates the last (excess) dimension if n_samples > 1
         return observation_matrix_j_parj
 
     def dynamics(self) -> sp.Matrix:
