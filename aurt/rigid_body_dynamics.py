@@ -22,7 +22,7 @@ class RigidBodyDynamics(LinearSystem):
     _filename_regressor_joint = "rigid_body_dynamics_regressor_joint"
 
     def __init__(self, logger: Logger, modified_dh: ModifiedDH, cache: Cache, multi_processing: bool=True):
-        super().__init__(logger, cache, name="rigid-body dynamics")
+        super().__init__(logger, cache, name="rigid-body_dynamics")
 
         self._g = [*sp.symbols("gx gy gz")]
         self._g_num = None
