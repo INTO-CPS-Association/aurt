@@ -13,13 +13,17 @@ class RecursiveEstimator(ABC):
     """
     
     @abstractmethod
-    def __init__(self, logger: Logger, cache: Cache, linear_system: LinearSystem, name: str=None, **kwargs):
+    def __init__(self, logger: Logger, cache: Cache, linear_system: LinearSystem, name: str=None, parameters_init=None):
         self.logger = logger
         self._cache = cache
         self._name = name
         self._linear_system = linear_system
 
-        self.parameters = kwargs['initial_parameter']
+        if parameters_init is not None:
+            self.parameters = parameters_init
+        else:
+            self.logger.info(f"No initial values for parameter estimates were provided for '{self.name}'. Assuming zero for all initial values.")
+            self.parameters = np.zeros((sum(linear_system.number_of_parameters()), 1))
     
     @property
     def name(self) -> str:
@@ -42,8 +46,8 @@ class RecursiveEstimator(ABC):
     
     def update_parameters(self, measurement: np.array, states: np.array) -> np.array:
         observation_matrix = self._linear_system.observation_matrix(states)
-        eps = measurement - observation_matrix * self.parameters  # Innovations
-        self.parameters = self.parameters + self.gain_matrix(measurement, observation_matrix) * eps  # Parameter estimate
+        eps = measurement - observation_matrix @ self.parameters  # Innovations
+        self.parameters = self.parameters + self.gain_matrix(observation_matrix) @ eps  # Parameter estimate
         return self.parameters
     
     @abstractmethod
