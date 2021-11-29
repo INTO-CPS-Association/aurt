@@ -18,7 +18,8 @@ class RecursiveLeastSquares(RecursiveEstimator):
         self.parameters = np.zeros((sum(n_par), 1))
         
         self._forgetting_factor = kwargs['forgetting']
-        self._covariance_matrix = np.diag(kwargs['variance'])
+        self._covariance_matrix = np.diag(kwargs['variance_init'])
+
     
     def gain_matrix(self, observation_matrix: np.array) -> np.array:
         """
