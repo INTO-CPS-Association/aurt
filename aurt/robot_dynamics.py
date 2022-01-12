@@ -77,8 +77,8 @@ class RobotDynamics(LinearSystem):
         tauJ_basis_num = np.zeros((self.n_joints, n_samples))
         tauJ_basis_num[j, :] = np.sum(obs_mat_j_rbd, axis=1).T
 
-        qd_num = states_num[1::3, :]
-        states_jd_num = np.empty((qd_num.shape[0] + tauJ_basis_num.shape[0], qd_num.shape[1]))
+        qd_num = states_num[1::3, :] if states_num.ndim > 1 else states_num[1::3]
+        states_jd_num = np.empty((qd_num.shape[0] + tauJ_basis_num.shape[0], qd_num.shape[1] if states_num.ndim > 1 else 1))
         states_jd_num[0::2, :] = qd_num
         states_jd_num[1::2, :] = tauJ_basis_num
 
