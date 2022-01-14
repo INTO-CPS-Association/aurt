@@ -15,10 +15,6 @@ class RobotDynamics(LinearSystem):
 
         self.rigid_body_dynamics = rigid_body_dynamics
         self.n_joints = self.rigid_body_dynamics.mdh.n_joints
-        self.q = [sp.Integer(0)] + [sp.symbols(f"q{j}") for j in range(1, self.n_joints + 1)]
-        self.qd = [sp.Integer(0)] + [sp.symbols(f"qd{j}") for j in range(1, self.n_joints + 1)]
-        self.qdd = [sp.Integer(0)] + [sp.symbols(f"qdd{j}") for j in range(1, self.n_joints + 1)]
-        self.tauJ = sp.symbols([f"tauJ{j}" for j in range(self.n_joints + 1)])
 
         self.joint_dynamics = JointDynamics(logger,
                                             cache,
@@ -107,8 +103,3 @@ class RobotDynamics(LinearSystem):
         reg_rbd_j_par_j = self.rigid_body_dynamics._regressor_joint_parameters_for_joint(j, par_j)
         reg_jd_j_par_j = self.joint_dynamics._regressor_joint_parameters_for_joint(j, par_j)
         return sp.Matrix.hstack(reg_rbd_j_par_j, reg_jd_j_par_j)
-
-    def dynamics(self):
-        """The robot dynamics consisting of; 1) the rigid-body dynamics formulated in terms of
-        the Base Inertial Parameters (BIP) and 2) the joint dynamics."""
-        return self.regressor() @ list_2D_to_sympy_vector(self.parameters)
