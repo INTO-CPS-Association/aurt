@@ -121,7 +121,7 @@ _NOTE: Run tests before commits. If they don't pass, fix them before committing.
 5. Install twine and wheel: `pip install twine wheel`
 6. Create a source distribution: `python setup.py sdist`
 7. Create the binary distribution: `python setup.py bdist_wheel`
-8. Upload distribution to PyPI: `python -m twine upload dist/*`
+8. Upload distribution to PyPI: `python -m twine upload dist/*` (on Windows, use Command Prompt for this command)
 9. When asked for username and password, use the token and password created with your PyPI account.
 
 ## Dataset management
