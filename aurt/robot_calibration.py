@@ -1,14 +1,16 @@
-import multiprocessing
 import numpy as np
+import sympy as sp
 from scipy import signal
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from logging import Logger
 from multiprocessing import Pool
+from typing import Tuple
 
 from aurt.robot_dynamics import RobotDynamics
 from aurt.signal_processing import central_finite_difference
 from aurt.calibration_aux import find_nonstatic_start_and_end_indices
+from aurt.dynamics_aux import list_2D_to_sympy_vector, sym_mat_to_subs
 from aurt.robot_data import RobotData, plot_colors
 
 
@@ -60,6 +62,7 @@ class RobotCalibration:
         self.parameters = None
         self.estimated_output = None
         self.number_of_samples_in_downsampled_data = None
+        self.qdd_callable = None
     
     def _load_robot_data_parallel(self, args):
         l = args[0]
@@ -68,7 +71,7 @@ class RobotCalibration:
 
         return RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=timeframe)
 
-    def _measurement_vector(self, robot_data, start_index=None, end_index=None):
+    def _measurement_vector(self, robot_data: RobotData, start_index=None, end_index=None):
         def compute_measurement_vector():
             i = np.array([robot_data.data[f"actual_current_{j}"] for j in range(1, self.robot_dynamics.n_joints + 1)]).T
             i_pf = RobotCalibration._parallel_filter(i, robot_data.dt_nominal, RobotCalibration.f_dyn)[start_index:end_index, :]
@@ -77,7 +80,7 @@ class RobotCalibration:
 
         return compute_measurement_vector()
 
-    def _observation_matrix(self, robot_data, gravity, start_index=None, end_index=None):
+    def _observation_matrix(self, robot_data: RobotData, gravity, start_index=None, end_index=None):
         q_m = np.array([robot_data.data[f"actual_q_{j}"] for j in range(1, self.robot_dynamics.n_joints + 1)])
 
         # Low-pass filter (smoothen) measured angular position(s) and obtain 1st and 2nd order time-derivatives
@@ -194,8 +197,25 @@ class RobotCalibration:
         # return robot_data_predict.time[
         #       ::self.downsampling_factor], output_predicted_reshaped  # TODO: CORRECT ERROR; 'time' does not correspond in length to 'output_predicted_reshaped'
         return output_predicted_reshaped
+    
+    def angular_acceleration(self, tau: np.ndarray, q: np.ndarray, qd: np.ndarray) -> np.ndarray:
+        assert self.robot_dynamics.n_joints ==  tau.shape[0] == q.shape[0] == qd.shape[0]
 
-    def _get_plot_values_for(self, data, gravity, parameters):
+        if self.qdd_callable is None:
+            # Substitute calibrated BIP into eq. and lambdify the expression for qdd wrt. the remaining symbolic parameters (tau, q, qd)
+            BIP_sym_1D = list_2D_to_sympy_vector(self.robot_dynamics.parameters)
+            qdd_expr = self.robot_dynamics.angular_acceleration().subs(sym_mat_to_subs([BIP_sym_1D], [self.parameters]))
+            # sym_mat_to_subs([self.qd[1:], self.qdd[1:]], [zero_vector(N), zero_vector(N)])
+            self.logger.warning(f"qdd_expr.free_symbols: {qdd_expr.free_symbols}")
+            self.logger.warning(f"qdd_expr {qdd_expr.shape}: {qdd_expr}")
+            states_sym = [self.robot_dynamics.tau, self.robot_dynamics.rigid_body_dynamics.q[1:], self.robot_dynamics.rigid_body_dynamics.qd[1:]]
+            self.qdd_callable = sp.lambdify(states_sym, qdd_expr)
+        
+        states_num = [tau, q, qd]
+        self.logger.warning(f"states_num ({len(states_num)}x{states_num[0].shape}): {states_num}")
+        return self.qdd_callable(*states_num)
+
+    def _get_plot_values_for(self, data: RobotData, gravity, parameters):
         observation_matrix = self._observation_matrix(data, gravity)
         n_samples = observation_matrix.shape[0] // self.robot_dynamics.n_joints
         estimated_data = np.reshape(observation_matrix @ parameters, (self.robot_dynamics.n_joints, n_samples))
@@ -215,7 +235,6 @@ class RobotCalibration:
         t = self.robot_data_calibration.data["timestamp"]
         n_joints = self.robot_dynamics.n_joints
         q_m = np.array([self.robot_data_calibration.data[f"actual_q_{j+1}"] for j in range(n_joints)])
-        # _, qd_m = central_finite_difference(q_m, self.robot_data_calibration.dt_nominal, order=1)
         _, qd_tf, _ = self._trajectory_filtering_and_central_difference(q_m, self.robot_data_calibration.dt_nominal, self.f_dyn)
         qd_tf = np.insert(qd_tf, qd_tf.shape[1], np.repeat(0, n_joints, axis=0), axis=1)
         qd_tf = np.insert(qd_tf, 0, np.repeat(0, n_joints, axis=0), axis=1)
@@ -404,7 +423,7 @@ class RobotCalibration:
         return y_pf
 
     @staticmethod
-    def _trajectory_filtering_and_central_difference(q_m, dt, f_dyn, idx_start=None, idx_end=None):
+    def _trajectory_filtering_and_central_difference(q_m, dt, f_dyn, idx_start=None, idx_end=None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         if idx_end is not None:
             assert idx_end < q_m.shape[1], "'idx_end' must not be greater than the dataset size."
 
