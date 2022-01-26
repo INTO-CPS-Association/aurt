@@ -379,7 +379,7 @@ class RigidBodyDynamics(LinearSystem):
         g = self.gravity_vector(gravity)
         return M, C, g
 
-    def inertia_matrix(self):
+    def inertia_matrix(self) -> sp.Matrix:
         """The inertia matrix formulated in terms of the Base Inertial Parameters (BIP)."""
 
         N = self.n_joints
@@ -392,7 +392,10 @@ class RigidBodyDynamics(LinearSystem):
                 inertia_matrix[j, i] = rbd_bip_inertial[j].expand().coeff(self.qdd[i+1])
         return inertia_matrix
     
-    def gravity_vector(self, g=None):
+    def inv_inertia_matrix(self) -> sp.Matrix:
+        return self.inertia_matrix().inv()
+    
+    def gravity_vector(self, g=None) -> sp.Matrix:
         """
         The gravity vector formulated in terms of the Base Inertial Parameters (BIP).
         If gravity g = [gx, gy, gz] is provided - either as symbolic or numerical 
@@ -411,12 +414,12 @@ class RigidBodyDynamics(LinearSystem):
 
         return reg_bip_gravity * list_2D_to_sympy_vector(self.parameters)
 
-    def coriolis_centripetal_matrix(self, M=None):
+    def coriolis_centripetal_matrix(self, M=None) -> sp.Matrix:
         """
         The matrix of Coriolis and centripetal terms formulated in terms of the Base Inertial Parameters 
         (BIP). This matrix is not unique. We choose here to use the Christoffel symbols of the first kind of the 
         inertia matrix 'M'. Using the Christoffel symbols preserves the skew-symmetry property of matrix 
-        {d/dt(M) - 2*C}, an essential property for various control algorithms.
+        {d(M)/dt - 2*C}, an essential property for various control algorithms.
 
         For reference, see e.g.:\n
         [1] "Springer Handbook of Robotics (2016)", section 3.3.2, equation (3.43)-(3.44).
@@ -440,7 +443,7 @@ class RigidBodyDynamics(LinearSystem):
                         C[i,j] += c[i][k][j]*qd[k]
 
         return C
-
+    
     def _numerical_alpha_to_symbolical_pi(self):
         alpha_sym = []
         for i in range(len(self.mdh.alpha)):
