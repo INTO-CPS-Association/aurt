@@ -3,7 +3,7 @@ import numpy as np
 from logging import Logger
 
 from aurt.caching import Cache
-from aurt.dynamics_aux import list_2D_to_sympy_vector, number_of_elements_in_nested_list
+from aurt.dynamics_aux import number_of_elements_in_nested_list
 from aurt.rigid_body_dynamics import RigidBodyDynamics
 from aurt.joint_dynamics import JointDynamics
 from aurt.linear_system import LinearSystem
@@ -15,6 +15,8 @@ class RobotDynamics(LinearSystem):
 
         self.rigid_body_dynamics = rigid_body_dynamics
         self.n_joints = self.rigid_body_dynamics.mdh.n_joints
+        self.tauJ = sp.symbols([f"tauJ{j}" for j in range(self.n_joints + 1)])
+        self.tau = sp.symbols([f"tau{j}" for j in range(self.n_joints + 1)])
 
         self.joint_dynamics = JointDynamics(logger,
                                             cache,
@@ -51,7 +53,7 @@ class RobotDynamics(LinearSystem):
         # s = np.linalg.svd(obs_mat)
         return 1
 
-    def observation_matrix_joint(self, j, states_num):
+    def observation_matrix_joint(self, j, states_num: np.ndarray):
         """
         Constructs the observation matrix for joint 'j' by evaluating the regressor for joint 'j'
         (the j'th row of the regressor matrix) in the provided data. The data should consist of a
@@ -103,3 +105,14 @@ class RobotDynamics(LinearSystem):
         reg_rbd_j_par_j = self.rigid_body_dynamics._regressor_joint_parameters_for_joint(j, par_j)
         reg_jd_j_par_j = self.joint_dynamics._regressor_joint_parameters_for_joint(j, par_j)
         return sp.Matrix.hstack(reg_rbd_j_par_j, reg_jd_j_par_j)
+
+    def angular_acceleration(self) -> sp.Matrix:
+        M_inv = self.rigid_body_dynamics.inv_inertia_matrix()
+        C = self.rigid_body_dynamics.coriolis_centripetal_matrix()
+        g = self.rigid_body_dynamics.gravity_vector()
+        f = self.joint_dynamics.dynamics()
+        qd = sp.Matrix(self.rigid_body_dynamics.qd[1:])
+        tau = sp.Matrix(self.tau[1:])
+        
+        qdd = M_inv*(tau - C*qd - g - f)
+        return qdd
