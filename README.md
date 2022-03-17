@@ -99,6 +99,27 @@ The command implements the functionalities of the commands `calibrate` and `pred
 The data of `measured_data.csv` is separated into two consecutive parts 1) calibration data and 2) validation data. 
 The calibration data has a duration of 0.1 < `FRACTION` < 0.9 times the duration of `measured_data.csv` while the remaining part of the data is used for validation.
 
+# Functional Mockup Units
+It is possible to obtain Functional Mockup Units (FMUs) of a calibrated robot dynamics model (obtained using either of the commands `aurt calibrate` and `aurt calibrate-validate`). This work is based on [UniFMU](https://github.com/INTO-CPS-Association/unifmu). There is a limit of 10 on the maximum allowed number of robot joints. Any joint torque-dependent friction model is removed, i.e. for each joint the friction <img src="https://render.githubusercontent.com/render/math?math=f(\dot{q}, \tau_J(\mathbf{q}, \dot{\mathbf{q}}, \ddot{\mathbf{q}})) \to f(\dot{q})">, because otherwise it would not be possible to obtain the closed-form expression
+<img src="https://render.githubusercontent.com/render/math?math=\mathbf{\ddot{q}}=\mathbf{M}^{-1}(\boldsymbol{\tau}-\mathbf{C}(\mathbf{q}, \dot{\mathbf{q}}))\,\dot{\mathbf{q}} - \mathbf{g}(\mathbf{q}) - \mathbf{f}(\dot{\mathbf{q}}))">.
+Two types of FMUs are available distinguished by the model type, i.e. which quantities are considered as _inputs_ and which are considered as _outputs_:
+1. Forward Dynamics Model, sometimes referred to as Direct Dynamics Model (DDM). It is an Initial Value Problem (IVP) with input <img src="https://render.githubusercontent.com/render/math?math=\boldsymbol{\tau}"> and outputs
+<img src="https://render.githubusercontent.com/render/math?math=\mathbf{q}"> and
+<img src="https://render.githubusercontent.com/render/math?math=\mathbf{\dot{q}}">, thus initial values 
+<img src="https://render.githubusercontent.com/render/math?math=\mathbf{q}(0)"> and
+<img src="https://render.githubusercontent.com/render/math?math=\mathbf{\dot{q}}(0)"> of
+<img src="https://render.githubusercontent.com/render/math?math=\mathbf{q}"> and
+<img src="https://render.githubusercontent.com/render/math?math=\mathbf{\dot{q}}"> need be provided.
+2. Inverse Dynamics Model (IDM). It's a closed-form expression with inputs <img src="https://render.githubusercontent.com/render/math?math=\mathbf{q}">, 
+<img src="https://render.githubusercontent.com/render/math?math=\mathbf{\dot{q}}">, and 
+<img src="https://render.githubusercontent.com/render/math?math=\mathbf{\ddot{q}}"> and output
+<img src="https://render.githubusercontent.com/render/math?math=\boldsymbol{\tau}">.
+
+To generate an FMU:
+1. Copy or move the calibrated robot dynamics model `rd_calibrated.pickle` to either of the folders `./fmu/**forward_dynamics**/resources/` or `./fmu/**inverse_dynamics**/resources/` depending on the desired FMU type. Note that the filename of the robot dynamics _must_ be `rd_calibrated.pickle`.
+2. Construct a zip archive containing all contents in either of the folders `./fmu/forward_dynamics/` or `./fmu/inverse_dynamics/` depending on the desired FMU type.
+3. Change the file extension of the zip archive from `.zip` to `.fmu`.
+
 # Contributing
 
 ## Development environment
