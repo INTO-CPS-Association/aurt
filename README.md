@@ -107,9 +107,7 @@ Two types of FMUs are available distinguished by the model type, i.e. which quan
 <img src="https://render.githubusercontent.com/render/math?math=\mathbf{q}"> and
 <img src="https://render.githubusercontent.com/render/math?math=\mathbf{\dot{q}}">, thus initial values 
 <img src="https://render.githubusercontent.com/render/math?math=\mathbf{q}(0)"> and
-<img src="https://render.githubusercontent.com/render/math?math=\mathbf{\dot{q}}(0)"> of
-<img src="https://render.githubusercontent.com/render/math?math=\mathbf{q}"> and
-<img src="https://render.githubusercontent.com/render/math?math=\mathbf{\dot{q}}"> need be provided.
+<img src="https://render.githubusercontent.com/render/math?math=\mathbf{\dot{q}}(0)"> need be provided.
 2. Inverse Dynamics Model (IDM). It's a closed-form expression with inputs <img src="https://render.githubusercontent.com/render/math?math=\mathbf{q}">, 
 <img src="https://render.githubusercontent.com/render/math?math=\mathbf{\dot{q}}">, and 
 <img src="https://render.githubusercontent.com/render/math?math=\mathbf{\ddot{q}}"> and output
