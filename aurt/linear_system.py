@@ -217,7 +217,7 @@ class LinearSystem(ABC):
         else:
             self.logger.info(f"'{self.name}' consist entirely of linearly independent terms, thus no parameters were eliminated.")
 
-    def observation_matrix(self, states_num: np.array) -> np.array:
+    def observation_matrix(self, states_num: np.ndarray) -> np.ndarray:
         """Constructs the observation matrix by evaluating the regressor in the data provided."""
 
         n_par = self.number_of_parameters()
@@ -230,7 +230,7 @@ class LinearSystem(ABC):
 
         return observation_matrix
     
-    def observation_matrix_joint(self, j: int, states_num: np.array) -> np.array:
+    def observation_matrix_joint(self, j: int, states_num: np.ndarray) -> np.ndarray:
         """
         Constructs the observation matrix for joint 'j' by evaluating the regressor for joint 'j'
         (the j'th row of the regressor matrix) in the provided data. The data should consist of a
@@ -248,7 +248,7 @@ class LinearSystem(ABC):
             observation_matrix_j[:, col_start:col_end] = self.observation_matrix_joint_parameters_for_joint(j, par_j, states_num)
         return observation_matrix_j
 
-    def observation_matrix_joint_parameters_for_joint(self, j: int, par_j: int, states_num: np.array) -> np.array:
+    def observation_matrix_joint_parameters_for_joint(self, j: int, par_j: int, states_num: np.ndarray) -> np.ndarray:
         states_1D = list(chain.from_iterable(self.states()))
 
         assert len(states_1D) == states_num.shape[0], f"The provided argument 'states_num' has a dimension of {states_num.shape[0]} along axis 0 should have that dimension equal to the number of states ({len(states_1D)})."
