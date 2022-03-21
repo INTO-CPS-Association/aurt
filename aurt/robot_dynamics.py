@@ -53,7 +53,7 @@ class RobotDynamics(LinearSystem):
         # s = np.linalg.svd(obs_mat)
         return 1
 
-    def observation_matrix_joint(self, j, states_num: np.ndarray):
+    def observation_matrix_joint(self, j: int, states_num: np.ndarray) -> np.ndarray:
         """
         Constructs the observation matrix for joint 'j' by evaluating the regressor for joint 'j'
         (the j'th row of the regressor matrix) in the provided data. The data should consist of a
@@ -97,11 +97,11 @@ class RobotDynamics(LinearSystem):
     def observation_matrix_joint_parameters_for_joint():
         """
         The observation matrix is implemented in 'observation_matrix_joint', 
-        thus this function is not needed and is therefore disabled.
+        thus this method is not needed and is therefore disabled.
         """
         pass
 
-    def _regressor_joint_parameters_for_joint(self, j, par_j):
+    def _regressor_joint_parameters_for_joint(self, j: int, par_j: int) -> sp.Matrix:
         reg_rbd_j_par_j = self.rigid_body_dynamics._regressor_joint_parameters_for_joint(j, par_j)
         reg_jd_j_par_j = self.joint_dynamics._regressor_joint_parameters_for_joint(j, par_j)
         return sp.Matrix.hstack(reg_rbd_j_par_j, reg_jd_j_par_j)
