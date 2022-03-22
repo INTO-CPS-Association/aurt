@@ -7,6 +7,7 @@ from aurt.caching import PersistentPickleCache
 from aurt.file_system import from_cache, from_project_root
 from aurt import api
 from aurt.rigid_body_dynamics import RigidBodyDynamics
+from aurt.robot_dynamics import RobotDynamics
 from aurt.caching import clear_cache_dir
 
 class APITests(unittest.TestCase):
@@ -41,10 +42,10 @@ class APITests(unittest.TestCase):
 
     def test02_compile_rbd_save_class(self):
         # test that class is saved properly
-        output_path = "rbd_twolink.pickle"
-        filename = from_cache(output_path)
+        output_file = "rbd_twolink.pickle"
+        output_path = from_cache(output_file)
 
-        with open(filename, 'rb') as f:
+        with open(output_path, 'rb') as f:
             newrbd: RigidBodyDynamics = pickle.load(f)
 
         self.assertIsNotNone(newrbd.parameters, "The parameters are not set.")
@@ -57,6 +58,11 @@ class APITests(unittest.TestCase):
         output_path = from_cache(output_file)
 
         api.compile_rd(model_rbd, friction_torque_model, friction_viscous_powers, output_path, self.cache)
+
+        with open(output_path, 'rb') as f:
+            rd: RobotDynamics = pickle.load(f)
+        
+        self.assertEqual(rd.n_joints, 2)
 
     def test04_calibrate(self):
         model_rd = from_cache("rd_twolink.pickle")
