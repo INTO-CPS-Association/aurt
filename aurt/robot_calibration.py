@@ -1,14 +1,18 @@
-import multiprocessing
 import numpy as np
+import sympy as sp
 from scipy import signal
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from logging import Logger
 from multiprocessing import Pool
+from typing import Tuple
+from itertools import chain
+import sys
 
 from aurt.robot_dynamics import RobotDynamics
 from aurt.signal_processing import central_finite_difference
 from aurt.calibration_aux import find_nonstatic_start_and_end_indices
+from aurt.dynamics_aux import sym_mat_to_subs
 from aurt.robot_data import RobotData, plot_colors
 
 
@@ -60,6 +64,7 @@ class RobotCalibration:
         self.parameters = None
         self.estimated_output = None
         self.number_of_samples_in_downsampled_data = None
+        self.qdd_expr = None
     
     def _load_robot_data_parallel(self, args):
         l = args[0]
@@ -68,17 +73,17 @@ class RobotCalibration:
 
         return RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=timeframe)
 
-    def _measurement_vector(self, robot_data, start_index=None, end_index=None):
-        def compute_measurement_vector():
-            i = np.array([robot_data.data[f"actual_current_{j}"] for j in range(1, self.robot_dynamics.n_joints + 1)]).T
-            i_pf = RobotCalibration._parallel_filter(i, robot_data.dt_nominal, RobotCalibration.f_dyn)[start_index:end_index, :]
-            i_pf_ds = RobotCalibration._downsample(i_pf, self.downsampling_factor)
-            return i_pf_ds.flatten(order='F')  # y = [y1, ..., yi, ..., yN],  yi = [yi_{1}, ..., yi_{n_samples}]
+    def _measurement_vector(self, robot_data: RobotData, start_index=None, end_index=None, downsample=True) -> np.ndarray:
+        i = np.array([robot_data.data[f"actual_current_{j}"] for j in range(1, self.robot_dynamics.n_joints + 1)]).T
+        i_pf = RobotCalibration._parallel_filter(i, robot_data.dt_nominal, RobotCalibration.f_dyn)[start_index:end_index, :]
 
-        return compute_measurement_vector()
+        if downsample:
+            i_pf = RobotCalibration._downsample(i_pf, self.downsampling_factor)
+            
+        return i_pf.flatten(order='F')  # y = [y1, ..., yi, ..., yN],  yi = [yi_{1}, ..., yi_{n_samples}]
 
-    def _observation_matrix(self, robot_data, gravity, start_index=None, end_index=None):
-        q_m = np.array([robot_data.data[f"actual_q_{j}"] for j in range(1, self.robot_dynamics.n_joints + 1)])
+    def _observation_matrix(self, robot_data: RobotData, gravity, start_index=None, end_index=None, downsample=True) -> np.ndarray:
+        q_m: np.ndarray = np.array([robot_data.data[f"actual_q_{j}"] for j in range(1, self.robot_dynamics.n_joints + 1)])
 
         # Low-pass filter (smoothen) measured angular position(s) and obtain 1st and 2nd order time-derivatives
         q_tf, qd_tf, qdd_tf = RobotCalibration._trajectory_filtering_and_central_difference(q_m, 
@@ -91,11 +96,14 @@ class RobotCalibration:
             self.robot_dynamics.rigid_body_dynamics.instantiate_gravity(gravity)
             self.robot_dynamics.rigid_body_dynamics.name += f"_gravity={gravity}"
             self.robot_dynamics.compute_linearly_independent_system()
+        
+        if downsample:
+            # No. of samples in downsampled data
+            n_samples = self._measurement_vector(robot_data, start_index=start_index, end_index=end_index, downsample=downsample).shape[0] // self.robot_dynamics.n_joints  
+        else:
+            n_samples = q_tf.shape[1]  # No. of samples in non-downsampled data
 
-        n_samples_ds = self._measurement_vector(robot_data, start_index=start_index, end_index=end_index).shape[
-                           0] // self.robot_dynamics.n_joints  # No. of samples in downsampled data
-
-        observation_matrix = np.zeros((self.robot_dynamics.n_joints * n_samples_ds,
+        observation_matrix = np.zeros((self.robot_dynamics.n_joints * n_samples,
                                        sum(self.robot_dynamics.number_of_parameters())))  # Initialization
         states_num = np.empty((q_tf.shape[0] + qd_tf.shape[0] + qdd_tf.shape[0], q_tf.shape[1]))
         states_num[0::3, :] = q_tf
@@ -104,13 +112,37 @@ class RobotCalibration:
         for j in range(self.robot_dynamics.n_joints):
             # Obtain the rows of the observation matrix related to joint j
             obs_mat_j = self.robot_dynamics.observation_matrix_joint(j, states_num)
-
-            # Parallel filter and decimate/downsample the rows of the observation matrix related to joint j.
-            obs_mat_j_ds = RobotCalibration._downsample(
-                RobotCalibration._parallel_filter(obs_mat_j, robot_data.dt_nominal, RobotCalibration.f_dyn),
-                self.downsampling_factor)
             
-            observation_matrix[j * n_samples_ds:(j + 1) * n_samples_ds, :] = obs_mat_j_ds
+            # Parallel filter and - possibly - decimate/downsample the rows of the observation matrix related to joint j.
+            obs_mat_j = RobotCalibration._parallel_filter(obs_mat_j, robot_data.dt_nominal, RobotCalibration.f_dyn)
+            
+            if downsample:
+                obs_mat_j = RobotCalibration._downsample(obs_mat_j, self.downsampling_factor)
+            
+            observation_matrix[j * n_samples:(j + 1) * n_samples, :] = obs_mat_j
+        return observation_matrix
+    
+    def _observation_matrix_2(self, q: np.ndarray, qd: np.ndarray, qdd: np.ndarray, gravity) -> np.ndarray:
+        assert self.robot_dynamics.n_joints == q.shape[0] == qd.shape[0] == qdd.shape[0]
+        n_samples = q.shape[1] if q.ndim > 1 else 1
+        if n_samples > 1:
+            assert q.shape[1] == qd.shape[1] == qdd.shape[1]
+       
+
+        if not all(gravity == self.robot_dynamics.rigid_body_dynamics._g_num):
+            self.robot_dynamics.rigid_body_dynamics.instantiate_gravity(gravity)
+            self.robot_dynamics.rigid_body_dynamics.name += f"_gravity={gravity}"
+            self.robot_dynamics.compute_linearly_independent_system()
+
+        observation_matrix = np.zeros((self.robot_dynamics.n_joints * n_samples,
+                                       sum(self.robot_dynamics.number_of_parameters())))  # Initialization
+        states_num = np.empty((q.shape[0] + qd.shape[0] + qdd.shape[0], n_samples))
+        states_num[0::3, :] = q.reshape((q.shape[0],1))
+        states_num[1::3, :] = qd.reshape((qd.shape[0],1))
+        states_num[2::3, :] = qdd.reshape((qdd.shape[0],1))
+        for j in range(self.robot_dynamics.n_joints):
+            obs_mat_j = self.robot_dynamics.observation_matrix_joint(j, states_num)
+            observation_matrix[j * n_samples:(j + 1) * n_samples, :] = obs_mat_j
         return observation_matrix
 
     def calibrate(self):
@@ -122,10 +154,12 @@ class RobotCalibration:
         observation_matrix = self._observation_matrix(self.robot_data_calibration,
                                                       gravity=self.gravity,
                                                       start_index=self.non_static_start_idx,
-                                                      end_index=self.non_static_end_idx)
+                                                      end_index=self.non_static_end_idx,
+                                                      downsample=True)
         measurement_vector = self._measurement_vector(self.robot_data_calibration,
                                                       start_index=self.non_static_start_idx,
-                                                      end_index=self.non_static_end_idx)
+                                                      end_index=self.non_static_end_idx,
+                                                      downsample=True)
 
         # sklearn fit
         OLS = LinearRegression(fit_intercept=False)
@@ -142,9 +176,8 @@ class RobotCalibration:
 
         # Compute weights (the reciprocal of the estimated variance of the error)
         residuals = measurement_vector_reshape - measurement_vector_ols_estimation_reshape
-        residual_sum_of_squares = np.sum(np.square(residuals), axis=1)
-        variance_residual = residual_sum_of_squares / (
-                    n_samples_est - np.sum(self.robot_dynamics.number_of_parameters()))
+        residual_sum_of_squares = np.sum(residuals**2, axis=1)
+        variance_residual = residual_sum_of_squares / (n_samples_est - np.sum(self.robot_dynamics.number_of_parameters()))
 
         standard_deviation = np.sqrt(variance_residual)
         wls_sample_weights = np.repeat(1 / standard_deviation, n_samples_est)
@@ -176,13 +209,13 @@ class RobotCalibration:
 
         return self.parameters
 
-    def predict(self, robot_data_predict: RobotData, gravity, parameters):
-        observation_matrix = self._observation_matrix(robot_data_predict, gravity)
+    def predict(self, robot_data_predict: RobotData, gravity, parameters: np.ndarray, downsample=False) -> np.ndarray:
+        observation_matrix = self._observation_matrix(robot_data_predict, gravity, downsample=downsample)
         estimated_output = observation_matrix @ parameters
 
-        n_samples_ds = round(observation_matrix.shape[0] / self.robot_dynamics.n_joints)
-        assert n_samples_ds * self.robot_dynamics.n_joints == observation_matrix.shape[0]
-        output_predicted_reshaped = np.reshape(estimated_output, (self.robot_dynamics.n_joints, n_samples_ds))
+        n_samples = observation_matrix.shape[0] // self.robot_dynamics.n_joints
+        assert n_samples * self.robot_dynamics.n_joints == observation_matrix.shape[0]
+        output_predicted_reshaped = np.reshape(estimated_output, (self.robot_dynamics.n_joints, n_samples))
 
         _, y_meas_reshaped, y_pred_reshaped = self._get_plot_values_for(robot_data_predict, gravity, parameters)
         mse = RobotCalibration.get_mse(y_meas_reshaped, y_pred_reshaped)
@@ -191,11 +224,56 @@ class RobotCalibration:
         self.logger.info(f"MSE (validation data): {mse}")
         self.logger.info(f"NMSE (validation data): {nmse}")
 
-        # return robot_data_predict.time[
-        #       ::self.downsampling_factor], output_predicted_reshaped  # TODO: CORRECT ERROR; 'time' does not correspond in length to 'output_predicted_reshaped'
-        return output_predicted_reshaped
+        time = robot_data_predict.time
+        if downsample:
+            time = time[::self.downsampling_factor]
 
-    def _get_plot_values_for(self, data, gravity, parameters):
+        return output_predicted_reshaped
+    
+    def predict_2(self, q: np.ndarray, qd: np.ndarray, qdd: np.ndarray, gravity) -> np.ndarray:
+        
+        assert self.robot_dynamics.n_joints == q.shape[0] == qd.shape[0] == qdd.shape[0]
+        n_samples = q.shape[1] if q.ndim > 1 else 1
+        if n_samples > 1:
+            assert n_samples ==  q.shape[1] == qd.shape[1] == qdd.shape[1]
+
+        observation_matrix = self._observation_matrix_2(q, qd, qdd, gravity)
+        estimated_output = observation_matrix @ self.parameters
+
+        assert n_samples * self.robot_dynamics.n_joints == observation_matrix.shape[0]
+        output_predicted_reshaped = np.reshape(estimated_output, (self.robot_dynamics.n_joints, n_samples))
+
+        return output_predicted_reshaped
+    
+    def angular_acceleration(self, tau: np.ndarray, q: np.ndarray, qd: np.ndarray, gravity) -> np.ndarray:
+        assert self.robot_dynamics.n_joints ==  tau.shape[0] == q.shape[0] == qd.shape[0]
+        n_samples = q.shape[1] if q.ndim > 1 else 1
+        if n_samples > 1:
+            assert n_samples ==  tau.shape[1] == q.shape[1] == qd.shape[1]
+
+        if self.qdd_expr is None:
+            # Substitute calibrated BIP into eq. and lambdify the expression for qdd wrt. the remaining symbolic parameters tau, q, and qd.
+            # Also, delete joint torque-dependent part of Coulomb friction model. Otherwise, it will not be possible to obtain a
+            # closed-form expression for qdd, because tauJ depends on qdd.
+            self.robot_dynamics.rigid_body_dynamics.instantiate_gravity(gravity)
+            BIP_1D = list(chain.from_iterable(self.robot_dynamics.parameters))
+            self.qdd_expr = self.robot_dynamics.angular_acceleration().subs(sym_mat_to_subs(
+                [BIP_1D, self.robot_dynamics.tauJ[1:]], [self.parameters, np.zeros(self.robot_dynamics.n_joints)]))
+        
+        states = [self.robot_dynamics.tau[1:], self.robot_dynamics.rigid_body_dynamics.q[1:], self.robot_dynamics.rigid_body_dynamics.qd[1:]]
+        states_1D = list(chain.from_iterable(states))
+        sys.setrecursionlimit(int(1e6))  # Prevents errors in sympy lambdify
+        qdd_callable = sp.lambdify(states_1D, self.qdd_expr, 'numpy')
+        
+        states_num = np.concatenate((tau, q, qd))
+
+        assert len(states_1D) == states_num.shape[0], f"The provided argument 'states_num' has a dimension of {states_num.shape[0]} along axis 0 should have that dimension equal to the number of states ({len(states_1D)})."
+
+        qdd_tmp = qdd_callable(*states_num)
+        qdd_out = qdd_tmp[:, 0, :] if qdd_tmp.ndim > 2 else qdd_tmp[:, 0]
+        return qdd_out
+
+    def _get_plot_values_for(self, data: RobotData, gravity, parameters):
         observation_matrix = self._observation_matrix(data, gravity)
         n_samples = observation_matrix.shape[0] // self.robot_dynamics.n_joints
         estimated_data = np.reshape(observation_matrix @ parameters, (self.robot_dynamics.n_joints, n_samples))
@@ -215,7 +293,6 @@ class RobotCalibration:
         t = self.robot_data_calibration.data["timestamp"]
         n_joints = self.robot_dynamics.n_joints
         q_m = np.array([self.robot_data_calibration.data[f"actual_q_{j+1}"] for j in range(n_joints)])
-        # _, qd_m = central_finite_difference(q_m, self.robot_data_calibration.dt_nominal, order=1)
         _, qd_tf, _ = self._trajectory_filtering_and_central_difference(q_m, self.robot_data_calibration.dt_nominal, self.f_dyn)
         qd_tf = np.insert(qd_tf, qd_tf.shape[1], np.repeat(0, n_joints, axis=0), axis=1)
         qd_tf = np.insert(qd_tf, 0, np.repeat(0, n_joints, axis=0), axis=1)
@@ -381,18 +458,16 @@ class RobotCalibration:
         return cost
 
     @staticmethod
-    def _downsample(y, downsampling_factor):
+    def _downsample(y: np.ndarray, downsampling_factor) -> np.ndarray:
         """The decimate procedure down-samples the signal such that the matrix system (that is later to be inverted) is not
         larger than strictly required. The signal.decimate() function can also low-pass filter the signal before
         down-sampling, but for IIR filters unfortunately only the Chebyshev filter is available which has (unwanted) ripple
         in the passband unlike the Butterworth filter that we use. The approach for downsampling is simply picking every
         downsampling_factor'th sample of the data."""
-
-        y_ds = y[::downsampling_factor, :]
-        return y_ds
+        return y[::downsampling_factor, :]
 
     @staticmethod
-    def _parallel_filter(y, dt, f_dyn):
+    def _parallel_filter(y: np.ndarray, dt, f_dyn) -> np.ndarray:
         """Applies a 4th order Butterworth (IIR) filter for each row in y having a cutoff frequency of 2*f_dyn."""
         # Link to cut-off freq. eq.: https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6151858
         parallel_filter_order = 4
@@ -404,7 +479,7 @@ class RobotCalibration:
         return y_pf
 
     @staticmethod
-    def _trajectory_filtering_and_central_difference(q_m, dt, f_dyn, idx_start=None, idx_end=None):
+    def _trajectory_filtering_and_central_difference(q_m, dt, f_dyn, idx_start=None, idx_end=None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         if idx_end is not None:
             assert idx_end < q_m.shape[1], "'idx_end' must not be greater than the dataset size."
 
@@ -428,7 +503,7 @@ class RobotCalibration:
         return q_tf, qd_tf, qdd_tf
 
     @staticmethod
-    def get_mse(y_meas, y_pred):
+    def get_mse(y_meas: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
         """
         This function calculates the mean squared error of each channel in y using sklearn.metrics.mean_squared_error.
         """

@@ -1,0 +1,214 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fmiModelDescription fmiVersion="2.0" modelName="robot_arm_inverse_dynamics" guid="77236337-210e-4e9c-8f2c-c1a0677db21b" author="Emil Madsen" generationDateAndTime="2020-10-23T19:51:25Z" variableNamingConvention="flat" generationTool="unifmu">
+  <CoSimulation modelIdentifier="unifmu" needsExecutionTool="true" canNotUseMemoryManagementFunctions="false" canHandleVariableCommunicationStepSize="true" />
+  <LogCategories>
+    <Category name="logStatusWarning" />
+    <Category name="logStatusDiscard" />
+    <Category name="logStatusError" />
+    <Category name="logStatusFatal" />
+    <Category name="logStatusPending" />
+    <Category name="logAll" />
+  </LogCategories>
+  <ModelVariables>
+  
+    <!--Index of variable = "0"-->
+    <ScalarVariable name="q_0" valueReference="0" variability="continuous" causality="input">
+      <Real start="0.0" />
+    </ScalarVariable>
+    <!--Index of variable = "1"-->
+    <ScalarVariable name="q_1" valueReference="1" variability="continuous" causality="input">
+      <Real start="0.0" />
+    </ScalarVariable>
+    <!--Index of variable = "2"-->
+    <ScalarVariable name="q_2" valueReference="2" variability="continuous" causality="input">
+      <Real start="0.0" />
+    </ScalarVariable>
+    <!--Index of variable = "3"-->
+    <ScalarVariable name="q_3" valueReference="3" variability="continuous" causality="input">
+      <Real start="0.0" />
+    </ScalarVariable>
+    <!--Index of variable = "4"-->
+    <ScalarVariable name="q_4" valueReference="4" variability="continuous" causality="input">
+      <Real start="0.0" />
+    </ScalarVariable>
+    <!--Index of variable = "5"-->
+    <ScalarVariable name="q_5" valueReference="5" variability="continuous" causality="input">
+      <Real start="0.0" />
+    </ScalarVariable>
+    <!--Index of variable = "6"-->
+    <ScalarVariable name="q_6" valueReference="6" variability="continuous" causality="input">
+      <Real start="0.0" />
+    </ScalarVariable>
+    <!--Index of variable = "7"-->
+    <ScalarVariable name="q_7" valueReference="7" variability="continuous" causality="input">
+      <Real start="0.0" />
+    </ScalarVariable>
+    <!--Index of variable = "8"-->
+    <ScalarVariable name="q_8" valueReference="8" variability="continuous" causality="input">
+      <Real start="0.0" />
+    </ScalarVariable>
+    <!--Index of variable = "9"-->
+    <ScalarVariable name="q_9" valueReference="9" variability="continuous" causality="input">
+      <Real start="0.0" />
+    </ScalarVariable>
+    <!--Index of variable = "10"-->
+    <ScalarVariable name="qd_0" valueReference="10" variability="continuous" causality="input">
+      <Real />
+    </ScalarVariable>
+    <!--Index of variable = "11"-->
+    <ScalarVariable name="qd_1" valueReference="11" variability="continuous" causality="input">
+      <Real />
+    </ScalarVariable>
+    <!--Index of variable = "12"-->
+    <ScalarVariable name="qd_2" valueReference="12" variability="continuous" causality="input">
+      <Real />
+    </ScalarVariable>
+    <!--Index of variable = "13"-->
+    <ScalarVariable name="qd_3" valueReference="13" variability="continuous" causality="input">
+      <Real />
+    </ScalarVariable>
+    <!--Index of variable = "14"-->
+    <ScalarVariable name="qd_4" valueReference="14" variability="continuous" causality="input">
+      <Real />
+    </ScalarVariable>
+    <!--Index of variable = "15"-->
+    <ScalarVariable name="qd_5" valueReference="15" variability="continuous" causality="input">
+      <Real />
+    </ScalarVariable>
+    <!--Index of variable = "16"-->
+    <ScalarVariable name="qd_6" valueReference="16" variability="continuous" causality="input">
+      <Real />
+    </ScalarVariable>
+    <!--Index of variable = "17"-->
+    <ScalarVariable name="qd_7" valueReference="17" variability="continuous" causality="input">
+      <Real />
+    </ScalarVariable>
+    <!--Index of variable = "18"-->
+    <ScalarVariable name="qd_8" valueReference="18" variability="continuous" causality="input">
+      <Real />
+    </ScalarVariable>
+    <!--Index of variable = "19"-->
+    <ScalarVariable name="qd_9" valueReference="19" variability="continuous" causality="input">
+      <Real />
+    </ScalarVariable>
+    <!--Index of variable = "20"-->
+    <ScalarVariable name="qdd_0" valueReference="20" variability="continuous" causality="input">
+      <Real />
+    </ScalarVariable>
+    <!--Index of variable = "21"-->
+    <ScalarVariable name="qdd_1" valueReference="21" variability="continuous" causality="input">
+      <Real />
+    </ScalarVariable>
+    <!--Index of variable = "22"-->
+    <ScalarVariable name="qdd_2" valueReference="22" variability="continuous" causality="input">
+      <Real />
+    </ScalarVariable>
+    <!--Index of variable = "23"-->
+    <ScalarVariable name="qdd_3" valueReference="23" variability="continuous" causality="input">
+      <Real />
+    </ScalarVariable>
+    <!--Index of variable = "24"-->
+    <ScalarVariable name="qdd_4" valueReference="24" variability="continuous" causality="input">
+      <Real />
+    </ScalarVariable>
+    <!--Index of variable = "25"-->
+    <ScalarVariable name="qdd_5" valueReference="25" variability="continuous" causality="input">
+      <Real />
+    </ScalarVariable>
+    <!--Index of variable = "26"-->
+    <ScalarVariable name="qdd_6" valueReference="26" variability="continuous" causality="input">
+      <Real />
+    </ScalarVariable>
+    <!--Index of variable = "27"-->
+    <ScalarVariable name="qdd_7" valueReference="27" variability="continuous" causality="input">
+      <Real />
+    </ScalarVariable>
+    <!--Index of variable = "28"-->
+    <ScalarVariable name="qdd_8" valueReference="28" variability="continuous" causality="input">
+      <Real />
+    </ScalarVariable>
+    <!--Index of variable = "29"-->
+    <ScalarVariable name="qdd_9" valueReference="29" variability="continuous" causality="input">
+      <Real />
+    </ScalarVariable>
+    <!--Index of variable = "30"-->
+    <ScalarVariable name="tau_0" valueReference="30" variability="continuous" causality="output" initial="calculated">
+      <Real start="0.0"/>
+    </ScalarVariable>
+    <!--Index of variable = "31"-->
+    <ScalarVariable name="tau_1" valueReference="31" variability="continuous" causality="output" initial="calculated">
+      <Real start="0.0"/>
+    </ScalarVariable>
+    <!--Index of variable = "32"-->
+    <ScalarVariable name="tau_2" valueReference="32" variability="continuous" causality="output" initial="calculated">
+      <Real start="0.0"/>
+    </ScalarVariable>
+    <!--Index of variable = "33"-->
+    <ScalarVariable name="tau_3" valueReference="33" variability="continuous" causality="output" initial="calculated">
+      <Real start="0.0"/>
+    </ScalarVariable>
+    <!--Index of variable = "34"-->
+    <ScalarVariable name="tau_4" valueReference="34" variability="continuous" causality="output" initial="calculated">
+      <Real start="0.0"/>
+    </ScalarVariable>
+    <!--Index of variable = "35"-->
+    <ScalarVariable name="tau_5" valueReference="35" variability="continuous" causality="output" initial="calculated">
+      <Real start="0.0"/>
+    </ScalarVariable>
+    <!--Index of variable = "36"-->
+    <ScalarVariable name="tau_6" valueReference="36" variability="continuous" causality="output" initial="calculated">
+      <Real start="0.0"/>
+    </ScalarVariable>
+    <!--Index of variable = "37"-->
+    <ScalarVariable name="tau_7" valueReference="37" variability="continuous" causality="output" initial="calculated">
+      <Real start="0.0"/>
+    </ScalarVariable>
+    <!--Index of variable = "38"-->
+    <ScalarVariable name="tau_8" valueReference="38" variability="continuous" causality="output" initial="calculated">
+      <Real start="0.0"/>
+    </ScalarVariable>
+    <!--Index of variable = "39"-->
+    <ScalarVariable name="tau_9" valueReference="39" variability="continuous" causality="output" initial="calculated">
+      <Real start="0.0"/>
+    </ScalarVariable>
+    <!--Index of variable = "40"-->
+    <ScalarVariable name="gx" valueReference="40" variability="fixed" causality="parameter" initial="exact">
+      <Real start="0.0"/>
+    </ScalarVariable>
+    <!--Index of variable = "41"-->
+    <ScalarVariable name="gy" valueReference="41" variability="fixed" causality="parameter" initial="exact">
+      <Real start="0.0"/>
+    </ScalarVariable>
+    <!--Index of variable = "42"-->
+    <ScalarVariable name="gz" valueReference="42" variability="fixed" causality="parameter" initial="exact">
+      <Real start="0.0"/>
+    </ScalarVariable>
+
+  </ModelVariables>
+  <ModelStructure>
+    <Outputs>
+      <Unknown index="30" dependencies="" />
+      <Unknown index="31" dependencies="" />
+      <Unknown index="32" dependencies="" />
+      <Unknown index="33" dependencies="" />
+      <Unknown index="34" dependencies="" />
+      <Unknown index="35" dependencies="" />
+      <Unknown index="36" dependencies="" />
+      <Unknown index="37" dependencies="" />
+      <Unknown index="38" dependencies="" />
+      <Unknown index="39" dependencies="" />
+    </Outputs>
+    <InitialUnknowns>
+      <Unknown index="30" dependencies="" />
+      <Unknown index="31" dependencies="" />
+      <Unknown index="32" dependencies="" />
+      <Unknown index="33" dependencies="" />
+      <Unknown index="34" dependencies="" />
+      <Unknown index="35" dependencies="" />
+      <Unknown index="36" dependencies="" />
+      <Unknown index="37" dependencies="" />
+      <Unknown index="38" dependencies="" />
+      <Unknown index="39" dependencies="" />
+    </InitialUnknowns>
+  </ModelStructure>
+</fmiModelDescription>

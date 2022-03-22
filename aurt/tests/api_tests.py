@@ -1,13 +1,13 @@
 import logging
 import unittest
 import pickle
-from pathlib import Path
 import sympy as sp
 
 from aurt.caching import PersistentPickleCache
 from aurt.file_system import from_cache, from_project_root
 from aurt import api
 from aurt.rigid_body_dynamics import RigidBodyDynamics
+from aurt.robot_dynamics import RobotDynamics
 from aurt.caching import clear_cache_dir
 
 class APITests(unittest.TestCase):
@@ -17,6 +17,7 @@ class APITests(unittest.TestCase):
         """
         Runs when class is loaded.
         """
+        
         cls.cache_dir = from_project_root('cache')
         clear_cache_dir(cls.cache_dir)
         cls.cache = PersistentPickleCache(cls.cache_dir)
@@ -31,14 +32,7 @@ class APITests(unittest.TestCase):
         api.compile_rbd(mdh_path, output_path, plotting, self.cache)
         with open(output_path, 'rb') as f:
             rbd_twolink_estimate: RigidBodyDynamics = pickle.load(f)
-        # with open(from_project_root(Path("aurt/tests/resources", output_path)), 'rb') as f:
-        #     rbd_twolink_true: RigidBodyDynamics = pickle.load(f)
-
-        # self.assertEqual(rbd_twolink_estimate.mdh, rbd_twolink_true.mdh)
-        # self.assertEqual(rbd_twolink_estimate.n_params, rbd_twolink_true.n_params)
-        # self.assertEqual(rbd_twolink_estimate.params, rbd_twolink_true.params)
         tau_rbd = rbd_twolink_estimate.dynamics()
-        # self.assertEqual(tau_rbd, rbd_twolink_true.dynamics())
 
         M, C, g = rbd_twolink_estimate.euler_lagrange()
         qd = sp.Matrix(rbd_twolink_estimate.qd[1:])
@@ -48,10 +42,10 @@ class APITests(unittest.TestCase):
 
     def test02_compile_rbd_save_class(self):
         # test that class is saved properly
-        output_path = "rbd_twolink.pickle"
-        filename = from_cache(output_path)
+        output_file = "rbd_twolink.pickle"
+        output_path = from_cache(output_file)
 
-        with open(filename, 'rb') as f:
+        with open(output_path, 'rb') as f:
             newrbd: RigidBodyDynamics = pickle.load(f)
 
         self.assertIsNotNone(newrbd.parameters, "The parameters are not set.")
@@ -66,13 +60,9 @@ class APITests(unittest.TestCase):
         api.compile_rd(model_rbd, friction_torque_model, friction_viscous_powers, output_path, self.cache)
 
         with open(output_path, 'rb') as f:
-            rd_twolink_estimate = pickle.load(f)
-        # with open(from_project_root(Path("aurt/tests/resources", output_file)), 'rb') as f:
-        #     rd_twolink_true = pickle.load(f)
-
-        # self.assertEqual(rd_twolink_estimate.n_joints, rd_twolink_true.n_joints)
-        # self.assertEqual(rd_twolink_estimate.qdd, rd_twolink_true.qdd)
-        # self.assertEqual(rd_twolink_estimate.tauJ, rd_twolink_true.tauJ)
+            rd: RobotDynamics = pickle.load(f)
+        
+        self.assertEqual(rd.n_joints, 2)
 
     def test04_calibrate(self):
         model_rd = from_cache("rd_twolink.pickle")

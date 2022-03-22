@@ -3,7 +3,7 @@ import numpy as np
 from logging import Logger
 
 from aurt.caching import Cache
-from aurt.dynamics_aux import list_2D_to_sympy_vector, number_of_elements_in_nested_list
+from aurt.dynamics_aux import number_of_elements_in_nested_list
 from aurt.rigid_body_dynamics import RigidBodyDynamics
 from aurt.joint_dynamics import JointDynamics
 from aurt.linear_system import LinearSystem
@@ -15,10 +15,8 @@ class RobotDynamics(LinearSystem):
 
         self.rigid_body_dynamics = rigid_body_dynamics
         self.n_joints = self.rigid_body_dynamics.mdh.n_joints
-        self.q = [sp.Integer(0)] + [sp.symbols(f"q{j}") for j in range(1, self.n_joints + 1)]
-        self.qd = [sp.Integer(0)] + [sp.symbols(f"qd{j}") for j in range(1, self.n_joints + 1)]
-        self.qdd = [sp.Integer(0)] + [sp.symbols(f"qdd{j}") for j in range(1, self.n_joints + 1)]
         self.tauJ = sp.symbols([f"tauJ{j}" for j in range(self.n_joints + 1)])
+        self.tau = sp.symbols([f"tau{j}" for j in range(self.n_joints + 1)])
 
         self.joint_dynamics = JointDynamics(logger,
                                             cache,
@@ -55,7 +53,7 @@ class RobotDynamics(LinearSystem):
         # s = np.linalg.svd(obs_mat)
         return 1
 
-    def observation_matrix_joint(self, j, states_num):
+    def observation_matrix_joint(self, j: int, states_num: np.ndarray) -> np.ndarray:
         """
         Constructs the observation matrix for joint 'j' by evaluating the regressor for joint 'j'
         (the j'th row of the regressor matrix) in the provided data. The data should consist of a
@@ -66,7 +64,7 @@ class RobotDynamics(LinearSystem):
         assert 0 <= j < self.n_joints
         assert states_num.shape[0] == number_of_elements_in_nested_list(self.rigid_body_dynamics.states())
 
-        n_samples = states_num.shape[1]
+        n_samples = states_num.shape[1] if states_num.ndim > 1 else 1
 
         n_par_rbd = self.rigid_body_dynamics.number_of_parameters()
         n_par_jd = self.joint_dynamics.number_of_parameters()
@@ -77,8 +75,8 @@ class RobotDynamics(LinearSystem):
         tauJ_basis_num = np.zeros((self.n_joints, n_samples))
         tauJ_basis_num[j, :] = np.sum(obs_mat_j_rbd, axis=1).T
 
-        qd_num = states_num[1::3, :]
-        states_jd_num = np.empty((qd_num.shape[0] + tauJ_basis_num.shape[0], qd_num.shape[1]))
+        qd_num = states_num[1::3, :] if states_num.ndim > 1 else states_num[1::3]
+        states_jd_num = np.empty((qd_num.shape[0] + tauJ_basis_num.shape[0], qd_num.shape[1] if states_num.ndim > 1 else 1))
         states_jd_num[0::2, :] = qd_num
         states_jd_num[1::2, :] = tauJ_basis_num
 
@@ -99,16 +97,22 @@ class RobotDynamics(LinearSystem):
     def observation_matrix_joint_parameters_for_joint():
         """
         The observation matrix is implemented in 'observation_matrix_joint', 
-        thus this function is not needed and is therefore disabled.
+        thus this method is not needed and is therefore disabled.
         """
         pass
 
-    def _regressor_joint_parameters_for_joint(self, j, par_j):
+    def _regressor_joint_parameters_for_joint(self, j: int, par_j: int) -> sp.Matrix:
         reg_rbd_j_par_j = self.rigid_body_dynamics._regressor_joint_parameters_for_joint(j, par_j)
         reg_jd_j_par_j = self.joint_dynamics._regressor_joint_parameters_for_joint(j, par_j)
         return sp.Matrix.hstack(reg_rbd_j_par_j, reg_jd_j_par_j)
 
-    def dynamics(self):
-        """The robot dynamics consisting of; 1) the rigid-body dynamics formulated in terms of
-        the Base Inertial Parameters (BIP) and 2) the joint dynamics."""
-        return self.regressor() @ list_2D_to_sympy_vector(self.parameters)
+    def angular_acceleration(self) -> sp.Matrix:
+        M_inv = self.rigid_body_dynamics.inv_inertia_matrix()
+        C = self.rigid_body_dynamics.coriolis_centripetal_matrix()
+        g = self.rigid_body_dynamics.gravity_vector()
+        f = self.joint_dynamics.dynamics()
+        qd = sp.Matrix(self.rigid_body_dynamics.qd[1:])
+        tau = sp.Matrix(self.tau[1:])
+        
+        qdd = M_inv*(tau - C*qd - g - f)
+        return qdd
