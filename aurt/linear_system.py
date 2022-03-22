@@ -213,7 +213,10 @@ class LinearSystem(ABC):
 
         # Output information to logger
         if not all(list(chain.from_iterable(is_base_parameter))):
-            self.logger.info(f"For '{self.name}' some terms were linearly dependent, thus the following parameter(s) were eliminated: {not parameters_full_1D in parameters_base_1D}")
+            par_eliminated = set(parameters_full_1D).difference(parameters_base_1D)
+            n_eliminated = len(par_eliminated)
+            msg_eliminated = f"For '{self.name}' some terms were linearly dependent, thus the following {str(n_eliminated) + ' ' if n_eliminated > 1 else ''}parameter{'s were' if n_eliminated > 1 else ' was'} eliminated: {str(par_eliminated)[1:-1]}"
+            self.logger.info(msg_eliminated)
         else:
             self.logger.info(f"'{self.name}' consist entirely of linearly independent terms, thus no parameters were eliminated.")
 
