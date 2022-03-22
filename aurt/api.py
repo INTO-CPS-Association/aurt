@@ -90,14 +90,6 @@ def calibrate_validate(model_path, data_path, gravity, calibration_data_relative
     params = rc.calibrate()
     output_pred = rc.predict(rc.robot_data_validation, gravity, params)
 
-    # ************************************************************************************
-    # g_num = np.array([0.7, 0.7, 0.7])
-    # single_sample = np.zeros((rc.robot_dynamics.n_joints, 1))
-    # multiple_samples = np.array([[1,2,3], [2,3,4]])
-    # rc.angular_acceleration(single_sample, single_sample, single_sample, g_num)
-    # rc.angular_acceleration(multiple_samples, multiple_samples, multiple_samples, g_num)
-    # ************************************************************************************
-
     if plotting:
         rc.plot_calibrate_and_validate(params)
 
