@@ -29,8 +29,11 @@ def compile_rbd(mdh_path, output_path, plotting, cache: PersistentPickleCache, b
         pickle.dump(rbd, f)
 
 
-def compile_rd(rbd_filename, friction_torque_model, friction_viscous_powers, output_path, cache: Cache):
+def compile_rd(rbd_filename, friction_torque_model, friction_viscous_powers, output_path, cache: PersistentPickleCache):
     l = logging.getLogger("aurt")
+
+    l.info(f"Clearing cache {cache._base_directory}.")
+    clear_cache_dir(cache._base_directory)
 
     # Load RigidBodyDynamics
     with open(rbd_filename, 'rb') as f:
@@ -44,8 +47,12 @@ def compile_rd(rbd_filename, friction_torque_model, friction_viscous_powers, out
         pickle.dump(rd, f)
 
 
-def calibrate(model_path, data_path, gravity, output_params, output_calibration, plotting):
+def calibrate(model_path, data_path, gravity, output_params, output_calibration, cache: PersistentPickleCache, plotting):
     l = logging.getLogger("aurt")
+
+    l.info(f"Clearing cache {cache._base_directory}.")
+    clear_cache_dir(cache._base_directory)
+
     gravity = np.array(gravity)
 
     # Load RobotDynamics
@@ -64,22 +71,30 @@ def calibrate(model_path, data_path, gravity, output_params, output_calibration,
         pickle.dump(rc, f)
 
 
-def predict(model_path, data_path, gravity, output_path):
+def predict(model_path, data_path, gravity, output_path, cache: PersistentPickleCache):
     l = logging.getLogger("aurt")
+
+    l.info(f"Clearing cache {cache._base_directory}.")
+    clear_cache_dir(cache._base_directory)
+
     gravity = np.array(gravity)
 
     with open(model_path, 'rb') as f:
         rc: RobotCalibration = pickle.load(f)
 
-    rc_predict_data = RobotData(l, data_path, delimiter=' ', interpolate_missing_samples=True) # TODO should we always interpolate missing samples?
+    rc_predict_data = RobotData(l, data_path, delimiter=' ', fields=["timestamp", "actual_q_#", "actual_current_#"], interpolate_missing_samples=True)
     prediction = rc.predict(rc_predict_data, gravity, rc.parameters)
 
     # Store CSV
     store_csv(output_path, prediction)
 
 
-def calibrate_validate(model_path, data_path, gravity, calibration_data_relative, output_params, output_calibration, output_predict, plotting):
+def calibrate_validate(model_path, data_path, gravity, calibration_data_relative, output_params, output_calibration, output_predict, cache: PersistentPickleCache, plotting):
     l = logging.getLogger("aurt")
+
+    l.info(f"Clearing cache {cache._base_directory}.")
+    clear_cache_dir(cache._base_directory)
+
     gravity = np.array(gravity)
 
     # Load RobotDynamics

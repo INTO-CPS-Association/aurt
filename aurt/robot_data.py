@@ -15,21 +15,16 @@ class RobotData:
     """
     This class contains sampled robot data related to an experiment.
     """
-    def __init__(self, l: Logger, file_path, delimiter, desired_timeframe=None, interpolate_missing_samples=False):
+    def __init__(self, l: Logger, file_path, delimiter, fields, desired_timeframe=None, interpolate_missing_samples=False):
         self.logger = l
 
-        self.n_joints = None  # TODO: automatically determine number of joints from csv data
-        self.fields = [
-            f"timestamp",
-            f"target_q_{JOINT_N}",
-            f"target_qd_{JOINT_N}",
-            f"target_qdd_{JOINT_N}",
-            f"target_current_{JOINT_N}",
-            f"actual_current_{JOINT_N}",
-            f"target_moment_{JOINT_N}",
-            f"actual_q_{JOINT_N}",
-            f"actual_qd_{JOINT_N}",
-        ]
+        self.n_joints = None
+
+        # Load data from CSV file with header 'fields'
+        # A valid fields is e.g. ["timestamp", "actual_q_#", "actual_current_#"].
+        # When the data is loaded '#' is substituted with numbers from 0 to 'n_joints' - 1.
+        self.fields = fields
+        
         self._load_data(file_path,
                          desired_timeframe=desired_timeframe,
                          interpolate_missing_samples=interpolate_missing_samples,
@@ -197,6 +192,8 @@ class RobotData:
         plt.show()
 
     def plot_target_trajectory(self):
+        assert all(key in self.data for key in ["timestamp", "target_q_0", "target_qd_0", "target_qdd_0"]), f"Needs data 'timestamp', 'target_q_#', 'target_qd_#', and 'target_qdd_#' for plotting the target trajectory."
+
         t = self.data["timestamp"]
 
         import matplotlib.pyplot as plt
@@ -217,6 +214,7 @@ class RobotData:
         plt.show()
 
     def plot_target_position(self):
+        assert all(key in self.data for key in ["timestamp", "target_q_0"]), f"Needs data 'timestamp' and 'target_q_#' for plotting the target position."
 
         import matplotlib.pyplot as plt
         from matplotlib.pyplot import figure

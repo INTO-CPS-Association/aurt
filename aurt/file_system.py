@@ -32,11 +32,15 @@ def safe_open(filepath, mode='r'):
 
 
 def store_object(file, obj):
+    if not Path(file).parent.exists():
+        os.mkdir(Path(file).parent)
+    
     with open(file, "wb") as f:
         pickle.dump(obj, f)
 
 
 def load_object(file):
+    print(f"file: {file}")
     with safe_open(file, "rb") as f:
         return pickle.load(f)
 
@@ -56,9 +60,6 @@ def cache_object(filename, callable):
 
 def store_numpy(file, nparr):
     assert file[-4:] == '.npy'
-    # assert isinstance(nparr, (np.ndarray, np.generic))
-    print(f"file: {file}")
-    print(f"nparr: {nparr}")
     with open(file, "wb") as f:
         np.save(f, nparr)
 

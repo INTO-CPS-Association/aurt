@@ -4,12 +4,6 @@ from aurt.cli import *
 from aurt.cli import _init_cmd_parser, _create_compile_rbd_parser, _create_calibrate_parser, _create_compile_rd_parser, \
     _create_predict_parser
 from aurt.file_system import from_cache, load_csv, from_project_root
-
-
-#### TODO:
-##    o add tests for compile-rd
-##    o add tests for calibrate
-##    o add tests for predict
 from aurt.caching import clear_cache_dir
 
 
@@ -26,36 +20,41 @@ class CLITests(unittest.TestCase):
 
     def init_rbd(self):
         mdh_filename = str(from_project_root("aurt/tests/resources/twolink_dh.csv"))
-        out_filename = from_cache("out_rbd.pickle")
+        out_filename = "out_rbd.pickle"
+        cache = self.cache_dir
         plotting = False
         parser = self.set_compile_rbd_arguments(
             mdh_filename,
             out_filename,
+            cache,
             plotting
         )
         compile_rbd(parser)
 
     def init_rd(self):
         self.init_rbd()
-        model_rbd = from_cache("out_rbd.pickle")
+        model_rbd = "out_rbd.pickle"
         friction_torque_model = "square"
         friction_viscous_powers = [2, 1, 4]
-        out = from_cache("out_rd.pickle")
+        out = "out_rd.pickle"
+        cache = self.cache_dir
         parser = self.set_compile_rd_arguments(
             model_rbd,
             friction_torque_model,
             friction_viscous_powers,
-            out
+            out,
+            cache
         )
         compile_rd(parser)
 
     def init_calibrate(self):
         self.init_rd()
-        model = from_cache("out_rd.pickle")
+        model = "out_rd.pickle"
         data = str(from_project_root("aurt/tests/resources/twolink_data.csv"))
         gravity = [0, -9.81, 0]
-        out_params = from_cache("twolink_model_params.csv")
-        out_calibrated_model = from_cache("out_calibrate.pickle")
+        out_params = "twolink_model_params.csv"
+        out_calibrated_model = "out_calibrate.pickle"
+        cache = self.cache_dir
         plot = False
         parser = self.set_calibrate_arguments(
             model,
@@ -63,21 +62,22 @@ class CLITests(unittest.TestCase):
             gravity,
             out_params,
             out_calibrated_model,
+            cache,
             plot
         )
         calibrate(parser)
 
-    def set_compile_rbd_arguments(self, mdh, out, plotting, logger_config=None):
+    def set_compile_rbd_arguments(self, mdh, out, cache, plotting, logger_config=None):
         subparsers, _ = _init_cmd_parser()
         compile_rbd_parser = _create_compile_rbd_parser(subparsers)
         compile_rbd_parser.mdh = mdh
         compile_rbd_parser.out = out
         compile_rbd_parser.plot = plotting
         compile_rbd_parser.logger_config = logger_config
-        compile_rbd_parser.cache = self.cache_dir
+        compile_rbd_parser.cache = cache
         return compile_rbd_parser
 
-    def set_compile_rd_arguments(self, model_rbd, friction_torque_model, friction_viscous_powers, out,
+    def set_compile_rd_arguments(self, model_rbd, friction_torque_model, friction_viscous_powers, out, cache,
                                  logger_config=None):
         subparsers, _ = _init_cmd_parser()
         compile_rd_parser = _create_compile_rd_parser(subparsers)
@@ -86,10 +86,10 @@ class CLITests(unittest.TestCase):
         compile_rd_parser.friction_viscous_powers = friction_viscous_powers
         compile_rd_parser.out = out
         compile_rd_parser.logger_config = logger_config
-        compile_rd_parser.cache = self.cache_dir
+        compile_rd_parser.cache = cache
         return compile_rd_parser
 
-    def set_calibrate_arguments(self, model, data, gravity, out_params, out_calibrated_model, plot, logger_config=None):
+    def set_calibrate_arguments(self, model, data, gravity, out_params, out_calibrated_model, cache, plot, logger_config=None):
         subparsers, _ = _init_cmd_parser()
         calibrate_parser = _create_calibrate_parser(subparsers)
         calibrate_parser.model = model
@@ -97,27 +97,31 @@ class CLITests(unittest.TestCase):
         calibrate_parser.gravity = gravity
         calibrate_parser.out_params = out_params
         calibrate_parser.out_calibrated_model = out_calibrated_model
+        calibrate_parser.cache = cache
         calibrate_parser.plot = plot
         calibrate_parser.logger_config = logger_config
         return calibrate_parser
 
-    def set_predict_arguments(self, model, data, gravity, prediction, logger_config=None):
+    def set_predict_arguments(self, model, data, gravity, prediction, cache, logger_config=None):
         subparsers, _ = _init_cmd_parser()
         predict_parser = _create_predict_parser(subparsers)
         predict_parser.model = model
         predict_parser.data = data
         predict_parser.gravity = gravity
         predict_parser.out = prediction
+        predict_parser.cache = cache
         predict_parser.logger_config = logger_config
         return predict_parser
 
     def test01_compile_rbd_args_cli_correct(self):
         mdh_filename = str(from_project_root("aurt/tests/resources/twolink_dh.csv"))
-        out_filename = from_cache("out_rbd.pickle")
+        out_filename = "out_rbd.pickle"
+        cache = self.cache_dir
         plotting = False
         parser = self.set_compile_rbd_arguments(
             mdh_filename,
             out_filename,
+            cache,
             plotting
         )
         compile_rbd(parser)
@@ -129,11 +133,13 @@ class CLITests(unittest.TestCase):
 
     def test02_compile_rbd_args_cli_file_not_csv(self):
         mdh_filename = str(from_project_root("aurt/tests/resources/twolink_dh"))
-        out_filename = from_cache("out_rbd.pickle")
+        out_filename = "out_rbd.pickle"
+        cache = self.cache_dir
         plotting = False
         parser = self.set_compile_rbd_arguments(
             mdh_filename,
             out_filename,
+            cache,
             plotting
         )
         with self.assertRaises(Exception):
@@ -141,11 +147,13 @@ class CLITests(unittest.TestCase):
 
     def test03_compile_rbd_args_cli_file_not_found(self):
         mdh_filename = str(from_project_root("aurt/tests/resources/wrong_name.csv"))
-        out_filename = from_cache("out_rbd.pickle")
+        out_filename = "out_rbd.pickle"
+        cache = self.cache_dir
         plotting = False
         parser = self.set_compile_rbd_arguments(
             mdh_filename,
             out_filename,
+            cache,
             plotting
         )
         with self.assertRaises(OSError):
@@ -153,15 +161,17 @@ class CLITests(unittest.TestCase):
 
     def test04_compile_rd_args_cli_correct(self):
         self.init_rbd()
-        model_rbd = from_cache("out_rbd.pickle")
+        model_rbd = "out_rbd.pickle"
         friction_torque_model = "square"
         friction_viscous_powers = [2, 1, 4]
-        out = from_cache("out_rd.pickle")
+        out = "out_rd.pickle"
+        cache = self.cache_dir
         parser = self.set_compile_rd_arguments(
             model_rbd,
             friction_torque_model,
             friction_viscous_powers,
-            out
+            out,
+            cache
         )
         compile_rd(parser)
 
@@ -171,11 +181,12 @@ class CLITests(unittest.TestCase):
 
     def test05_calibrate_args_cli_correct(self):
         self.init_rd()
-        model = from_cache("out_rd.pickle")
+        model = "out_rd.pickle"
         data = str(from_project_root("aurt/tests/resources/twolink_data.csv"))
         gravity = [0, -9.81, 0]
-        out_params = from_cache("calibrated_params.csv")
-        out_calibrated_model = from_cache("out_calibration.pickle")
+        out_params = "calibrated_params.csv"
+        out_calibrated_model = "out_calibration.pickle"
+        cache = self.cache_dir
         plot = False
         parser = self.set_calibrate_arguments(
             model,
@@ -183,6 +194,7 @@ class CLITests(unittest.TestCase):
             gravity,
             out_params,
             out_calibrated_model,
+            cache,
             plot
         )
         calibrate(parser)
@@ -193,11 +205,12 @@ class CLITests(unittest.TestCase):
     
     def test06_calibrate_args_cli_gravity_not_floats(self):
         self.init_rd()
-        model = from_cache("out_rd.pickle")
+        model = "out_rd.pickle"
         data = str(from_project_root("aurt/tests/resources/twolink_data.csv"))
         gravity = ["a", "b", "c"]
-        out_params = from_cache("calibrated_params.csv")
-        out_calibrated_model = from_cache("out_calibration.pickle")
+        out_params = "calibrated_params.csv"
+        out_calibrated_model = "out_calibration.pickle"
+        cache = self.cache_dir
         plot = False
         parser = self.set_calibrate_arguments(
             model,
@@ -205,6 +218,7 @@ class CLITests(unittest.TestCase):
             gravity,
             out_params,
             out_calibrated_model,
+            cache,
             plot
         )
         with self.assertRaises(TypeError):
@@ -212,11 +226,12 @@ class CLITests(unittest.TestCase):
 
     def test07_calibrate_args_cli_gravity_ints(self):
         self.init_rd()
-        model = from_cache("out_rd.pickle")
+        model = "out_rd.pickle"
         data = str(from_project_root("aurt/tests/resources/twolink_data.csv"))
         gravity = [0, -1, 0]
-        out_params = from_cache("calibrated_params.csv")
-        out_calibrated_model = from_cache("out_calibration.pickle")
+        out_params = "calibrated_params.csv"
+        out_calibrated_model = "out_calibration.pickle"
+        cache = self.cache_dir
         plot = False
         parser = self.set_calibrate_arguments(
             model,
@@ -224,6 +239,7 @@ class CLITests(unittest.TestCase):
             gravity,
             out_params,
             out_calibrated_model,
+            cache,
             plot
         )
         calibrate(parser)
@@ -234,15 +250,17 @@ class CLITests(unittest.TestCase):
 
     def test08_predict_args_cli_correct(self):
         self.init_calibrate()
-        model = from_cache("out_calibrate.pickle")
-        data = str(from_project_root("aurt/tests/resources/twolink_data.csv"))  # TODO: change to real prediction data
+        model = "out_calibrate.pickle"
+        data = str(from_project_root("aurt/tests/resources/twolink_data.csv"))
         gravity = [0, -9.81, 0]
-        out = from_cache("out_predict.csv")
+        out = "out_predict.csv"
+        cache = self.cache_dir
         parser = self.set_predict_arguments(
             model,
             data,
             gravity,
-            out
+            out,
+            cache
         )
         predict(parser)
         out_prediction = load_csv(out)

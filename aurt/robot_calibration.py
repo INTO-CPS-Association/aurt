@@ -29,7 +29,7 @@ class RobotCalibration:
 
         if relative_separation_of_calibration_and_prediction is None and robot_data_predict is None:
             """All data is used for calibration."""
-            self.robot_data_calibration = RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True)
+            self.robot_data_calibration = RobotData(l, robot_data_path, delimiter=' ', fields=["timestamp", "actual_q_#", "actual_current_#"], interpolate_missing_samples=True)
             self.robot_data_validation = None
         elif relative_separation_of_calibration_and_prediction is not None and robot_data_predict is None:
             """Using a single dataset, some of the data is used for calibration and some is used for validation."""
@@ -37,24 +37,23 @@ class RobotCalibration:
                                                                               "data used for calibration and " \
                                                                               "prediction must be in the range from 0 " \
                                                                               "to 1."
-            dummy_data = RobotData(l, robot_data_path, delimiter=' ')
+            dummy_data = RobotData(l, robot_data_path, delimiter=' ', fields=["timestamp"], )
             t_sep = dummy_data.time[-1] * relative_separation_of_calibration_and_prediction
             
             if multi_processing:
-                robot_data_args = [[l, robot_data_path, (0, t_sep)],
-                                   [l, robot_data_path, (t_sep, np.inf)]]
+                robot_data_args = [[l, robot_data_path, ["timestamp", "actual_q_#", "actual_current_#"], (0, t_sep)],
+                                   [l, robot_data_path, ["timestamp", "actual_q_#", "actual_current_#"], (t_sep, np.inf)]]
                 with Pool() as p:  # Compute using multiple processes
                     robot_data_touple = p.map(self._load_robot_data_parallel, robot_data_args)
                 self.robot_data_calibration, self.robot_data_validation = robot_data_touple
             else:
-                self.robot_data_calibration = RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(0, t_sep))
-                self.robot_data_validation = RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=(t_sep, np.inf))
+                self.robot_data_calibration = RobotData(l, robot_data_path, delimiter=' ', fields=["timestamp", "actual_q_#", "actual_current_#"], interpolate_missing_samples=True, desired_timeframe=(0, t_sep), )
+                self.robot_data_validation = RobotData(l, robot_data_path, delimiter=' ', fields=["timestamp", "actual_q_#", "actual_current_#"], interpolate_missing_samples=True, desired_timeframe=(t_sep, np.inf))
         elif relative_separation_of_calibration_and_prediction is None and robot_data_predict is not None:
             """Using two datasets, one for calibration and one for validation."""
-            self.robot_data_calibration = RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True)
+            self.robot_data_calibration = RobotData(l, robot_data_path, delimiter=' ', fields=["timestamp", "actual_q_#", "actual_current_#"], interpolate_missing_samples=True)
             self.robot_data_validation = robot_data_predict
         else:
-            # exit here? call __del__()?
             self.logger.error("A wrong combination of arguments was provided.")
         
         q_m = np.array([self.robot_data_calibration.data[f"actual_q_{j}"] for j in range(1, self.robot_dynamics.n_joints + 1)])
@@ -66,17 +65,25 @@ class RobotCalibration:
         self.number_of_samples_in_downsampled_data = None
         self.qdd_expr = None
     
-    def _load_robot_data_parallel(self, args):
+    def _load_robot_data_parallel(self, args) -> RobotData:
         l = args[0]
         robot_data_path = args[1]
-        timeframe = args[2]
+        fields = args[2]
+        timeframe = args[3]
 
-        return RobotData(l, robot_data_path, delimiter=' ', interpolate_missing_samples=True, desired_timeframe=timeframe)
+        return RobotData(l, robot_data_path, delimiter=' ', fields=fields, interpolate_missing_samples=True, desired_timeframe=timeframe)
 
     def _measurement_vector(self, robot_data: RobotData, start_index=None, end_index=None, downsample=True) -> np.ndarray:
+        """
+        This method does;
+        1) loads the (n_joints x n_samples) array of actuator currents, 
+        2) filters - and possibly downsamples - each of the 'n_joints' currents, and
+        3) flattens the array to (n_joints*n_samples x 1) - or if downsampled to (n_joints*n_samples_ds x 1).
+        """
+
         i = np.array([robot_data.data[f"actual_current_{j}"] for j in range(1, self.robot_dynamics.n_joints + 1)]).T
         i_pf = RobotCalibration._parallel_filter(i, robot_data.dt_nominal, RobotCalibration.f_dyn)[start_index:end_index, :]
-
+        i_pf = i_pf[1:-1, :]  # truncate first and last sample to be consistent with filtered and differentiated trajectory data
         if downsample:
             i_pf = RobotCalibration._downsample(i_pf, self.downsampling_factor)
             
@@ -84,14 +91,14 @@ class RobotCalibration:
 
     def _observation_matrix(self, robot_data: RobotData, gravity, start_index=None, end_index=None, downsample=True) -> np.ndarray:
         q_m: np.ndarray = np.array([robot_data.data[f"actual_q_{j}"] for j in range(1, self.robot_dynamics.n_joints + 1)])
-
         # Low-pass filter (smoothen) measured angular position(s) and obtain 1st and 2nd order time-derivatives
         q_tf, qd_tf, qdd_tf = RobotCalibration._trajectory_filtering_and_central_difference(q_m, 
                                                                                             robot_data.dt_nominal,
                                                                                             RobotCalibration.f_dyn,
                                                                                             start_index,
                                                                                             end_index)
-
+        print(gravity)
+        print(self.robot_dynamics.rigid_body_dynamics._g_num)                                                                                            
         if not all(gravity == self.robot_dynamics.rigid_body_dynamics._g_num):
             self.robot_dynamics.rigid_body_dynamics.instantiate_gravity(gravity)
             self.robot_dynamics.rigid_body_dynamics.name += f"_gravity={gravity}"
@@ -99,12 +106,13 @@ class RobotCalibration:
         
         if downsample:
             # No. of samples in downsampled data
-            n_samples = self._measurement_vector(robot_data, start_index=start_index, end_index=end_index, downsample=downsample).shape[0] // self.robot_dynamics.n_joints  
+            n_samples = self._downsample(q_tf[0, :].T, self.downsampling_factor).size
         else:
             n_samples = q_tf.shape[1]  # No. of samples in non-downsampled data
 
         observation_matrix = np.zeros((self.robot_dynamics.n_joints * n_samples,
                                        sum(self.robot_dynamics.number_of_parameters())))  # Initialization
+        
         states_num = np.empty((q_tf.shape[0] + qd_tf.shape[0] + qdd_tf.shape[0], q_tf.shape[1]))
         states_num[0::3, :] = q_tf
         states_num[1::3, :] = qd_tf
@@ -277,8 +285,7 @@ class RobotCalibration:
         observation_matrix = self._observation_matrix(data, gravity)
         n_samples = observation_matrix.shape[0] // self.robot_dynamics.n_joints
         estimated_data = np.reshape(observation_matrix @ parameters, (self.robot_dynamics.n_joints, n_samples))
-        measured_data = np.reshape(self._measurement_vector(data),
-                                              (self.robot_dynamics.n_joints, n_samples))
+        measured_data = np.reshape(self._measurement_vector(data), (self.robot_dynamics.n_joints, n_samples))
         #error = measured_data - estimated_data
         t_data = np.linspace(0, data.dt_nominal * self.downsampling_factor * n_samples, n_samples)
         return t_data, measured_data, estimated_data
@@ -299,7 +306,6 @@ class RobotCalibration:
 
         for j in range(n_joints):
             plt.plot(t, qd_tf[j, :], color=plot_colors[j], label=f"actual_q{j}_filtered")
-            # plt.plot(t, self.robot_data_calibration.data[f"target_qd_{j+1}"], color=plot_colors[j], label=f"target_q{j}")
         
         # plot non-static indices
         ymin, ymax = plt.gca().get_ylim()
@@ -464,7 +470,7 @@ class RobotCalibration:
         down-sampling, but for IIR filters unfortunately only the Chebyshev filter is available which has (unwanted) ripple
         in the passband unlike the Butterworth filter that we use. The approach for downsampling is simply picking every
         downsampling_factor'th sample of the data."""
-        return y[::downsampling_factor, :]
+        return y[::downsampling_factor, :] if y.ndim > 1 else y[::downsampling_factor]
 
     @staticmethod
     def _parallel_filter(y: np.ndarray, dt, f_dyn) -> np.ndarray:
