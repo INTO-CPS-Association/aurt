@@ -71,7 +71,6 @@ For showing the calibration plot, use the argument `--plot`.
 
 The measured data should contain the following fields:
 - `timestamp` of type float, representing the number of seconds passed from a given reference point.
-- `target_qd_j` of type float, representing the `j`th joint target angular velocity, as computed by the robot controller, where `j` is an integer in `{0, 1, ..., N}`.
 - `actual_q_j` of type float, representing the `j`th joint angle, as measured by the robot controller, where `j` is an integer in `{0, 1, ..., N}`.
 - `actual_current_j` of type float, representing the `j`th joint current, as measured by the robot controller, where `j` is an integer in `{0, 1, ..., N}`.
 
@@ -107,7 +106,7 @@ Two types of FMUs are available distinguished by the model type, i.e. which quan
 <img src="https://render.githubusercontent.com/render/math?math=\mathbf{\dot{q}}">, thus initial values 
 <img src="https://render.githubusercontent.com/render/math?math=\mathbf{q}(0)"> and
 <img src="https://render.githubusercontent.com/render/math?math=\mathbf{\dot{q}}(0)"> need be provided. If any joint torque-dependent friction model is present it will be removed, i.e. for each joint the friction <img src="https://render.githubusercontent.com/render/math?math=f(\dot{q}, \tau_J(\mathbf{q}, \dot{\mathbf{q}}, \ddot{\mathbf{q}})) \to f(\dot{q})">, because otherwise it would not be possible to obtain the closed-form expression
-<img src="https://render.githubusercontent.com/render/math?math=\mathbf{\ddot{q}}=\mathbf{M}^{-1}(\mathbf{q})(\boldsymbol{\tau}-\mathbf{C}(\mathbf{q}, \dot{\mathbf{q}}))\,\dot{\mathbf{q}} - \mathbf{g}(\mathbf{q}) - \mathbf{f}(\dot{\mathbf{q}}))">.
+<img src="https://render.githubusercontent.com/render/math?math=\mathbf{\ddot{q}}=\mathbf{M}^{-1}(\mathbf{q})(\boldsymbol{\tau}-\mathbf{C}(\mathbf{q}, \dot{\mathbf{q}})\,\dot{\mathbf{q}} - \mathbf{g}(\mathbf{q}) - \mathbf{f}(\dot{\mathbf{q}}))">.
 2. Inverse Dynamics Model (IDM). It's a closed-form expression with inputs <img src="https://render.githubusercontent.com/render/math?math=\mathbf{q}">, 
 <img src="https://render.githubusercontent.com/render/math?math=\mathbf{\dot{q}}">, and 
 <img src="https://render.githubusercontent.com/render/math?math=\mathbf{\ddot{q}}"> and output
