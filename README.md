@@ -62,10 +62,10 @@ The friction configuration options are:
 ## Calibrate
 
 ```
-aurt calibrate --model robot_dynamics --data measured_data.csv --gravity 0 0 -9.81 --out-params calibrated_parameters.csv --out-calibrated-model rd_calibrated --plot
+aurt calibrate --model robot_dynamics --data measured_data.csv --gravity GX GY GZ --out-params calibrated_parameters.csv --out-calibrated-model rd_calibrated --plot
 ```
 
-Reads; 1) the model produced by the `compile-rd` command, 2) the measured data in `measured_data.csv`, and 3) the gravity components `GX GY GZ` and writes; 1) the values of the calibrated base parameters to `calibrated_parameters.csv` and 2) the calibrated robot dynamics model to `rd_calibrated`.
+Reads; 1) the model produced by the `compile-rd` command, 2) the measured data in `measured_data.csv`, and 3) the gravity components `GX GY GZ` (`0 0 -9.81` if the robot is "table mounted", i.e. having the axis of rotation for the first joint parallel to the direction of the gravitational acceleration) and writes; 1) the values of the calibrated base parameters to `calibrated_parameters.csv` and 2) the calibrated robot dynamics model to `rd_calibrated`.
 The gravity vector determines the orientation of the robot base for which the parameters will be calibrated.
 For showing the calibration plot, use the argument `--plot`.
 
@@ -77,21 +77,21 @@ The measured data should contain the following fields:
 ## Predict
 
 ```
-aurt predict --model rd_calibrated --data measured_data.csv --gravity 0 0 -9.81 --out predicted_output.csv
+aurt predict --model rd_calibrated --data measured_data.csv --gravity GX GY GZ --out predicted_output.csv
 ```
 
 Reads; 1) the model produced by the `calibrate` command, 
 2) the measured data in `measured_data.csv`, and
-3) the gravity components `GX GY GZ`,
+3) the gravity components `GX GY GZ`, e.g. `0 0 -9.81` if the robot is "table mounted", i.e. having the axis of rotation for the first joint parallel to the direction of the gravitational acceleration,
 and writes the predicted output to `predicted_output.csv`.
 
 The prediction fields are:
 - `timestamp` of type float, referring to the time of the measured data, as in [Calibrate](#predict).
-- `predicted_current_j` of type float, representing the `j`th joint current, as predicted by the robot model, where `j` is an integer in `{0, 1, ..., N}`.
+- `predicted_current_j` of type float, representing the `j`th joint current as predicted by the model `rd_calibrated`, where `j` is an integer in `{0, 1, ..., N}`.
 
 ## Calibrate and Validate
 ```
-aurt calibrate-validate --model robot_dynamics --data measured_data.csv --gravity 0 0 -9.81 --calibration-data-rel FRACTION --out-params calibrated_parameters.csv --out-calibrated-model rd_calibrated --out-prediction predicted_output.csv --plot
+aurt calibrate-validate --model robot_dynamics --data measured_data.csv --gravity GX GY GZ --calibration-data-rel FRACTION --out-params calibrated_parameters.csv --out-calibrated-model rd_calibrated --out-prediction predicted_output.csv --plot
 ```
 Simultaneously calibrates and validates the robot dynamics model using the dataset `measured_data.csv`. 
 The command implements the functionalities of the commands `calibrate` and `predict`. 
@@ -110,7 +110,7 @@ Two types of FMUs are available distinguished by the model type, i.e. which quan
 2. Inverse Dynamics Model (IDM). It's a closed-form expression with inputs <img src="https://render.githubusercontent.com/render/math?math=\mathbf{q}">, 
 <img src="https://render.githubusercontent.com/render/math?math=\mathbf{\dot{q}}">, and 
 <img src="https://render.githubusercontent.com/render/math?math=\mathbf{\ddot{q}}"> and output
-<img src="https://render.githubusercontent.com/render/math?math=\boldsymbol{\tau}">. The output <img src="https://render.githubusercontent.com/render/math?math=\boldsymbol{\tau}=\mathbf{M}(\mathbf{q})\mathbf{\ddot{q}}%2B \mathbf{C}(\mathbf{q},\dot{\mathbf{q}})\dot{\mathbf{q}}%2B \mathbf{g}(\mathbf{q}) %2B \mathbf{f}(\dot{\mathbf{q}})">
+<img src="https://render.githubusercontent.com/render/math?math=\boldsymbol{\tau}">. The output <img src="https://render.githubusercontent.com/render/math?math=\boldsymbol{\tau}=\mathbf{M}(\mathbf{q})\mathbf{\ddot{q}}%2B \mathbf{C}(\mathbf{q},\dot{\mathbf{q}})\dot{\mathbf{q}}%2B \mathbf{g}(\mathbf{q}) %2B \mathbf{f}(\dot{\mathbf{q}}, \boldsymbol{\tau}_\mathrm{J}(\mathbf{q}, \dot{\mathbf{q}}, \ddot{\mathbf{q}}))"> with <img src="https://render.githubusercontent.com/render/math?math=\boldsymbol{\tau}_\mathrm{J}(\mathbf{q}, \dot{\mathbf{q}}, \ddot{\mathbf{q}}) = \mathbf{M}(\mathbf{q})\mathbf{\ddot{q}}%2B \mathbf{C}(\mathbf{q},\dot{\mathbf{q}})\dot{\mathbf{q}}%2B \mathbf{g}(\mathbf{q})">.
 
 To generate an FMU:
 1. Copy or move the calibrated robot dynamics model `rd_calibrated.pickle` to either of the folders `./fmu/forward_dynamics/resources/` or `./fmu/inverse_dynamics/resources/` depending on the desired FMU type. Note that the filename of the robot dynamics _must_ be `rd_calibrated.pickle`.
